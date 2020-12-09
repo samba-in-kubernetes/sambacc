@@ -48,15 +48,28 @@ class NetCmdLoader:
         cli, proc = self._netcmd("list", stdout=out)
         self._check(cli, proc)
 
+    def _parse_shares(self, fh):
+        out = []
+        for line in fh.readlines():
+            line = line.strip().decode('utf8')
+            if line == 'global':
+                continue
+            out.append(line)
+        return out
+
     def current_shares(self):
         """Returns a list of current shares.
         """
         cli, proc = self._netcmd("listshares", stdout=subprocess.PIPE)
         # read and parse shares list
-        self._check(cli, proc)
+        try:
+            shares = self._parse_shares(proc.stdout)
+        finally:
+            self._check(cli, proc)
+        return shares
 
     def set(self, section, param, value):
         """Set an individual config parameter.
         """
-        cli, proc = self._netcmd("steparm", section, param, value)
+        cli, proc = self._netcmd("setparm", section, param, value)
         self._check(cli, proc)
