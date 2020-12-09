@@ -59,18 +59,18 @@ config1 = """
 }
 """
 
+
 @pytest.fixture(scope="function")
 def testloader(tmp_path):
-    print("XXXXYYYY", tmp_path)
     data_path = tmp_path / "_samba"
     data_path.mkdir()
     smb_conf_path = tmp_path / "smb.conf"
-    with open(smb_conf_path, 'w') as fh:
+    with open(smb_conf_path, "w") as fh:
         fh.write(smb_conf.format(path=data_path))
 
-    l = sambacc.netcmd_loader.NetCmdLoader()
-    l.cmd_prefix = ['net', '--configfile={}'.format(smb_conf_path), 'conf']
-    return l
+    ldr = sambacc.netcmd_loader.NetCmdLoader()
+    ldr.cmd_prefix = ["net", "--configfile={}".format(smb_conf_path), "conf"]
+    return ldr
 
 
 def test_import(testloader):
