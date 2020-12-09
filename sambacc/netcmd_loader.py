@@ -51,8 +51,8 @@ class NetCmdLoader:
     def _parse_shares(self, fh):
         out = []
         for line in fh.readlines():
-            line = line.strip().decode('utf8')
-            if line == 'global':
+            line = line.strip().decode("utf8")
+            if line == "global":
                 continue
             out.append(line)
         return out
