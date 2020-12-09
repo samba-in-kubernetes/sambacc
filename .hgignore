@@ -1,4 +1,8 @@
 .venv
+.tox
 .egg-info
 __pycache__
+htmlcov
+\.coverage$
+\.pytest_cache
 \.swp$
