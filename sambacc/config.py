@@ -4,21 +4,35 @@ _VALID_VERSIONS = ["v0"]
 
 
 def read_config(fname):
-    """Read the global container config from the given filename.
+    """Deprecated. Remove."""
+    return read_config_files([fname])
+
+
+def read_config_files(fnames):
+    """Read the global container config from the given filenames.
     """
-    with open(fname) as fh:
-        return GlobalConfig(fh)
+    gconfig = GlobalConfig()
+    for fname in fnames:
+        with open(fname) as fh:
+            gconfig.load(fh)
+    return gconfig
 
 
 class GlobalConfig:
-    def __init__(self, source):
-        self.data = json.load(source)
+    def __init__(self, source=None):
+        self.data = {}
+        if source is not None:
+            self.load(source)
+
+    def load(self, source):
+        data = json.load(source)
         # short-cut to validate that this is something we want to consume
-        version = self.data.get("samba-container-config")
+        version = data.get("samba-container-config")
         if version is None:
             raise ValueError("Invalid config: no samba-container-config key")
         elif version not in _VALID_VERSIONS:
             raise ValueError(f"Invalid config: unknown version {version}")
+        self.data.update(data)
 
     def get(self, ident):
         iconfig = self.data["configs"][ident]
