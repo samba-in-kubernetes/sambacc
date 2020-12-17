@@ -15,12 +15,12 @@ class Fail(ValueError):
 
 
 def print_config(cli, config):
-    iconfig = config.read_config(cli.config).get(cli.identity)
+    iconfig = config.read_config_files([cli.config]).get(cli.identity)
     nc.template_config(sys.stdout, iconfig)
 
 
 def import_config(cli, config):
-    iconfig = config.read_config(cli.config).get(cli.identity)
+    iconfig = config.read_config_files([cli.config]).get(cli.identity)
     loader = nc.NetCmdLoader()
     loader.import_config(iconfig)
 

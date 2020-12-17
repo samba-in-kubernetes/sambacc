@@ -3,11 +3,6 @@ import json
 _VALID_VERSIONS = ["v0"]
 
 
-def read_config(fname):
-    """Deprecated. Remove."""
-    return read_config_files([fname])
-
-
 def read_config_files(fnames):
     """Read the global container config from the given filenames.
     """

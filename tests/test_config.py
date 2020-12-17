@@ -143,8 +143,8 @@ class TestConfig(unittest.TestCase):
         assert len(list(ic.global_options())) == (8 + 1)
 
 
-def test_read_config(tmpdir):
+def test_read_config_files(tmpdir):
     fname = tmpdir / "sample.json"
     with open(fname, "w") as fh:
         fh.write(config1)
-    sambacc.config.read_config(fname)
+    sambacc.config.read_config_files([fname])
