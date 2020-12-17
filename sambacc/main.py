@@ -15,12 +15,12 @@ class Fail(ValueError):
 
 
 def print_config(cli, config):
-    iconfig = config.read_config_files([cli.config]).get(cli.identity)
+    iconfig = config.read_config_files(cli.config).get(cli.identity)
     nc.template_config(sys.stdout, iconfig)
 
 
 def import_config(cli, config):
-    iconfig = config.read_config_files([cli.config]).get(cli.identity)
+    iconfig = config.read_config_files(cli.config).get(cli.identity)
     loader = nc.NetCmdLoader()
     loader.import_config(iconfig)
 
@@ -28,40 +28,40 @@ def import_config(cli, config):
 default_cfunc = print_config
 
 
-def from_env(varname, default=None, help=None):
-    def _convert(v):
-        if not v:
-            v = os.environ.get(varname, "")
-        if not v and default is not None:
-            v = default
-        return str(v)
+def from_env(ns, var, ename, default=None, vtype=str):
+    value = getattr(ns, var, None)
+    if not value:
+        value = os.environ.get(ename, "")
+    if vtype is not None:
+        value = vtype(value)
+    if value:
+        setattr(ns, var, value)
 
-    if help:
-        chelp = f"{help} (equivalent to setting {varname})"
-    else:
-        chelp = None
-    return {
-        "type": _convert,
-        "default": "",
-        "help": chelp,
-    }
+
+def split_paths(value):
+    if not value:
+        return value
+    if not isinstance(value, list):
+        value = [value]
+    out = []
+    for v in value:
+        for part in v.split(":"):
+            out.append(part)
+    return value
 
 
 def main(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        **from_env(
-            "SAMBACC_CONFIG",
-            default=DEFAULT_CONFIG,
-            help="Specify source configuration",
-        ),
+        action="append",
+        help="Specify source configuration (or env var SAMBACC_CONFIG)",
     )
     parser.add_argument(
         "--identity",
-        **from_env(
-            "SAMBA_CONTAINER_ID",
-            help="A string identifying the local idententy",
+        help=(
+            "A string identifying the local identity"
+            " (or env var SAMBA_CONTAINER_ID"
         ),
     )
     sub = parser.add_subparsers()
@@ -70,6 +70,14 @@ def main(args=None):
     p_import = sub.add_parser("import")
     p_import.set_defaults(cfunc=import_config)
     cli = parser.parse_args(args)
+    from_env(
+        cli,
+        "config",
+        "SAMBACC_CONFIG",
+        vtype=split_paths,
+        default=DEFAULT_CONFIG,
+    )
+    from_env(cli, "identity", "SAMBA_CONTAINER_ID")
 
     if not cli.identity:
         raise Fail("missing container identity")
