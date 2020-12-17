@@ -72,6 +72,13 @@ config2 = """
       }
     }
   },
+  "users": {
+      "all_entries": [
+        {"name": "bob", "password": "notSoSafe"},
+        {"name": "alice", "password": "123fakeStreet"},
+        {"name": "carol", "nt_hash": "B784E584D34839235F6D88A5382C3821"}
+      ]
+  },
   "_extra_junk": 0
 }
 """
@@ -141,6 +148,27 @@ class TestConfig(unittest.TestCase):
         g = sambacc.config.GlobalConfig(fh)
         ic = g.get("foobar")
         assert len(list(ic.global_options())) == (8 + 1)
+
+    def test_some_users(self):
+        fh = io.StringIO(config2)
+        g = sambacc.config.GlobalConfig(fh)
+        ic = g.get("foobar")
+        users = list(ic.users())
+        assert len(users) == 3
+        assert users[0].username == "bob"
+        assert users[0].uid == 1000
+        assert users[0].gid == 1000
+        pwline = ':'.join(users[2].passwd_fields())
+        assert pwline == 'carol:x:1002:1002::/invalid:/bin/false'
+
+    def test_some_groups(self):
+        fh = io.StringIO(config2)
+        g = sambacc.config.GlobalConfig(fh)
+        ic = g.get("foobar")
+        groups = list(ic.groups())
+        assert len(groups) == 3
+        assert groups[0].groupname == "bob"
+        assert groups[0].gid == 1000
 
 
 def test_read_config_files(tmpdir):
