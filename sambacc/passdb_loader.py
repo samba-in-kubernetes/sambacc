@@ -20,7 +20,7 @@ class PassDBLoader:
     def add_user(self, user_entry):
         if not (user_entry.nt_passwd or user_entry.plaintext_passwd):
             raise ValueError(
-                "user entry {} lacks password value".format(user_entry.username)
+                f"user entry {user_entry.username} lacks password value"
             )
         # probe for an existing user, by name
         try:
