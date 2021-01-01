@@ -1,5 +1,6 @@
 import os
 
+
 class LineFileLoader:
     def __init__(self, path):
         self.path = path
@@ -20,13 +21,12 @@ class LineFileLoader:
         return f"{path}.tmp"
 
     def readfp(self, fp):
-        for line in fp:
+        for line in fp.readlines():
             self.lines.append(line)
 
     def writefp(self, fp):
         for line in self.lines:
             fp.write(line)
-            fp.write("\n")
         fp.flush()
 
 
@@ -35,7 +35,7 @@ class PasswdFileLoader(LineFileLoader):
         super().__init__(path)
 
     def add_user(self, user_entry):
-        line = ":".join(user_entry.passwd_fields())
+        line = "{}\n".format(":".join(user_entry.passwd_fields()))
         self.lines.apppend(line)
 
 
@@ -43,6 +43,6 @@ class GroupFileLoader(LineFileLoader):
     def __init__(self, path="/etc/group"):
         super().__init__(path)
 
-    def add_user(self, user_entry):
-        line = ":".join(user_entry.passwd_fields())
+    def add_group(self, group_entry):
+        line = "{}\n".format(":".join(group_entry.group_fields()))
         self.lines.apppend(line)
