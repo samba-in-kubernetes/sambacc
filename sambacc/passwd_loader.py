@@ -25,8 +25,12 @@ class LineFileLoader:
             self.lines.append(line)
 
     def writefp(self, fp):
+        prev = None
         for line in self.lines:
+            if prev and not prev.endswith("\n"):
+                fp.write("\n")
             fp.write(line)
+            prev = line
         fp.flush()
 
 
