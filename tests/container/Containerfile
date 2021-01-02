@@ -1,0 +1,16 @@
+FROM fedora
+
+RUN yum install \
+    -y --setopt=install_weak_deps=False \
+    mercurial \
+    python-pip \
+    python-pip-wheel \
+    python-setuptools \
+    python-setuptools-wheel \
+    python-tox \
+    python3-setuptools_hg \
+    python3-wheel \
+    samba-common-tools \
+    && true
+COPY build.sh /usr/local/bin/build.sh
+ENTRYPOINT ["/usr/local/bin/build.sh"]
