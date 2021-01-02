@@ -6,3 +6,5 @@ htmlcov
 \.coverage$
 \.pytest_cache
 \.swp$
+^dist/
+^build/
