@@ -6,9 +6,9 @@ import sambacc.netcmd_loader
 
 smb_conf = """
 [global]
-cache directory = {path}_samba
-state directory = {path}_samba
-private dir = {path}_samba
+cache directory = {path}
+state directory = {path}
+private dir = {path}
 include = registry
 """
 
