@@ -1,3 +1,4 @@
+import binascii
 import json
 
 _VALID_VERSIONS = ["v0"]
@@ -128,7 +129,8 @@ class UserEntry:
 
     @property
     def nt_passwd(self):
-        return self._nt_passwd
+        # the json will store the hash as a hex encoded string
+        return binascii.unhexlify(self._nt_passwd)
 
     @property
     def plaintext_passwd(self):
