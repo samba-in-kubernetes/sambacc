@@ -40,7 +40,7 @@ class PasswdFileLoader(LineFileLoader):
 
     def add_user(self, user_entry):
         line = "{}\n".format(":".join(user_entry.passwd_fields()))
-        self.lines.apppend(line)
+        self.lines.append(line)
 
 
 class GroupFileLoader(LineFileLoader):
@@ -49,4 +49,4 @@ class GroupFileLoader(LineFileLoader):
 
     def add_group(self, group_entry):
         line = "{}\n".format(":".join(group_entry.group_fields()))
-        self.lines.apppend(line)
+        self.lines.append(line)
