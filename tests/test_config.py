@@ -158,8 +158,8 @@ class TestConfig(unittest.TestCase):
         assert users[0].username == "bob"
         assert users[0].uid == 1000
         assert users[0].gid == 1000
-        pwline = ':'.join(users[2].passwd_fields())
-        assert pwline == 'carol:x:1002:1002::/invalid:/bin/false'
+        pwline = ":".join(users[2].passwd_fields())
+        assert pwline == "carol:x:1002:1002::/invalid:/bin/false"
 
     def test_some_groups(self):
         fh = io.StringIO(config2)
