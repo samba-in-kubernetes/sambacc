@@ -1,7 +1,7 @@
 #!/bin/sh
 
 python=python3
-url="http://hg.sr.ht/~phlogistonjohn/sambacc"
+url="https://hg.sr.ht/~phlogistonjohn/sambacc"
 
 mkdir -p /var/tmp/build/
 bdir="/var/tmp/build/sambacc"
