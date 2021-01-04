@@ -12,5 +12,5 @@ setup(
     entry_points={
         "console_scripts": ["samba-container=sambacc.main:main"],
     },
-    data_files=[("examples", ["examples/example1.json"]),],
+    data_files=[("examples", ["examples/example1.json"])],
 )
