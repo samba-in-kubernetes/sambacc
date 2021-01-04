@@ -1,4 +1,5 @@
 import binascii
+import errno
 import json
 
 _VALID_VERSIONS = ["v0"]
@@ -6,11 +7,27 @@ _VALID_VERSIONS = ["v0"]
 
 def read_config_files(fnames):
     """Read the global container config from the given filenames.
+    At least one of the files from the fnames list must exist and contain
+    a valid config. If none of the file names exist an error will be raised.
     """
+    # NOTE: Right now if more than one config exists they'll be "merged" but
+    # the merging is very simplistic right now. Mainly we expect that the
+    # users will be split from the main config (for security reasons) but
+    # it would be nicer to have a good merge algorithm handle everything
+    # smarter at some point.
     gconfig = GlobalConfig()
+    readfiles = set()
     for fname in fnames:
-        with open(fname) as fh:
-            gconfig.load(fh)
+        try:
+            with open(fname) as fh:
+                gconfig.load(fh)
+            readfiles.add(fname)
+        except OSError as err:
+            if getattr(err, "errno", 0) != errno.ENOENT:
+                raise
+    if not readfiles:
+        # we read nothing! don't proceed
+        raise ValueError(f"None of the config file paths exist: {fnames}")
     # Verify that we loaded something
     check_config_data(gconfig.data)
     return gconfig
