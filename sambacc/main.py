@@ -99,7 +99,7 @@ def split_paths(value):
     for v in value:
         for part in v.split(":"):
             out.append(part)
-    return value
+    return out
 
 
 def main(args=None):
