@@ -11,7 +11,24 @@ def read_config_files(fnames):
     for fname in fnames:
         with open(fname) as fh:
             gconfig.load(fh)
+    # Verify that we loaded something
+    check_config_data(gconfig.data)
     return gconfig
+
+
+def check_config_data(data):
+    """Return the config data or raise a ValueError if the config
+    is invalid or incomplete.
+    """
+    # short-cut to validate that this is something we want to consume
+    version = data.get("samba-container-config")
+    if version is None:
+        raise ValueError("Invalid config: no samba-container-config key")
+    elif version not in _VALID_VERSIONS:
+        raise ValueError(f"Invalid config: unknown version {version}")
+    if "configs" not in data:
+        raise ValueError("Incomplete config: no 'configs' section found")
+    return data
 
 
 class GlobalConfig:
@@ -21,13 +38,7 @@ class GlobalConfig:
             self.load(source)
 
     def load(self, source):
-        data = json.load(source)
-        # short-cut to validate that this is something we want to consume
-        version = data.get("samba-container-config")
-        if version is None:
-            raise ValueError("Invalid config: no samba-container-config key")
-        elif version not in _VALID_VERSIONS:
-            raise ValueError(f"Invalid config: unknown version {version}")
+        data = check_config_data(json.load(source))
         self.data.update(data)
 
     def get(self, ident):
