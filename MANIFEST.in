@@ -1,0 +1,2 @@
+# Include example files
+recursive-include examples *
