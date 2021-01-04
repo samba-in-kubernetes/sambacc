@@ -14,7 +14,7 @@
   "shares": {
     "share": {
       "options": {
-        "path": "/mnt/examples",
+        "path": "/share",
         "valid users": "sambauser, otheruser"
       }
     }
