@@ -61,6 +61,22 @@ def init_container(cli, config):
     import_users(cli, config)
 
 
+def run_container(cli, config):
+    if not getattr(cli, "no_init", False):
+        init_container(cli, config)
+    if cli.target == "smbd":
+        # execute smbd process
+        cmd = [
+            "/usr/sbin/smbd",
+            "--foreground",
+            "--log-stdout",
+            "--no-process-group",
+        ]
+        os.execvp(cmd[0], cmd)
+    else:
+        raise Fail(f"invalid target process: {cli.target}")
+
+
 default_cfunc = print_config
 
 
@@ -115,6 +131,14 @@ def main(args=None):
     p_import_users.set_defaults(cfunc=import_users)
     p_init = sub.add_parser("init")
     p_init.set_defaults(cfunc=init_container)
+    p_run = sub.add_parser("run")
+    p_run.set_defaults(cfunc=run_container)
+    p_run.add_argument(
+        "--no-init",
+        action="store_true",
+        help="Do not initilize the container envionment. Only start running the target process.",
+    )
+    p_run.add_argument("target", choices=["smbd"], help="Which process to run")
     cli = parser.parse_args(args)
     from_env(
         cli,
