@@ -17,12 +17,14 @@ class Fail(ValueError):
 
 
 def print_config(cli, config):
-    iconfig = config.read_config_files(cli.config).get(cli.identity)
+    cfgs = cli.config or []
+    iconfig = config.read_config_files(cfgs).get(cli.identity)
     nc.template_config(sys.stdout, iconfig)
 
 
 def import_config(cli, config):
-    iconfig = config.read_config_files(cli.config).get(cli.identity)
+    cfgs = cli.config or []
+    iconfig = config.read_config_files(cfgs).get(cli.identity)
     loader = nc.NetCmdLoader()
     loader.import_config(iconfig)
 
@@ -32,7 +34,8 @@ def import_users(cli, config):
     config files and samba passdb. This enables the configured users
     to log into the smbd instance.
     """
-    iconfig = config.read_config_files(cli.config).get(cli.identity)
+    cfgs = cli.config or []
+    iconfig = config.read_config_files(cfgs).get(cli.identity)
     etc_passwd_loader = ugl.PasswdFileLoader(cli.etc_passwd_path)
     etc_group_loader = ugl.GroupFileLoader(cli.etc_group_path)
     smb_passdb_loader = passdb.PassDBLoader()
