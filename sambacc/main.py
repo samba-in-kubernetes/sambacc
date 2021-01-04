@@ -136,7 +136,10 @@ def main(args=None):
     p_run.add_argument(
         "--no-init",
         action="store_true",
-        help="Do not initilize the container envionment. Only start running the target process.",
+        help=(
+            "Do not initilize the container envionment."
+            " Only start running the target process."
+        ),
     )
     p_run.add_argument("target", choices=["smbd"], help="Which process to run")
     cli = parser.parse_args(args)
