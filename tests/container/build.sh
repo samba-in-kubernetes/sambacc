@@ -14,6 +14,12 @@ fi
 
 set -e
 cd "$bdir"
+
+if [ "$1" ]; then
+    # a revision id was specified on the cli
+    hg update --check "$1"
+fi
+
 tox
 
 $python setup.py sdist
