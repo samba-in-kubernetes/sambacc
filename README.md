@@ -79,3 +79,9 @@ or in CI, but it needs fleshing out.
 GPLv3 as per the COPYING file.
 
 This is the same license as used by Samba.
+
+
+## Contributing/Contact
+
+If you're reading this, you're probably one of my coworkers.
+For now, please email me directly (even if you're not).
