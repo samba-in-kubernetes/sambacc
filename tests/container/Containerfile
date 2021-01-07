@@ -12,6 +12,7 @@ RUN yum install \
     python3-setuptools_hg \
     python3-wheel \
     samba-common-tools \
+    && yum clean all \
     && true
 COPY build.sh /usr/local/bin/build.sh
 ENTRYPOINT ["/usr/local/bin/build.sh"]
