@@ -8,6 +8,7 @@ RUN yum install \
     python-setuptools \
     python-setuptools-wheel \
     python-tox \
+    python3-samba \
     python3-setuptools_hg \
     python3-wheel \
     samba-common-tools \
