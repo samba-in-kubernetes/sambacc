@@ -225,6 +225,19 @@ class TestConfig(unittest.TestCase):
         assert ue.plaintext_passwd == ""
         assert ue.nt_passwd == b"THISisIMPOSSIBLE"
 
+    def test_group_entry_fields(self):
+        fh = io.StringIO(config2)
+        g = sambacc.config.GlobalConfig(fh)
+        ic = g.get("foobar")
+
+        rec = {"name": "hackers", "gid": 2200}
+        ue = sambacc.config.GroupEntry(ic, rec, 0)
+        assert ue.gid == 2200
+
+        rec = {"name": "hackers"}
+        ue = sambacc.config.GroupEntry(ic, rec, 20)
+        assert ue.gid == 1020
+
 
 def test_read_config_files(tmpdir):
     fname = tmpdir / "sample.json"
