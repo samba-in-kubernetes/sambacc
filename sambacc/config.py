@@ -119,9 +119,10 @@ class InstanceConfig:
         user_gids = {u.gid: u for u in self.users()}
         all_groups = self.gconfig.data.get("groups", {}).get("all_entries", {})
         for n, entry in enumerate(all_groups):
-            if entry.gid() in user_gids:
-                del user_gids[entry.gid()]
-            yield GroupEntry(self, entry, n)
+            ge = GroupEntry(self, entry, n)
+            if ge.gid in user_gids:
+                del user_gids[ge.gid]
+            yield ge
         for uentry in user_gids.values():
             yield uentry.vgroup()
 
