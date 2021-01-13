@@ -102,6 +102,62 @@ config2 = """
 }
 """
 
+config3 = """
+{
+  "samba-container-config": "v0",
+  "configs": {
+    "foobar": {
+      "shares": [
+        "share"
+      ],
+      "globals": ["global0"],
+      "instance_name": "RANDOLPH"
+    }
+  },
+  "shares": {
+    "share": {
+      "options": {
+        "path": "/share",
+        "read only": "no",
+        "valid users": "sambauser",
+        "guest ok": "no",
+        "force user": "root"
+      }
+    }
+  },
+  "globals": {
+    "global0": {
+      "options": {
+        "workgroup": "SAMBA",
+        "security": "user",
+        "server min protocol": "SMB2",
+        "load printers": "no",
+        "printing": "bsd",
+        "printcap name": "/dev/null",
+        "disable spoolss": "yes",
+        "guest ok": "no"
+      }
+    }
+  },
+  "users": {
+      "all_entries": [
+        {"name": "bob", "uid": 2000, "gid": 2000,
+         "password": "notSoSafe"},
+        {"name": "alice","uid": 2001, "gid": 2001,
+         "password": "123fakeStreet"},
+        {"name": "carol",
+         "nt_hash": "B784E584D34839235F6D88A5382C3821"}
+      ]
+  },
+  "groups": {
+      "all_entries": [
+        {"name": "bobs", "gid": 2000},
+        {"name": "alii", "gid": 2001}
+      ]
+  }
+}
+"""
+
 
 class TestConfig(unittest.TestCase):
     def test_non_json(self):
@@ -237,6 +293,19 @@ class TestConfig(unittest.TestCase):
         rec = {"name": "hackers"}
         ue = sambacc.config.GroupEntry(ic, rec, 20)
         assert ue.gid == 1020
+
+    def test_explicitly_defined_groups(self):
+        fh = io.StringIO(config3)
+        g = sambacc.config.GlobalConfig(fh)
+        ic = g.get("foobar")
+        groups = list(ic.groups())
+        assert len(groups) == 3
+        assert groups[0].groupname == "bobs"
+        assert groups[0].gid == 2000
+        assert groups[1].groupname == "alii"
+        assert groups[1].gid == 2001
+        assert groups[2].groupname == "carol"
+        assert groups[2].gid == 1002
 
 
 def test_read_config_files(tmpdir):
