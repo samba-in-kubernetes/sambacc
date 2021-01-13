@@ -18,6 +18,7 @@
 
 import io
 import os
+import pytest
 import unittest
 
 import sambacc.config
@@ -194,3 +195,24 @@ def test_read_config_files(tmpdir):
     with open(fname, "w") as fh:
         fh.write(config1)
     sambacc.config.read_config_files([fname])
+
+
+def test_read_config_files_noexist(tmpdir):
+    fake1 = tmpdir / "fake1"
+    fake2 = tmpdir / "fake2"
+    with pytest.raises(ValueError):
+        sambacc.config.read_config_files([fake1, fake2])
+
+
+def test_read_config_files_realerr(tmpdir):
+    fname = tmpdir / "sample.json"
+    with open(fname, "w") as fh:
+        fh.write(config1)
+    # Prevent reading of the file to test any other error than
+    # ENOENT is raised.
+    os.chmod(fname, 0o333)
+    try:
+        with pytest.raises(OSError):
+            sambacc.config.read_config_files([fname])
+    finally:
+        os.unlink(fname)
