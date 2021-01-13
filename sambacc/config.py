@@ -65,8 +65,6 @@ def check_config_data(data):
         raise ValueError("Invalid config: no samba-container-config key")
     elif version not in _VALID_VERSIONS:
         raise ValueError(f"Invalid config: unknown version {version}")
-    if "configs" not in data:
-        raise ValueError("Incomplete config: no 'configs' section found")
     return data
 
 
