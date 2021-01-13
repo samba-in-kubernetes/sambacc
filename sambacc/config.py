@@ -207,6 +207,7 @@ class GroupEntry:
     def __init__(self, iconf, grec, num):
         self.iconfig = iconf
         self.groupname = grec["name"]
+        self.entry_num = num
         self._gid = grec.get("gid")
         if self._gid is not None:
             if not isinstance(self._gid, int):
