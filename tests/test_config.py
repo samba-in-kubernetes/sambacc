@@ -189,6 +189,14 @@ class TestConfig(unittest.TestCase):
         assert groups[0].groupname == "bob"
         assert groups[0].gid == 1000
 
+    def test_invalid_user_entry(self):
+        rec = {"name": "foo", "uid": "fred"}
+        with pytest.raises(ValueError):
+            sambacc.config.UserEntry(None, rec, 0)
+        rec = {"name": "foo", "uid": 2200, "gid": "beep"}
+        with pytest.raises(ValueError):
+            sambacc.config.UserEntry(None, rec, 0)
+
 
 def test_read_config_files(tmpdir):
     fname = tmpdir / "sample.json"
