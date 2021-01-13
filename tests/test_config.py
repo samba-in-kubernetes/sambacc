@@ -336,3 +336,13 @@ def test_read_config_files_realerr(tmpdir):
             sambacc.config.read_config_files([fname])
     finally:
         os.unlink(fname)
+
+
+def test_tesd_config_files_realerr_rootok(monkeypatch):
+    def err_open(p):
+        raise OSError("test!")
+
+    monkeypatch.setattr(sambacc.config, "_open", err_open)
+    fname = "/etc/foobar"
+    with pytest.raises(OSError):
+        sambacc.config.read_config_files([fname])
