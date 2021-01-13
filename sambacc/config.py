@@ -22,6 +22,10 @@ import json
 
 _VALID_VERSIONS = ["v0"]
 
+# alias open to _open to support test assertions when running
+# as UID 0
+_open = open
+
 
 def read_config_files(fnames):
     """Read the global container config from the given filenames.
@@ -37,7 +41,7 @@ def read_config_files(fnames):
     readfiles = set()
     for fname in fnames:
         try:
-            with open(fname) as fh:
+            with _open(fname) as fh:
                 gconfig.load(fh)
             readfiles.add(fname)
         except OSError as err:
