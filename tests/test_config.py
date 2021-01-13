@@ -202,6 +202,29 @@ class TestConfig(unittest.TestCase):
         with pytest.raises(ValueError):
             sambacc.config.GroupEntry(None, rec, 0)
 
+    def test_user_entry_fields(self):
+        fh = io.StringIO(config2)
+        g = sambacc.config.GlobalConfig(fh)
+        ic = g.get("foobar")
+        rec = {"name": "jim", "uid": 2200, "gid": 2200}
+        ue = sambacc.config.UserEntry(ic, rec, 0)
+        assert ue.uid == 2200
+        assert ue.gid == 2200
+        assert ue.plaintext_passwd == ""
+
+        rec = {"name": "jim", "password": "letmein"}
+        ue = sambacc.config.UserEntry(ic, rec, 10)
+        assert ue.uid == 1010
+        assert ue.gid == 1010
+        assert ue.plaintext_passwd == "letmein"
+
+        rec = {"name": "jim", "nt_hash": "544849536973494D504F535349424C45"}
+        ue = sambacc.config.UserEntry(ic, rec, 10)
+        assert ue.uid == 1010
+        assert ue.gid == 1010
+        assert ue.plaintext_passwd == ""
+        assert ue.nt_passwd == b"THISisIMPOSSIBLE"
+
 
 def test_read_config_files(tmpdir):
     fname = tmpdir / "sample.json"
