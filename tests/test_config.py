@@ -323,6 +323,8 @@ def test_read_config_files_noexist(tmpdir):
 
 
 def test_read_config_files_realerr(tmpdir):
+    if os.getuid() == 0:
+        pytest.skip("test invalid when uid=0")
     fname = tmpdir / "sample.json"
     with open(fname, "w") as fh:
         fh.write(config1)
