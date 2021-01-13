@@ -101,6 +101,9 @@ def test_add_group():
     gfl = sambacc.passwd_loader.GroupFileLoader()
     for g in groups:
         gfl.add_group(g)
+    # test that duplicates don't add extra lines
+    for g in groups:
+        gfl.add_group(g)
     assert len(gfl.lines) == 3
     fh2 = io.StringIO()
     gfl.writefp(fh2)
@@ -135,6 +138,9 @@ def test_write_passwd_file(tmp_path):
 
     pfl = sambacc.passwd_loader.PasswdFileLoader(fname)
     pfl.read()
+    for u in users:
+        pfl.add_user(u)
+    # test that duplicates don't add extra lines
     for u in users:
         pfl.add_user(u)
     assert len(pfl.lines) == 17
