@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build test container
-      run: docker build build  -t sambacc:ci  tests/container/
+      run: docker build  -t sambacc:ci  tests/container/
     - name: Run test container
       run: docker -v $PWD:/var/tmp/build/sambacc sambacc:ci
 
