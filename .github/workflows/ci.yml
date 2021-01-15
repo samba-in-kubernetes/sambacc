@@ -1,0 +1,21 @@
+
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: 1 1 * * *
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build test container
+      run: docker build build  -t sambacc:ci  tests/container/
+    - name: Run test container
+      run: docker -v $PWD:/var/tmp/build/sambacc sambacc:ci
+
