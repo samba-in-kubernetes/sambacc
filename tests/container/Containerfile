@@ -2,6 +2,7 @@ FROM fedora
 
 RUN yum install \
     -y --setopt=install_weak_deps=False \
+    git \
     mercurial \
     python-pip \
     python-pip-wheel \

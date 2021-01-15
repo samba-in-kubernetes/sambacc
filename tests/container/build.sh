@@ -1,23 +1,45 @@
-#!/bin/sh
-
-python=python3
-url="https://hg.sr.ht/~phlogistonjohn/sambacc"
-
-mkdir -p /var/tmp/build/
-bdir="/var/tmp/build/sambacc"
-
-if [ -d "$bdir" ] && hg --cwd "$bdir" log -r. ; then
-    echo "repo already checked out"
-else
-    hg clone "$url" "$bdir"
-fi
+#!/bin/bash
 
 set -e
-cd "$bdir"
+
+python=python3
+url="https://github.com/phlogistonjohn/sambacc"
+bdir="/var/tmp/build/sambacc"
+
+checked_out() {
+    local d="$1"
+    # allow manual clones with either git or hg
+    [[ -d "$d" && ( -d "$d/.git" || -d "$d/.hg" ) ]]
+}
+
+clone() {
+    # if the script is doing the cloning we default to git
+    # as obnoxxx has peer-pressured me into it
+    git clone "$1" "$2"
+}
+
+update() {
+    local d="$1"
+    local node="$2"
+    if [[ -d "$d/.hg" ]]; then
+        hg update --check "${node}"
+    else
+        git checkout "${node}"
+    fi
+}
+
+mkdir -p /var/tmp/build/ || true
+if checked_out "${bdir}" ; then
+    echo "repo already checked out"
+else
+    clone "$url" "${bdir}"
+fi
+
+cd "${bdir}"
 
 if [ "$1" ]; then
-    # a revision id was specified on the cli
-    hg update --check "$1"
+    # a tag or revision id was specified on the cli
+    update "${bdir}" "$1"
 fi
 
 # Allow the tests to use customized passwd file contents in order
