@@ -44,7 +44,7 @@ Additionally, there are subcommands:
 
 Currently the only method of install is from source control.
 
-* Clone the repo: `hg clone https://hg.sr.ht/~phlogistonjohn/sambacc`
+* Clone the repo: `git clone https://github.com/phlogistonjohn/sambacc`
 * `cd sambacc`
 * Install locally: `python setup.py install --user`
 
