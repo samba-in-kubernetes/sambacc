@@ -78,7 +78,7 @@ def init_container(cli, config):
     import_users(cli, config)
 
     # should nsswitch validation/edit be conditional only on ads?
-    nss = nsswitch.NameServiceSwitchLoader('/etc/nsswitch.conf')
+    nss = nsswitch.NameServiceSwitchLoader("/etc/nsswitch.conf")
     nss.read()
     if not nss.winbind_enabled():
         nss.ensure_winbind_enabled()
