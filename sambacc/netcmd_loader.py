@@ -91,3 +91,26 @@ class NetCmdLoader:
         """
         cli, proc = self._netcmd("setparm", section, param, value)
         self._check(cli, proc)
+
+
+class Joiner:
+    cmd_prefix = ["net", "ads"]
+
+    def _netcmd(self, *args, **kwargs):
+        cmd = list(self.cmd_prefix)
+        cmd.extend(args)
+        return cmd, subprocess.Popen(cmd, **kwargs)
+
+    def join(self, username, password, dns_updates=False):
+        args = []
+        if not dns_updates:
+            args.append("--no-dns-updates")
+        args.extend(["-U", username])
+
+        cli, proc = self._netcmd("join", *args, stdin=subprocess.PIPE)
+        proc.stdin.write(_utf8(password))
+        proc.stdin.write(b"\n")
+        proc.stdin.close()
+        ret = proc.wait()
+        if ret != 0:
+            raise LoaderError("failed to run {}".format(cli))

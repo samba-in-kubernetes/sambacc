@@ -101,6 +101,17 @@ def run_container(cli, config):
         raise Fail(f"invalid target process: {cli.target}")
 
 
+def join(cli, config):
+    """Perform an insecure domain join.
+    We call this insecure because the password must be passed to
+    this tool in cleartext.
+    This is only to be used for testing, not for production.
+    """
+    # maybe in the future we'll have more secure methods
+    joiner = nc.Joiner()
+    joiner.join(cli.username, cli.password)
+
+
 default_cfunc = print_config
 
 
@@ -166,6 +177,10 @@ def main(args=None):
         ),
     )
     p_run.add_argument("target", choices=["smbd"], help="Which process to run")
+    p_join = sub.add_parser("insecure-join")
+    p_join.set_defaults(cfunc=join)
+    p_join.add_argument("--username", default="Administrator")
+    p_join.add_argument("--password", default="")
     cli = parser.parse_args(args)
     from_env(
         cli,
@@ -175,6 +190,8 @@ def main(args=None):
         default=DEFAULT_CONFIG,
     )
     from_env(cli, "identity", "SAMBA_CONTAINER_ID")
+    from_env(cli, "username", "JOIN_USERNAME")
+    from_env(cli, "password", "INSECURE_JOIN_PASSWORD")
 
     if not cli.identity:
         raise Fail("missing container identity")
