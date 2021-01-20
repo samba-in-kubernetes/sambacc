@@ -16,35 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-import os
+from .textfile import TextFileLoader
 
 
-class LineFileLoader:
+class LineFileLoader(TextFileLoader):
     def __init__(self, path):
-        self.path = path
+        super().__init__(path)
         self.lines = []
-
-    def read(self):
-        with open(self.path) as f:
-            self.readfp(f)
-
-    def write(self):
-        tpath = self._tmp_path(self.path)
-        with open(tpath, "w") as f:
-            self.writefp(f)
-        os.rename(tpath, self.path)
-
-    def _tmp_path(self, path):
-        # for later: make this smarter
-        return f"{path}.tmp"
-
-    def readfp(self, fp):
-        self.loadlines(fp.readlines())
-
-    def writefp(self, fp):
-        for line in self.dumplines():
-            fp.write(line)
-        fp.flush()
 
     def loadlines(self, lines):
         """Load in the lines from the text source.
