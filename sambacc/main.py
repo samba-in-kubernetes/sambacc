@@ -97,6 +97,17 @@ def run_container(cli, config):
             "--no-process-group",
         ]
         os.execvp(cmd[0], cmd)
+    elif cli.target == "winbindd":
+        if getattr(cli, "insecure_auto_join", False):
+            join(cli, config)
+        # execute winbind process
+        cmd = [
+            "/usr/sbin/winbindd",
+            "--foreground",
+            "--stdout",
+            "--no-process-group",
+        ]
+        os.execvp(cmd[0], cmd)
     else:
         raise Fail(f"invalid target process: {cli.target}")
 
@@ -157,6 +168,8 @@ def main(args=None):
     parser.add_argument(
         "--etc-group-path", default="/etc/group",
     )
+    parser.add_argument("--username", default="Administrator")
+    parser.add_argument("--password", default="")
     sub = parser.add_subparsers()
     p_print_config = sub.add_parser("print-config")
     p_print_config.set_defaults(cfunc=print_config)
@@ -176,11 +189,19 @@ def main(args=None):
             " Only start running the target process."
         ),
     )
-    p_run.add_argument("target", choices=["smbd"], help="Which process to run")
+    p_run.add_argument(
+        "--insecure-auto-join",
+        action="store_true",
+        help=(
+            "Perform an inscure domain join prior to starting a service."
+            " Based on env vars JOIN_USERNAME and INSECURE_JOIN_PASSWORD."
+        ),
+    )
+    p_run.add_argument(
+        "target", choices=["smbd", "winbindd"], help="Which process to run"
+    )
     p_join = sub.add_parser("insecure-join")
     p_join.set_defaults(cfunc=join)
-    p_join.add_argument("--username", default="Administrator")
-    p_join.add_argument("--password", default="")
     cli = parser.parse_args(args)
     from_env(
         cli,
