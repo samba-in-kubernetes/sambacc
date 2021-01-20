@@ -39,17 +39,28 @@ class LineFileLoader:
         return f"{path}.tmp"
 
     def readfp(self, fp):
-        for line in fp.readlines():
-            self.lines.append(line)
+        self.loadlines(fp.readlines())
 
     def writefp(self, fp):
+        for line in self.dumplines():
+            fp.write(line)
+        fp.flush()
+
+    def loadlines(self, lines):
+        """Load in the lines from the text source.
+        """
+        for line in lines:
+            self.lines.append(line)
+
+    def dumplines(self):
+        """Dump the file content as lines of text.
+        """
         prev = None
         for line in self.lines:
             if prev and not prev.endswith("\n"):
-                fp.write("\n")
-            fp.write(line)
+                yield "\n"
+            yield line
             prev = line
-        fp.flush()
 
 
 class PasswdFileLoader(LineFileLoader):
