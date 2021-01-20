@@ -22,8 +22,9 @@ import sys
 
 import sambacc.config as config
 import sambacc.netcmd_loader as nc
-import sambacc.passwd_loader as ugl
+import sambacc.nsswitch_loader as nsswitch
 import sambacc.passdb_loader as passdb
+import sambacc.passwd_loader as ugl
 
 DEFAULT_CONFIG = "/etc/samba/container/config.json"
 
@@ -75,6 +76,13 @@ def init_container(cli, config):
     """
     import_config(cli, config)
     import_users(cli, config)
+
+    # should nsswitch validation/edit be conditional only on ads?
+    nss = nsswitch.NameServiceSwitchLoader('/etc/nsswitch.conf')
+    nss.read()
+    if not nss.winbind_enabled():
+        nss.ensure_winbind_enabled()
+        nss.write()
 
 
 def run_container(cli, config):
