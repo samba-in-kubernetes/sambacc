@@ -17,5 +17,5 @@ jobs:
     - name: Build test container
       run: docker build  -t sambacc:ci  tests/container/ -f tests/container/Containerfile
     - name: Run test container
-      run: docker -v $PWD:/var/tmp/build/sambacc sambacc:ci
+      run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci
 
