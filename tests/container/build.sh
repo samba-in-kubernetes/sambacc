@@ -3,7 +3,7 @@
 set -e
 
 python=python3
-url="https://github.com/phlogistonjohn/sambacc"
+url="https://github.com/samba-in-kubernetes/sambacc"
 bdir="/var/tmp/build/sambacc"
 
 checked_out() {
@@ -27,6 +27,13 @@ update() {
         git checkout "${node}"
     fi
 }
+
+# allow customizing the repo on the cli or environment
+if [ "$2" ]; then
+    url="$2"
+elif [ "${SAMBACC_REPO_URL}" ]; then
+    url="${SAMBACC_REPO_URL}"
+fi
 
 mkdir -p /var/tmp/build/ || true
 if checked_out "${bdir}" ; then
