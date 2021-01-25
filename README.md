@@ -44,7 +44,7 @@ Additionally, there are subcommands:
 
 Currently the only method of install is from source control.
 
-* Clone the repo: `git clone https://github.com/phlogistonjohn/sambacc`
+* Clone the repo: `git clone https://github.com/samba-in-kubernetes/sambacc`
 * `cd sambacc`
 * Install locally: `python setup.py install --user`
 
