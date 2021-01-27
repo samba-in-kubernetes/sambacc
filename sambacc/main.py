@@ -162,44 +162,77 @@ def main(args=None):
     parser.add_argument(
         "--config",
         action="append",
-        help="Specify source configuration (or env var SAMBACC_CONFIG)",
+        help=(
+            "Specify source configuration"
+            " (can also be set in the environment by SAMBACC_CONFIG)."
+        ),
     )
     parser.add_argument(
         "--identity",
         help=(
             "A string identifying the local identity"
-            " (or env var SAMBA_CONTAINER_ID"
+            " (can also be set in the environment by SAMBA_CONTAINER_ID)."
         ),
     )
     parser.add_argument(
-        "--etc-passwd-path", default="/etc/passwd",
+        "--etc-passwd-path",
+        default="/etc/passwd",
+        help="Specify a path for the passwd file.",
     )
     parser.add_argument(
-        "--etc-group-path", default="/etc/group",
+        "--etc-group-path",
+        default="/etc/group",
+        help="Specify a path for the group file.",
     )
-    parser.add_argument("--username", default="Administrator")
-    parser.add_argument("--password", default="")
+    parser.add_argument(
+        "--username",
+        default="Administrator",
+        help="Specify a user name for domain access.",
+    )
+    parser.add_argument(
+        "--password", default="", help="Specify a password for domain access."
+    )
     parser.add_argument(
         "--debug-delay",
         type=int,
-        help="Delay activity for a specified number of seconds",
+        help="Delay activity for a specified number of seconds.",
     )
     sub = parser.add_subparsers()
-    p_print_config = sub.add_parser("print-config")
+    p_print_config = sub.add_parser(
+        "print-config",
+        help=(
+            "Display the samba configuration sourced from the sambacc config"
+            " in the format of smb.conf."
+        ),
+    )
     p_print_config.set_defaults(cfunc=print_config)
-    p_import = sub.add_parser("import")
+    p_import = sub.add_parser(
+        "import",
+        help=(
+            "Import configuration parameters from the sambacc config to"
+            " samba's registry config."
+        ),
+    )
     p_import.set_defaults(cfunc=import_config)
-    p_import_users = sub.add_parser("import-users")
+    p_import_users = sub.add_parser(
+        "import-users",
+        help=(
+            "Import users and groups from the sambacc config to the passwd"
+            " and group files to support local (non-domain based) login."
+        ),
+    )
     p_import_users.set_defaults(cfunc=import_users)
-    p_init = sub.add_parser("init")
+    p_init = sub.add_parser(
+        "init", help=("Initialize the entire container environment.")
+    )
     p_init.set_defaults(cfunc=init_container)
-    p_run = sub.add_parser("run")
+    p_run = sub.add_parser("run", help=("Run a specified server process."))
     p_run.set_defaults(cfunc=run_container)
     p_run.add_argument(
         "--no-init",
         action="store_true",
         help=(
-            "Do not initilize the container envionment."
+            "Do not initialize the container envionment."
             " Only start running the target process."
         ),
     )
@@ -214,7 +247,14 @@ def main(args=None):
     p_run.add_argument(
         "target", choices=["smbd", "winbindd"], help="Which process to run"
     )
-    p_join = sub.add_parser("insecure-join")
+    p_join = sub.add_parser(
+        "insecure-join",
+        help=(
+            "Perform a domain join. WARNING: Password is sourced from"
+            " the CLI or ENV and is not secure. Use only for"
+            " testing/non-production purposes."
+        ),
+    )
     p_join.set_defaults(cfunc=join)
     cli = parser.parse_args(args)
     from_env(
