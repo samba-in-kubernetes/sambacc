@@ -19,6 +19,7 @@
 import argparse
 import os
 import sys
+import time
 
 import sambacc.config as config
 import sambacc.netcmd_loader as nc
@@ -148,6 +149,14 @@ def split_paths(value):
     return out
 
 
+def pre_action(cli):
+    """Handle debugging/diagnostic related options before the target
+    action of the command is performed.
+    """
+    if cli.debug_delay:
+        time.sleep(int(cli.debug_delay))
+
+
 def main(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -170,6 +179,11 @@ def main(args=None):
     )
     parser.add_argument("--username", default="Administrator")
     parser.add_argument("--password", default="")
+    parser.add_argument(
+        "--debug-delay",
+        type=int,
+        help="Delay activity for a specified number of seconds",
+    )
     sub = parser.add_subparsers()
     p_print_config = sub.add_parser("print-config")
     p_print_config.set_defaults(cfunc=print_config)
@@ -217,6 +231,7 @@ def main(args=None):
     if not cli.identity:
         raise Fail("missing container identity")
 
+    pre_action(cli)
     cfunc = getattr(cli, "cfunc", default_cfunc)
     cfunc(cli, config)
 
