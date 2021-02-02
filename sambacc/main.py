@@ -26,6 +26,7 @@ import sambacc.netcmd_loader as nc
 import sambacc.nsswitch_loader as nsswitch
 import sambacc.passdb_loader as passdb
 import sambacc.passwd_loader as ugl
+import sambacc.paths as paths
 
 DEFAULT_CONFIG = "/etc/samba/container/config.json"
 
@@ -77,6 +78,9 @@ def init_container(cli, config):
     """
     import_config(cli, config)
     import_users(cli, config)
+
+    # the servers have some expectations about what dirs exist and perms
+    paths.ensure_samba_dirs()
 
     # should nsswitch validation/edit be conditional only on ads?
     nss = nsswitch.NameServiceSwitchLoader("/etc/nsswitch.conf")
