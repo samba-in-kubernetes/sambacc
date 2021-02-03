@@ -42,6 +42,9 @@ def print_config(cli, config):
 
 
 def import_config(cli, config):
+    # there are some expectations about what dirs exist and perms
+    paths.ensure_samba_dirs()
+
     cfgs = cli.config or []
     iconfig = config.read_config_files(cfgs).get(cli.identity)
     loader = nc.NetCmdLoader()
@@ -74,13 +77,9 @@ def import_users(cli, config):
 
 
 def init_container(cli, config):
-    """Run all of the standard set-up actions.
-    """
+    """Run all of the standard set-up actions."""
     import_config(cli, config)
     import_users(cli, config)
-
-    # the servers have some expectations about what dirs exist and perms
-    paths.ensure_samba_dirs()
 
     # should nsswitch validation/edit be conditional only on ads?
     nss = nsswitch.NameServiceSwitchLoader("/etc/nsswitch.conf")
@@ -93,6 +92,8 @@ def init_container(cli, config):
 def run_container(cli, config):
     if not getattr(cli, "no_init", False):
         init_container(cli, config)
+    else:
+        paths.ensure_samba_dirs()
     if cli.target == "smbd":
         # execute smbd process
         cmd = [
