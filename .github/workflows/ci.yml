@@ -19,3 +19,14 @@ jobs:
     - name: Run test container
       run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci
 
+  push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+    - uses: actions/checkout@v2
+    - name: log in to quay.io
+      run: docker login -u "${{ secrets.QUAY_USER }}" -p "${{ secrets.QUAY_PASS }}" quay.io
+    - name: build container image
+      run: docker build -t quay.io/samba.org/sambacc:latest tests/container -f tests/container/Containerfile
+    - name: publish container image
+      run: docker push quay.io/samba.org/sambacc:latest
