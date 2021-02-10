@@ -2,10 +2,11 @@
 
 ## About
 
-The sambacc is an experimental project that aims to consolidate configuration
-of samba, and related components, running in a container. The configuation of
-one or many containers is provided to the tool as JSON which then handles the
-low level details of actually configuring smbd and other parts of the container
+The sambacc is an young project that aims to consolidate and coordinate
+configuration of [Samba](http://samba.org), and related components, when
+running in a container. The configuation of one or many instances can be
+provided to the tool by way of a JSON file which then handles the low level
+details of actually configuring smbd and other elements in the container
 environment.
 
 
@@ -16,11 +17,16 @@ software stack to support it on unix-like systems. However, it's potentially
 challenging to set up and manage many instances of Samba by-hand, especially
 when running under a container orchestration system.
 
-The idea is to first automate all of the low level steps of setting up smbd,
-users, groups, and other supporting configuration files. The tool is also
-designed to consume one "global" configuration that can be maintained across
-many container instances. sambacc is written in Python as samba provides Python
-bindings for some of the aspects of samba we need to control.
+The idea behind sambacc is mainly to automate all of the low level steps of
+setting up smbd, users, groups, and other supporting components. The tool is
+also designed to consume one "site-wide" configuration file that can be
+maintained across many container instances. sambacc is written in Python as
+samba provides Python bindings for some of the aspects of samba we need to
+control.
+
+The sambacc library and samba-container cli command are used by the
+[samba-container project](https://github.com/samba-in-kubernetes/samba-container/)
+as part of the server container images.
 
 
 ## Usage
@@ -39,6 +45,32 @@ Additionally, there are subcommands:
   by samba services
 * `samba-container run <service>` - Initialize and run a named samba service
 
+For complete usage, run:
+
+```sh
+samba-container --help
+```
+
+
+## Features
+
+* Abstracts away some of the nitty-gritty details about what Samba expects
+  in it's environment
+* Imports specific smb.conf settings from "site wide" JSON configuration.
+* Imports users and groups
+* Starts smbd with container friendly settings
+* Starts winbindd with container friendly settings
+* Primitive and insecure support for joining AD
+
+### TODO
+
+A lot. Important features that are missing include:
+
+* The ability to manage more secure domain joins
+* Better coordination around dependent actions, like being joined
+* Better integration (as opposed to unit) testing
+* (Possibly) CTDB integration for scale out use cases
+
 
 ## Install
 
@@ -50,28 +82,22 @@ Currently the only method of install is from source control.
 
 The typical setup.py commands should work.
 
-Optional:
-* Run tests: `tox`
+### Testing
 
+#### Local testing
 
-## TODO
+To run the entire unit test suite locally install `tox` and run `tox` in
+the repo root.
 
-A lot.
+Because of the library and tooling that interacts with samba has some system level dependencies, not all test can be run locally.
 
-Currently, the tool can create (local) users and groups, and configure and
-start smbd. In the short term it needs much more testing (real-world, not unit)
-to take it from just a proof-of-concept to something useful. It needs winbind
-support to make it useful for Active Directory use cases. Potentially, we
-also want to support scaling out across multiple instances, so we may also
-need to integrate with ctdb.
+#### Containerized testing
 
-The test suite has OKish coverage, but needs to handle more, especially the
-samba passdb loader module.
-
-Because of the system level dependencies, I've created a container image
-for testing and building sambacc. It lives at ./tests/container. I'd like
-to make this the canonical way to run all the tests, locally on the desktop
-or in CI, but it needs fleshing out.
+In addition to running the unit tests locally, I've created a container image
+for testing and building sambacc. It lives at ./tests/container. This is
+canonical way to run the test suite and is what is used by the CI tests. When
+run this way certain system packages can be installed, etc. to support
+running a wider range of test cases.
 
 
 ## License
@@ -83,5 +109,8 @@ This is the same license as used by Samba.
 
 ## Contributing/Contact
 
-If you're reading this, you're probably one of my coworkers.
-For now, please email me directly (even if you're not).
+Patches, issues, comments, and questions are welcome.
+
+Resources:
+* [Issue tracker](https://github.com/samba-in-kubernetes/sambacc/issues)
+* [Discussions board](https://github.com/samba-in-kubernetes/sambacc/discussions)
