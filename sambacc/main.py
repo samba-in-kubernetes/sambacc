@@ -22,6 +22,7 @@ import sys
 import time
 
 import sambacc.config as config
+import sambacc.join as joinutil
 import sambacc.netcmd_loader as nc
 import sambacc.nsswitch_loader as nsswitch
 import sambacc.passdb_loader as passdb
@@ -125,7 +126,7 @@ def join(cli, config):
     This is only to be used for testing, not for production.
     """
     # maybe in the future we'll have more secure methods
-    joiner = nc.Joiner()
+    joiner = joinutil.Joiner()
     joiner.join(cli.username, cli.password)
 
 
