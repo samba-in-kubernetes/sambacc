@@ -52,8 +52,7 @@ class NetCmdLoader:
             raise LoaderError("failed to run {}".format(cli))
 
     def import_config(self, iconfig):
-        """Import to entire instance config to samba config.
-        """
+        """Import to entire instance config to samba config."""
         cli, proc = self._netcmd("import", "/dev/stdin", stdin=subprocess.PIPE)
         template_config(proc.stdin, iconfig, enc=_utf8)
         proc.stdin.close()
@@ -76,8 +75,7 @@ class NetCmdLoader:
         return out
 
     def current_shares(self):
-        """Returns a list of current shares.
-        """
+        """Returns a list of current shares."""
         cli, proc = self._netcmd("listshares", stdout=subprocess.PIPE)
         # read and parse shares list
         try:
@@ -87,7 +85,6 @@ class NetCmdLoader:
         return shares
 
     def set(self, section, param, value):
-        """Set an individual config parameter.
-        """
+        """Set an individual config parameter."""
         cli, proc = self._netcmd("setparm", section, param, value)
         self._check(cli, proc)
