@@ -120,13 +120,14 @@ def run_container(cli, config):
 
 
 def join(cli, config):
-    """Perform an insecure domain join.
-    We call this insecure because the password must be passed to
-    this tool in cleartext.
-    This is only to be used for testing, not for production.
+    """Perform a domain join.
+    The cli supports specificying different methods from which
+    data needed to perform the join will be sourced.
     """
     # maybe in the future we'll have more secure methods
     joiner = joinutil.Joiner()
+    if not cli.insecure:
+        raise Fail("insecure join not enabled")
     joiner.join(cli.username, cli.password)
 
 
@@ -254,14 +255,28 @@ def main(args=None):
         "target", choices=["smbd", "winbindd"], help="Which process to run"
     )
     p_join = sub.add_parser(
-        "insecure-join",
+        "join",
         help=(
-            "Perform a domain join. WARNING: Password is sourced from"
-            " the CLI or ENV and is not secure. Use only for"
+            "Perform a domain join. The supported sources for join"
+            " can be provided by supplying command line arguments."
+            " This includes an *insecure* mode that sources the password"
+            " from the CLI or environment. Use this only on"
             " testing/non-production purposes."
         ),
     )
-    p_join.set_defaults(cfunc=join)
+    p_join.set_defaults(cfunc=join, insecure=False)
+    p_join.add_argument(
+        "--insecure",
+        action="store_true",
+        dest="insecure",
+        help="Allow user/password from CLI or environment.",
+    )
+    p_join.add_argument(
+        "--no-insecure",
+        action="store_false",
+        dest="insecure",
+        help="Disable user/password from CLI or environment.",
+    )
     cli = parser.parse_args(args)
     from_env(
         cli,
