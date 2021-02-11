@@ -25,14 +25,12 @@ class LineFileLoader(TextFileLoader):
         self.lines = []
 
     def loadlines(self, lines):
-        """Load in the lines from the text source.
-        """
+        """Load in the lines from the text source."""
         for line in lines:
             self.lines.append(line)
 
     def dumplines(self):
-        """Dump the file content as lines of text.
-        """
+        """Dump the file content as lines of text."""
         prev = None
         for line in self.lines:
             if prev and not prev.endswith("\n"):
