@@ -126,9 +126,10 @@ def join(cli, config):
     """
     # maybe in the future we'll have more secure methods
     joiner = joinutil.Joiner()
-    if not cli.insecure:
-        raise Fail("insecure join not enabled")
-    joiner.join(cli.username, cli.password)
+    if cli.insecure:
+        upass = joinutil.UserPass(cli.username, cli.password)
+        joiner.add_source(joinutil.JoinBy.PASSWORD, upass)
+    joiner.join()
 
 
 default_cfunc = print_config

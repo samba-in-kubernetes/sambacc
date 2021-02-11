@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import enum
+import json
 import subprocess
 
 
@@ -27,22 +29,101 @@ def _utf8(s):
     return s.encode("utf8")
 
 
+class JoinBy(enum.Enum):
+    PASSWORD = "password"
+    FILE = "file"
+
+
+class UserPass:
+    """Encapsulate a username/password pair."""
+
+    username = "Administrator"
+    password = None
+
+    def __init__(self, username=None, password=None):
+        if username is not None:
+            self.username = username
+        if password is not None:
+            self.password = password
+
+
 class Joiner:
+    """Utility class for joining to AD domain.
+
+    Use the `add_source` method to add one or more sources of join auth
+    data. Call `join` to commit and join the "host" to AD.
+    """
+
     cmd_prefix = ["net", "ads"]
+
+    def __init__(self):
+        self._sources = []
 
     def _netcmd(self, *args, **kwargs):
         cmd = list(self.cmd_prefix)
         cmd.extend(args)
         return cmd, subprocess.Popen(cmd, **kwargs)
 
-    def join(self, username, password, dns_updates=False):
+    def add_source(self, method: JoinBy, value=None):
+        if method in {JoinBy.PASSWORD}:
+            if not isinstance(value, UserPass):
+                raise ValueError("expected UserPass value")
+        elif method in {JoinBy.FILE}:
+            if not isinstance(value, str):
+                raise ValueError("expected str value")
+        else:
+            raise ValueError(f"invalid method: {method}")
+        self._sources.append((method, value))
+
+    def join(self, dns_updates=False):
+        if not self._sources:
+            raise JoinError("no sources for join data")
+        errors = []
+        for method, value in self._sources:
+            try:
+                if method is JoinBy.PASSWORD:
+                    self._join(value, dns_updates=dns_updates)
+                elif method is JoinBy.FILE:
+                    upass = self._read_from(value)
+                    self._join(upass, dns_updates=dns_updates)
+                else:
+                    raise ValueError(f"invalid method: {method}")
+                return
+            except JoinError as err:
+                errors.append(err)
+        if errors:
+            if len(errors) == 1:
+                raise errors[0]
+            err = JoinError("failed {} join attempts".format(len(errors)))
+            err.errors = errors
+            raise err
+
+    def _read_from(self, path):
+        try:
+            with open(path) as fh:
+                data = json.load(fh)
+        except FileNotFoundError:
+            raise JoinError(f"source file not found: {path}")
+        upass = UserPass()
+        try:
+            upass.username = data["username"]
+            upass.password = data["password"]
+        except KeyError as err:
+            raise JoinError(f"invalid file content: {err}")
+        if not isinstance(upass.username, str):
+            raise JoinError("invalid file content: invalid username")
+        if not isinstance(upass.password, str):
+            raise JoinError("invalid file content: invalid password")
+        return upass
+
+    def _join(self, upass, dns_updates=False):
         args = []
         if not dns_updates:
             args.append("--no-dns-updates")
-        args.extend(["-U", username])
+        args.extend(["-U", upass.username])
 
         cli, proc = self._netcmd("join", *args, stdin=subprocess.PIPE)
-        proc.stdin.write(_utf8(password))
+        proc.stdin.write(_utf8(upass.password))
         proc.stdin.write(b"\n")
         proc.stdin.close()
         ret = proc.wait()
