@@ -126,9 +126,12 @@ def join(cli, config):
     """
     # maybe in the future we'll have more secure methods
     joiner = joinutil.Joiner()
-    if cli.insecure:
+    if cli.insecure or getattr(cli, "insecure_auto_join", False):
         upass = joinutil.UserPass(cli.username, cli.password)
         joiner.add_source(joinutil.JoinBy.PASSWORD, upass)
+    if cli.files:
+        for path in cli.join_files or []:
+            joiner.add_source(joinutil.JoinBy.FILE, path)
     joiner.join()
 
 
@@ -265,7 +268,7 @@ def main(args=None):
             " testing/non-production purposes."
         ),
     )
-    p_join.set_defaults(cfunc=join, insecure=False)
+    p_join.set_defaults(cfunc=join, insecure=False, files=True)
     p_join.add_argument(
         "--insecure",
         action="store_true",
@@ -278,6 +281,26 @@ def main(args=None):
         dest="insecure",
         help="Disable user/password from CLI or environment.",
     )
+    p_join.add_argument(
+        "--files",
+        action="store_true",
+        dest="files",
+        help="Allow user/password from JSON files.",
+    )
+    p_join.add_argument(
+        "--no-files",
+        action="store_false",
+        dest="files",
+        help="Disable user/password from JSON files.",
+    )
+    p_join.add_argument(
+        "--join-file",
+        "-j",
+        dest="join_files",
+        action="append",
+        help="Path to file with user/password in JSON format.",
+    )
+
     cli = parser.parse_args(args)
     from_env(
         cli,
@@ -285,6 +308,12 @@ def main(args=None):
         "SAMBACC_CONFIG",
         vtype=split_paths,
         default=DEFAULT_CONFIG,
+    )
+    from_env(
+        cli,
+        "join_files",
+        "SAMBACC_JOIN_FILES",
+        vtype=split_paths,
     )
     from_env(cli, "identity", "SAMBA_CONTAINER_ID")
     from_env(cli, "username", "JOIN_USERNAME")
