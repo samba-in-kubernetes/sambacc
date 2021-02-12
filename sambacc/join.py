@@ -60,8 +60,9 @@ class Joiner:
 
     cmd_prefix = ["net", "ads"]
 
-    def __init__(self):
+    def __init__(self, marker=None):
         self._sources = []
+        self.marker = marker
 
     def _netcmd(self, *args, **kwargs):
         cmd = list(self.cmd_prefix)
@@ -94,6 +95,7 @@ class Joiner:
                 else:
                     raise ValueError(f"invalid method: {method}")
                 self._join(upass, dns_updates=dns_updates)
+                self._set_marker()
                 return
             except JoinError as err:
                 errors.append(err)
@@ -138,3 +140,24 @@ class Joiner:
         ret = proc.wait()
         if ret != 0:
             raise JoinError("failed to run {}".format(cli))
+
+    def _set_marker(self):
+        if self.marker is not None:
+            with open(self.marker, "w") as fh:
+                json.dump({"joined": True}, fh)
+
+    def did_join(self):
+        """Return true if the join marker exists and contains a true
+        value in the joined key.
+        """
+        if self.marker is None:
+            return False
+        try:
+            with open(self.marker) as fh:
+                data = json.load(fh)
+        except (ValueError, OSError):
+            return False
+        try:
+            return data["joined"]
+        except (TypeError, KeyError):
+            return False

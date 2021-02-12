@@ -194,3 +194,45 @@ def test_join_prompt_fake(testjoiner):
     assert lines[0].startswith("ARGS")
     assert "daffy" in lines[0]
     assert len(lines) == 1
+
+
+def test_join_with_marker(testjoiner):
+    testjoiner.marker = os.path.join(testjoiner.path, "marker.json")
+    testjoiner.add_source(
+        sambacc.join.JoinBy.PASSWORD,
+        sambacc.join.UserPass("bugs", "whatsupdoc"),
+    )
+    testjoiner.join()
+
+    assert os.path.exists(testjoiner.marker)
+    assert testjoiner.did_join()
+
+
+def test_join_bad_marker(testjoiner):
+    testjoiner.marker = os.path.join(testjoiner.path, "marker.json")
+    testjoiner.add_source(
+        sambacc.join.JoinBy.PASSWORD,
+        sambacc.join.UserPass("bugs", "whatsupdoc"),
+    )
+    testjoiner.join()
+
+    # its ok after creation
+    assert testjoiner.did_join()
+    # invalid contents
+    with open(testjoiner.marker, "w") as fh:
+        json.dump({"foo": "bar"}, fh)
+    assert not testjoiner.did_join()
+    # missing file
+    os.unlink(testjoiner.marker)
+    assert not testjoiner.did_join()
+
+
+def test_join_no_marker(testjoiner):
+    testjoiner.add_source(
+        sambacc.join.JoinBy.PASSWORD,
+        sambacc.join.UserPass("bugs", "whatsupdoc"),
+    )
+    testjoiner.join()
+    # join was successful, but no marker was set on the joiner
+    # thus did_join must return false
+    assert not testjoiner.did_join()
