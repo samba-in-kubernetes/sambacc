@@ -160,6 +160,23 @@ def split_paths(value):
     return out
 
 
+def _toggle_option(parser, arg, dest, helpfmt):
+    parser.add_argument(
+        arg,
+        action="store_true",
+        dest=dest,
+        help=helpfmt.format("Enable"),
+    )
+    negarg = arg.replace("--", "--no-")
+    parser.add_argument(
+        negarg,
+        action="store_false",
+        dest=dest,
+        help=helpfmt.format("Disable"),
+    )
+    return parser
+
+
 def pre_action(cli):
     """Handle debugging/diagnostic related options before the target
     action of the command is performed.
@@ -269,29 +286,17 @@ def main(args=None):
         ),
     )
     p_join.set_defaults(cfunc=join, insecure=False, files=True)
-    p_join.add_argument(
-        "--insecure",
-        action="store_true",
+    _toggle_option(
+        p_join,
+        arg="--insecure",
         dest="insecure",
-        help="Allow user/password from CLI or environment.",
+        helpfmt="{} taking user/password from CLI or environment.",
     )
-    p_join.add_argument(
-        "--no-insecure",
-        action="store_false",
-        dest="insecure",
-        help="Disable user/password from CLI or environment.",
-    )
-    p_join.add_argument(
-        "--files",
-        action="store_true",
+    _toggle_option(
+        p_join,
+        arg="--files",
         dest="files",
-        help="Allow user/password from JSON files.",
-    )
-    p_join.add_argument(
-        "--no-files",
-        action="store_false",
-        dest="files",
-        help="Disable user/password from JSON files.",
+        helpfmt="{} reading user/password from JSON files.",
     )
     p_join.add_argument(
         "--join-file",
