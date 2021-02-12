@@ -132,6 +132,9 @@ def join(cli, config):
     if cli.files:
         for path in cli.join_files or []:
             joiner.add_source(joinutil.JoinBy.FILE, path)
+    if cli.interactive:
+        upass = joinutil.UserPass(cli.username)
+        joiner.add_source(joinutil.JoinBy.INTERACTIVE, upass)
     joiner.join()
 
 
@@ -285,7 +288,9 @@ def main(args=None):
             " testing/non-production purposes."
         ),
     )
-    p_join.set_defaults(cfunc=join, insecure=False, files=True)
+    p_join.set_defaults(
+        cfunc=join, insecure=False, files=True, interactive=True
+    )
     _toggle_option(
         p_join,
         arg="--insecure",
@@ -297,6 +302,12 @@ def main(args=None):
         arg="--files",
         dest="files",
         helpfmt="{} reading user/password from JSON files.",
+    )
+    _toggle_option(
+        p_join,
+        arg="--interactive",
+        dest="interactive",
+        helpfmt="{} interactive password prompt.",
     )
     p_join.add_argument(
         "--join-file",
