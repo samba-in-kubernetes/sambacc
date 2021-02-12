@@ -179,3 +179,18 @@ def test_join_multi_source_fail_both(testjoiner):
     assert lines[0].startswith("ARGS")
     assert "elmer" in lines[0]
     assert "failme2" in lines[1]
+
+
+def test_join_prompt_fake(testjoiner):
+    testjoiner.add_source(
+        sambacc.join.JoinBy.INTERACTIVE,
+        sambacc.join.UserPass("daffy"),
+    )
+    testjoiner.join()
+
+    with open(testjoiner.logpath) as fh:
+        lines = fh.readlines()
+
+    assert lines[0].startswith("ARGS")
+    assert "daffy" in lines[0]
+    assert len(lines) == 1

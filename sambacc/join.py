@@ -29,9 +29,13 @@ def _utf8(s):
     return s.encode("utf8")
 
 
+_PROMPT = object()
+
+
 class JoinBy(enum.Enum):
     PASSWORD = "password"
     FILE = "file"
+    INTERACTIVE = "interactive"
 
 
 class UserPass:
@@ -65,7 +69,7 @@ class Joiner:
         return cmd, subprocess.Popen(cmd, **kwargs)
 
     def add_source(self, method: JoinBy, value=None):
-        if method in {JoinBy.PASSWORD}:
+        if method in {JoinBy.PASSWORD, JoinBy.INTERACTIVE}:
             if not isinstance(value, UserPass):
                 raise ValueError("expected UserPass value")
         elif method in {JoinBy.FILE}:
@@ -82,12 +86,14 @@ class Joiner:
         for method, value in self._sources:
             try:
                 if method is JoinBy.PASSWORD:
-                    self._join(value, dns_updates=dns_updates)
+                    upass = value
                 elif method is JoinBy.FILE:
                     upass = self._read_from(value)
-                    self._join(upass, dns_updates=dns_updates)
+                elif method is JoinBy.INTERACTIVE:
+                    upass = UserPass(value.username, _PROMPT)
                 else:
                     raise ValueError(f"invalid method: {method}")
+                self._join(upass, dns_updates=dns_updates)
                 return
             except JoinError as err:
                 errors.append(err)
@@ -122,10 +128,13 @@ class Joiner:
             args.append("--no-dns-updates")
         args.extend(["-U", upass.username])
 
-        cli, proc = self._netcmd("join", *args, stdin=subprocess.PIPE)
-        proc.stdin.write(_utf8(upass.password))
-        proc.stdin.write(b"\n")
-        proc.stdin.close()
+        if upass.password is _PROMPT:
+            cli, proc = self._netcmd("join", *args)
+        else:
+            cli, proc = self._netcmd("join", *args, stdin=subprocess.PIPE)
+            proc.stdin.write(_utf8(upass.password))
+            proc.stdin.write(b"\n")
+            proc.stdin.close()
         ret = proc.wait()
         if ret != 0:
             raise JoinError("failed to run {}".format(cli))
