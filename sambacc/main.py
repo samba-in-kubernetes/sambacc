@@ -30,6 +30,8 @@ import sambacc.passwd_loader as ugl
 import sambacc.paths as paths
 
 DEFAULT_CONFIG = "/etc/samba/container/config.json"
+DEFAULT_JOIN_MARKER = "/var/lib/samba/container-join-marker.json"
+WAIT_SECONDS = 5
 
 
 class Fail(ValueError):
@@ -119,13 +121,13 @@ def run_container(cli, config):
         raise Fail(f"invalid target process: {cli.target}")
 
 
-def join(cli, config):
-    """Perform a domain join.
-    The cli supports specificying different methods from which
-    data needed to perform the join will be sourced.
-    """
-    # maybe in the future we'll have more secure methods
-    joiner = joinutil.Joiner()
+def _print_join_error(err):
+    print(f"ERROR: {err}", file=sys.stderr)
+    for suberr in getattr(err, "errors", []):
+        print(f"  - {suberr}", file=sys.stderr)
+
+
+def _add_join_sources(joiner, cli, config):
     if cli.insecure or getattr(cli, "insecure_auto_join", False):
         upass = joinutil.UserPass(cli.username, cli.password)
         joiner.add_source(joinutil.JoinBy.PASSWORD, upass)
@@ -135,7 +137,47 @@ def join(cli, config):
     if cli.interactive:
         upass = joinutil.UserPass(cli.username)
         joiner.add_source(joinutil.JoinBy.INTERACTIVE, upass)
-    joiner.join()
+
+
+def join(cli, config):
+    """Perform a domain join.
+    The cli supports specificying different methods from which
+    data needed to perform the join will be sourced.
+    """
+    # maybe in the future we'll have more secure methods
+    joiner = joinutil.Joiner(cli.join_marker)
+    _add_join_sources(joiner, cli, config)
+    try:
+        joiner.join()
+    except joinutil.JoinError as err:
+        _print_join_error(err)
+        raise Fail("failed to join to a domain")
+
+
+def must_join(cli, config):
+    """Perform a domain join if possible, otherwise wait or fail.
+    If waiting is enabled the marker file is polled.
+    """
+    joiner = joinutil.Joiner(cli.join_marker)
+    if joiner.did_join():
+        print("already joined")
+        return
+    # Interactive join is not allowed on must-join
+    setattr(cli, "interactive", False)
+    _add_join_sources(joiner, cli, config)
+    try:
+        joiner.join()
+    except joinutil.JoinError as err:
+        _print_join_error(err)
+    if not cli.wait:
+        raise Fail(
+            "failed to join to a domain and waiting for join is disabled"
+        )
+    while True:
+        if joiner.did_join():
+            print("found valid join marker")
+            return
+        time.sleep(WAIT_SECONDS)
 
 
 default_cfunc = print_config
@@ -228,6 +270,11 @@ def main(args=None):
         type=int,
         help="Delay activity for a specified number of seconds.",
     )
+    parser.add_argument(
+        "--join-marker",
+        default=DEFAULT_JOIN_MARKER,
+        help="Path to a file used to indicate a join has been peformed.",
+    )
     sub = parser.add_subparsers()
     p_print_config = sub.add_parser(
         "print-config",
@@ -310,6 +357,41 @@ def main(args=None):
         helpfmt="{} interactive password prompt.",
     )
     p_join.add_argument(
+        "--join-file",
+        "-j",
+        dest="join_files",
+        action="append",
+        help="Path to file with user/password in JSON format.",
+    )
+    p_must_join = sub.add_parser(
+        "must-join",
+        help=(
+            "If possible, perform an unattended domain join. Otherwise,"
+            " exit or block until a join has been perfmed by another process."
+        ),
+    )
+    p_must_join.set_defaults(
+        cfunc=must_join, insecure=False, files=True, wait=True
+    )
+    _toggle_option(
+        p_must_join,
+        arg="--insecure",
+        dest="insecure",
+        helpfmt="{} taking user/password from CLI or environment.",
+    )
+    _toggle_option(
+        p_must_join,
+        arg="--files",
+        dest="files",
+        helpfmt="{} reading user/password from JSON files.",
+    )
+    _toggle_option(
+        p_must_join,
+        arg="--wait",
+        dest="wait",
+        helpfmt="{} waiting until a join is done.",
+    )
+    p_must_join.add_argument(
         "--join-file",
         "-j",
         dest="join_files",
