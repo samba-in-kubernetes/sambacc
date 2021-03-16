@@ -180,6 +180,18 @@ def must_join(cli, config):
         time.sleep(WAIT_SECONDS)
 
 
+def check(cli, config):
+    """Check a given subsystem is functioning."""
+    if cli.target == "winbind":
+        cmd = [
+            "wbinfo",
+            "--ping",
+        ]
+        os.execvp(cmd[0], cmd)
+    else:
+        raise Fail("unknown subsystem: {}".format(cli.target))
+
+
 default_cfunc = print_config
 
 
@@ -397,6 +409,16 @@ def main(args=None):
         dest="join_files",
         action="append",
         help="Path to file with user/password in JSON format.",
+    )
+    p_check = sub.add_parser(
+        "check",
+        help=("Check that a given subsystem is functioning."),
+    )
+    p_check.set_defaults(cfunc=check)
+    p_check.add_argument(
+        "target",
+        choices=["winbind"],
+        help="Name of the target subsystem to check.",
     )
 
     cli = parser.parse_args(args)
