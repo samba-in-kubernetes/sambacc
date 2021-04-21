@@ -75,7 +75,7 @@ def parse_file(path):
         return parse(fh)
 
 
-_cmd_prefix = ["logger", "net", "ads"]
+_cmd_prefix = ["net", "ads"]
 
 
 def register(domain, hs, prefix=None):
