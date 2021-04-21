@@ -28,6 +28,7 @@ import sambacc.nsswitch_loader as nsswitch
 import sambacc.passdb_loader as passdb
 import sambacc.passwd_loader as ugl
 import sambacc.paths as paths
+import sambacc.container_dns as container_dns
 
 DEFAULT_CONFIG = "/etc/samba/container/config.json"
 DEFAULT_JOIN_MARKER = "/var/lib/samba/container-join-marker.json"
@@ -190,6 +191,37 @@ def check(cli, config):
         os.execvp(cmd[0], cmd)
     else:
         raise Fail("unknown subsystem: {}".format(cli.target))
+
+
+def dns_register(cli, config):
+    """Register DNS entries with AD based on JSON state file.
+    This file is expected to be supplied & kept up to date by
+    a container-orchestration specific component.
+    """
+    cfgs = cli.config or []
+    iconfig = config.read_config_files(cfgs).get(cli.identity)
+    if cli.domain:
+        domain = cli.domain
+    else:
+        try:
+            domain = dict(iconfig.global_options())["realm"].lower()
+        except KeyError:
+            raise Fail("instance not configured with domain (realm)")
+    try:
+        waiter = container_dns.INotify(cli.source, print_func=print)
+    except ValueError:
+        print("disabling inotify support")
+        waiter = container_dns.Sleeper()
+    if cli.watch:
+        container_dns.watch(
+            domain,
+            cli.source,
+            container_dns.parse_and_update,
+            waiter.wait,
+            print_func=print,
+        )
+    else:
+        container_dns.parse_and_update(domain, cli.source)
 
 
 default_cfunc = print_config
@@ -420,6 +452,22 @@ def main(args=None):
         choices=["winbind"],
         help="Name of the target subsystem to check.",
     )
+    p_dns_reg = sub.add_parser(
+        "dns-register",
+        help=("Register container IP(s) with AD DNS."),
+    )
+    p_dns_reg.set_defaults(cfunc=dns_register)
+    p_dns_reg.add_argument(
+        "--watch",
+        action="store_true",
+        help=("If set, watch the source for changes and update DNS."),
+    )
+    p_dns_reg.add_argument(
+        "--domain",
+        default="",
+        help=("Manually specify parent domain for DNS entries."),
+    )
+    p_dns_reg.add_argument("source", help="Path to source JSON file.")
 
     cli = parser.parse_args(args)
     from_env(
