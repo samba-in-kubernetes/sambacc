@@ -103,7 +103,12 @@ def parse_and_update(domain, source, previous=None, reg_func=register):
 def watch(domain, source, update_func, pause_func, print_func=None):
     previous = None
     while True:
-        previous, updated = update_func(domain, source, previous)
+        try:
+            previous, updated = update_func(domain, source, previous)
+        except FileNotFoundError:
+            print_func(f"Source file [{source}] not found")
+            updated = False
+            previous = None
         if updated and print_func:
             print_func("Updating external dns registrations")
         try:
