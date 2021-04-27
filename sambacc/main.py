@@ -99,6 +99,7 @@ def run_container(cli, config):
     else:
         paths.ensure_samba_dirs()
     if cli.target == "smbd":
+        _update_perms(cli, config)
         # execute smbd process
         cmd = [
             "/usr/sbin/smbd",
@@ -222,6 +223,19 @@ def dns_register(cli, config):
         )
     else:
         container_dns.parse_and_update(domain, cli.source)
+
+
+def _update_perms(cli, config):
+    cfgs = cli.config or []
+    iconfig = config.read_config_files(cfgs).get(cli.identity)
+    for share in iconfig.shares():
+        opts = dict(share.share_options())
+        path = opts.get("path", "")
+        if path:
+            try:
+                os.chmod(path, 0o777)
+            except Exception as err:
+                print("unable to chmod share path [{}]: {}".format(path, err))
 
 
 default_cfunc = print_config
