@@ -10,7 +10,7 @@ setup(
     url="mailto:phlogistonjohn@asynchrono.us",
     packages=find_packages(),
     entry_points={
-        "console_scripts": ["samba-container=sambacc.main:main"],
+        "console_scripts": ["samba-container=sambacc.commands.main:main"],
     },
     data_files=[
         (
