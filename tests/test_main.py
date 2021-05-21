@@ -18,16 +18,17 @@
 
 import pytest
 
-import sambacc.main
+import sambacc.commands.cli
+import sambacc.commands.main
 from .test_netcmd_loader import config1
 
 
 def run(*args):
-    return sambacc.main.main(args)
+    return sambacc.commands.main.main(args)
 
 
 def test_no_id(capsys):
-    with pytest.raises(sambacc.main.Fail):
+    with pytest.raises(sambacc.commands.cli.Fail):
         run("print-config")
 
 
