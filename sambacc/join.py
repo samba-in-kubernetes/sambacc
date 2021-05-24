@@ -97,8 +97,8 @@ class Joiner:
                 self._join(upass, dns_updates=dns_updates)
                 self._set_marker()
                 return
-            except JoinError as err:
-                errors.append(err)
+            except JoinError as join_err:
+                errors.append(join_err)
         if errors:
             if len(errors) == 1:
                 raise errors[0]
