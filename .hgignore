@@ -8,3 +8,4 @@ htmlcov
 \.swp$
 ^dist/
 ^build/
+.mypy_cache
