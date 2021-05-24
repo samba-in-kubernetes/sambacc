@@ -23,8 +23,8 @@ ACB_PWNOEXP = 0x00000200
 
 
 def _samba_modules():
-    from samba.samba3 import param
-    from samba.samba3 import passdb
+    from samba.samba3 import param  # type: ignore
+    from samba.samba3 import passdb  # type: ignore
 
     return param, passdb
 
