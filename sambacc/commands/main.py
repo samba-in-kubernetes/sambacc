@@ -35,7 +35,7 @@ DEFAULT_JOIN_MARKER = "/var/lib/samba/container-join-marker.json"
 default_cfunc = config_cmds.print_config
 
 
-def global_args(parser):
+def global_args(parser) -> None:
     parser.add_argument(
         "--config",
         action="append",
@@ -81,7 +81,7 @@ def global_args(parser):
     )
 
 
-def from_env(ns, var, ename, default=None, vtype=str):
+def from_env(ns, var, ename, default=None, vtype=str) -> None:
     value = getattr(ns, var, None)
     if not value:
         value = os.environ.get(ename, "")
@@ -103,7 +103,7 @@ def split_paths(value):
     return out
 
 
-def env_to_cli(cli):
+def env_to_cli(cli) -> None:
     from_env(
         cli,
         "config",
@@ -122,7 +122,7 @@ def env_to_cli(cli):
     from_env(cli, "password", "INSECURE_JOIN_PASSWORD")
 
 
-def pre_action(cli):
+def pre_action(cli) -> None:
     """Handle debugging/diagnostic related options before the target
     action of the command is performed.
     """
@@ -130,7 +130,7 @@ def pre_action(cli):
         time.sleep(int(cli.debug_delay))
 
 
-def main(args=None):
+def main(args=None) -> None:
     cli = commands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
     if not cli.identity:
