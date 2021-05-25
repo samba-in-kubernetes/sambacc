@@ -27,7 +27,9 @@ class Fail(ValueError):
 Command = namedtuple("Command", "name cmd_func arg_func cmd_help")
 
 
-def toggle_option(parser, arg, dest, helpfmt):
+def toggle_option(
+    parser: argparse.ArgumentParser, arg: str, dest: str, helpfmt: str
+) -> argparse.ArgumentParser:
     parser.add_argument(
         arg,
         action="store_true",
@@ -44,7 +46,7 @@ def toggle_option(parser, arg, dest, helpfmt):
     return parser
 
 
-def get_help(cmd):
+def get_help(cmd: Command) -> str:
     if cmd.cmd_help is not None:
         return cmd.cmd_help
     if cmd.cmd_func.__doc__:
@@ -52,7 +54,7 @@ def get_help(cmd):
     return ""
 
 
-def add_command(subparsers, cmd):
+def add_command(subparsers, cmd) -> None:
     subparser = subparsers.add_parser(cmd.name, help=get_help(cmd))
     subparser.set_defaults(cfunc=cmd.cmd_func)
     if cmd.arg_func is not None:
@@ -79,7 +81,7 @@ class CommandBuilder:
 
         return _wrapper
 
-    def assemble(self, arg_func=None):
+    def assemble(self, arg_func=None) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser()
         if arg_func is not None:
             arg_func(parser)
