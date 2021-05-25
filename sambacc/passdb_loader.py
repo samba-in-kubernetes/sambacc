@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+from sambacc import config
+
 # Do the samba python bindings not export any useful constants?
 ACB_DISABLED = 0x00000001
 ACB_NORMAL = 0x00000010
@@ -41,7 +43,7 @@ class PassDBLoader:
         self._pdb = passdb.PDB(lp.get("passdb backend"))
         self._passdb = passdb
 
-    def add_user(self, user_entry):
+    def add_user(self, user_entry: config.UserEntry) -> None:
         if not (user_entry.nt_passwd or user_entry.plaintext_passwd):
             raise ValueError(
                 f"user entry {user_entry.username} lacks password value"
