@@ -17,30 +17,39 @@
 #
 
 import os
+import typing
 
 
 class TextFileLoader:
-    def __init__(self, path):
+    def __init__(self, path: str):
         self.path = path
 
-    def read(self):
+    def read(self) -> None:
         with open(self.path) as f:
             self.readfp(f)
 
-    def write(self):
+    def write(self) -> None:
         tpath = self._tmp_path(self.path)
         with open(tpath, "w") as f:
             self.writefp(f)
         os.rename(tpath, self.path)
 
-    def _tmp_path(self, path):
+    def _tmp_path(self, path: str) -> str:
         # for later: make this smarter
         return f"{path}.tmp"
 
-    def readfp(self, fp):
+    def readfp(self, fp: typing.IO) -> None:
         self.loadlines(fp.readlines())
 
-    def writefp(self, fp):
+    def writefp(self, fp: typing.IO) -> None:
         for line in self.dumplines():
             fp.write(line)
         fp.flush()
+
+    def dumplines(self) -> typing.Iterable[str]:
+        """Must be overridden."""
+        return []
+
+    def loadlines(self, lines: typing.Iterable[str]) -> None:
+        """Must be overridden."""
+        pass
