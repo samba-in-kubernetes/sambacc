@@ -20,7 +20,7 @@ import errno
 import os
 
 
-def ensure_samba_dirs(root="/"):
+def ensure_samba_dirs(root="/") -> None:
     """Ensure that certain directories that samba servers expect will
     exist. This is useful when mapping iniitally empty dirs into
     the container.
@@ -38,7 +38,7 @@ def ensure_samba_dirs(root="/"):
     os.chmod(wb_sockets_dir, 0o755)
 
 
-def _mkdir(path):
+def _mkdir(path: str) -> None:
     try:
         os.mkdir(path)
     except OSError as err:
