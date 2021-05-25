@@ -24,7 +24,7 @@ from .users import import_users
 
 
 @commands.command(name="init")
-def init_container(cli, config):
+def init_container(cli, config) -> None:
     """Initialize the entire container environment."""
     import_config(cli, config)
     import_users(cli, config)

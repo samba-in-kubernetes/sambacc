@@ -23,7 +23,7 @@ from .cli import commands
 
 
 @commands.command(name="import-users")
-def import_users(cli, config):
+def import_users(cli, config) -> None:
     """Import users and groups from the sambacc config to the passwd
     and group files to support local (non-domain based) login.
     """

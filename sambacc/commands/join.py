@@ -26,13 +26,13 @@ from .cli import commands, toggle_option, Fail
 WAIT_SECONDS = 5
 
 
-def _print_join_error(err):
+def _print_join_error(err) -> None:
     print(f"ERROR: {err}", file=sys.stderr)
     for suberr in getattr(err, "errors", []):
         print(f"  - {suberr}", file=sys.stderr)
 
 
-def _add_join_sources(joiner, cli, config):
+def _add_join_sources(joiner, cli, config) -> None:
     if cli.insecure or getattr(cli, "insecure_auto_join", False):
         upass = joinutil.UserPass(cli.username, cli.password)
         joiner.add_source(joinutil.JoinBy.PASSWORD, upass)
@@ -44,7 +44,7 @@ def _add_join_sources(joiner, cli, config):
         joiner.add_source(joinutil.JoinBy.INTERACTIVE, upass)
 
 
-def _join_args(parser):
+def _join_args(parser) -> None:
     parser.set_defaults(insecure=False, files=True, interactive=True)
     toggle_option(
         parser,
@@ -74,7 +74,7 @@ def _join_args(parser):
 
 
 @commands.command(name="join", arg_func=_join_args)
-def join(cli, config):
+def join(cli, config) -> None:
     """Perform a domain join. The supported sources for join
     can be provided by supplying command line arguments.
     This includes an *insecure* mode that sources the password
@@ -91,7 +91,7 @@ def join(cli, config):
         raise Fail("failed to join to a domain")
 
 
-def _must_join_args(parser):
+def _must_join_args(parser) -> None:
     parser.set_defaults(insecure=False, files=True, wait=True)
     toggle_option(
         parser,
@@ -121,7 +121,7 @@ def _must_join_args(parser):
 
 
 @commands.command(name="must-join", arg_func=_must_join_args)
-def must_join(cli, config):
+def must_join(cli, config) -> None:
     """If possible, perform an unattended domain join. Otherwise,
     exit or block until a join has been perfmed by another process.
     """

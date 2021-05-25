@@ -25,7 +25,7 @@ from .cli import commands
 
 
 @commands.command(name="print-config")
-def print_config(cli, config):
+def print_config(cli, config) -> None:
     """Display the samba configuration sourced from the sambacc config
     in the format of smb.conf.
     """
@@ -35,7 +35,7 @@ def print_config(cli, config):
 
 
 @commands.command(name="import")
-def import_config(cli, config):
+def import_config(cli, config) -> None:
     """Import configuration parameters from the sambacc config to
     samba's registry config.
     """

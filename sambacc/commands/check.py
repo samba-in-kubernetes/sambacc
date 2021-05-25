@@ -30,7 +30,7 @@ def _check_args(parser):
 
 
 @commands.command(name="check", arg_func=_check_args)
-def check(cli, config):
+def check(cli, config) -> None:
     """Check that a given subsystem is functioning."""
     if cli.target == "winbind":
         cmd = [
