@@ -16,7 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import typing
+
 from .textfile import TextFileLoader
+from sambacc import config
 
 
 class LineFileLoader(TextFileLoader):
@@ -24,12 +27,12 @@ class LineFileLoader(TextFileLoader):
         super().__init__(path)
         self.lines = []
 
-    def loadlines(self, lines):
+    def loadlines(self, lines: typing.Iterable[str]) -> None:
         """Load in the lines from the text source."""
         for line in lines:
             self.lines.append(line)
 
-    def dumplines(self):
+    def dumplines(self) -> typing.Iterable[str]:
         """Dump the file content as lines of text."""
         prev = None
         for line in self.lines:
@@ -44,17 +47,17 @@ class PasswdFileLoader(LineFileLoader):
         super().__init__(path)
         self._usernames = set()
 
-    def readfp(self, fp):
+    def readfp(self, fp: typing.IO) -> None:
         super().readfp(fp)
         self._update_usernames_cache()
 
-    def _update_usernames_cache(self):
+    def _update_usernames_cache(self) -> None:
         for line in self.lines:
             if ":" in line:
                 u = line.split(":")[0]
                 self._usernames.add(u)
 
-    def add_user(self, user_entry):
+    def add_user(self, user_entry: config.UserEntry) -> None:
         if user_entry.username in self._usernames:
             return
         line = "{}\n".format(":".join(user_entry.passwd_fields()))
@@ -67,17 +70,17 @@ class GroupFileLoader(LineFileLoader):
         super().__init__(path)
         self._groupnames = set()
 
-    def readfp(self, fp):
+    def readfp(self, fp: typing.IO) -> None:
         super().readfp(fp)
         self._update_groupnames_cache()
 
-    def _update_groupnames_cache(self):
+    def _update_groupnames_cache(self) -> None:
         for line in self.lines:
             if ":" in line:
                 u = line.split(":")[0]
                 self._groupnames.add(u)
 
-    def add_group(self, group_entry):
+    def add_group(self, group_entry: config.GroupEntry) -> None:
         if group_entry.groupname in self._groupnames:
             return
         line = "{}\n".format(":".join(group_entry.group_fields()))
