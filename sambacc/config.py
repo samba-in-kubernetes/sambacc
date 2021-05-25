@@ -19,6 +19,7 @@
 import binascii
 import errno
 import json
+import typing
 
 _VALID_VERSIONS = ["v0"]
 
@@ -26,8 +27,11 @@ _VALID_VERSIONS = ["v0"]
 # as UID 0
 _open = open
 
+PasswdEntryTuple = typing.Tuple[str, str, str, str, str, str, str]
+GroupEntryTuple = typing.Tuple[str, str, str, str]
 
-def read_config_files(fnames):
+
+def read_config_files(fnames) -> GlobalConfig:
     """Read the global container config from the given filenames.
     At least one of the files from the fnames list must exist and contain
     a valid config. If none of the file names exist an error will be raised.
@@ -55,7 +59,7 @@ def read_config_files(fnames):
     return gconfig
 
 
-def check_config_data(data):
+def check_config_data(data) -> dict:
     """Return the config data or raise a ValueError if the config
     is invalid or incomplete.
     """
@@ -74,21 +78,21 @@ class GlobalConfig:
         if source is not None:
             self.load(source)
 
-    def load(self, source):
+    def load(self, source: typing.IO) -> None:
         data = check_config_data(json.load(source))
         self.data.update(data)
 
-    def get(self, ident):
+    def get(self, ident: str) -> InstanceConfig:
         iconfig = self.data["configs"][ident]
         return InstanceConfig(self, iconfig)
 
 
 class InstanceConfig:
-    def __init__(self, conf, iconfig):
+    def __init__(self, conf: GlobalConfig, iconfig: dict):
         self.gconfig = conf
         self.iconfig = iconfig
 
-    def global_options(self):
+    def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
         """Iterate over global options."""
         # Pull in all global sections that apply
         gnames = self.iconfig["globals"]
@@ -101,23 +105,23 @@ class InstanceConfig:
         if instance_name:
             yield "netbios name", instance_name
 
-    def uid_base(self):
+    def uid_base(self) -> int:
         return 1000
 
-    def gid_base(self):
+    def gid_base(self) -> int:
         return 1000
 
-    def shares(self):
+    def shares(self) -> typing.Iterable[ShareConfig]:
         """Iterate over share configs."""
         for sname in self.iconfig.get("shares", []):
             yield ShareConfig(self.gconfig, sname)
 
-    def users(self):
+    def users(self) -> typing.Iterable[UserEntry]:
         all_users = self.gconfig.data.get("users", {}).get("all_entries", {})
         for n, entry in enumerate(all_users):
             yield UserEntry(self, entry, n)
 
-    def groups(self):
+    def groups(self) -> typing.Iterable[GroupEntry]:
         user_gids = {u.gid: u for u in self.users()}
         all_groups = self.gconfig.data.get("groups", {}).get("all_entries", {})
         for n, entry in enumerate(all_groups):
@@ -134,14 +138,14 @@ class ShareConfig:
         self.gconfig = conf
         self.name = sharename
 
-    def share_options(self):
+    def share_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
         """Iterate over share options."""
         share_section = self.gconfig.data["shares"][self.name]
         return iter(share_section.get("options", {}).items())
 
 
 class UserEntry:
-    def __init__(self, iconf, urec, num):
+    def __init__(self, iconf: InstanceConfig, urec: dict, num: int):
         self.iconfig = iconf
         self.username = urec["name"]
         self.entry_num = num
@@ -157,35 +161,35 @@ class UserEntry:
                 raise ValueError("invalid gid value")
 
     @property
-    def uid(self):
+    def uid(self) -> int:
         if self._uid:
             return self._uid
         return self.iconfig.uid_base() + self.entry_num
 
     @property
-    def gid(self):
+    def gid(self) -> int:
         if self._gid:
             return self._gid
         return self.iconfig.gid_base() + self.entry_num
 
     @property
-    def dir(self):
+    def dir(self) -> str:
         return "/invalid"
 
     @property
-    def shell(self):
+    def shell(self) -> str:
         return "/bin/false"
 
     @property
-    def nt_passwd(self):
+    def nt_passwd(self) -> bytes:
         # the json will store the hash as a hex encoded string
         return binascii.unhexlify(self._nt_passwd)
 
     @property
-    def plaintext_passwd(self):
+    def plaintext_passwd(self) -> str:
         return self._plaintext_passwd
 
-    def passwd_fields(self):
+    def passwd_fields(self) -> PasswdEntryTuple:
         # fields: name, passwd, uid, gid, GECOS, dir, shell
         return (
             self.username,
@@ -197,7 +201,7 @@ class UserEntry:
             self.shell,
         )
 
-    def vgroup(self):
+    def vgroup(self) -> GroupEntry:
         """In case there is no explicit group for the specified user. This
         handy method makes a "virtual" group based on the user info.
         """
@@ -207,7 +211,7 @@ class UserEntry:
 
 
 class GroupEntry:
-    def __init__(self, iconf, grec, num):
+    def __init__(self, iconf: InstanceConfig, grec: dict, num: int):
         self.iconfig = iconf
         self.groupname = grec["name"]
         self.entry_num = num
@@ -217,11 +221,11 @@ class GroupEntry:
                 raise ValueError("invalid gid value")
 
     @property
-    def gid(self):
+    def gid(self) -> int:
         if self._gid:
             return self._gid
         return self.iconfig.gid_base() + self.entry_num
 
-    def group_fields(self):
+    def group_fields(self) -> GroupEntryTuple:
         # fields: name, passwd, gid, members(comma separated)
         return (self.groupname, "x", str(self.gid), "")
