@@ -17,17 +17,22 @@
 #
 
 import subprocess
+import typing
+
+from sambacc import config
 
 
 class LoaderError(Exception):
     pass
 
 
-def _utf8(s):
+def _utf8(s) -> bytes:
     return s.encode("utf8")
 
 
-def template_config(fh, iconfig, enc=str):
+def template_config(
+    fh: typing.IO, iconfig: config.InstanceConfig, enc=str
+) -> None:
     fh.write(enc("[global]\n"))
     for gkey, gval in iconfig.global_options():
         fh.write(enc(f"\t{gkey} = {gval}\n"))
@@ -46,26 +51,26 @@ class NetCmdLoader:
         cmd.extend(args)
         return cmd, subprocess.Popen(cmd, **kwargs)
 
-    def _check(self, cli, proc):
+    def _check(self, cli, proc) -> None:
         ret = proc.wait()
         if ret != 0:
             raise LoaderError("failed to run {}".format(cli))
 
-    def import_config(self, iconfig):
+    def import_config(self, iconfig: config.InstanceConfig) -> None:
         """Import to entire instance config to samba config."""
         cli, proc = self._netcmd("import", "/dev/stdin", stdin=subprocess.PIPE)
         template_config(proc.stdin, iconfig, enc=_utf8)
         proc.stdin.close()
         self._check(cli, proc)
 
-    def dump(self, out):
+    def dump(self, out: typing.IO):
         """Dump the current smb config in an smb.conf format.
         Writes the dump to `out`.
         """
         cli, proc = self._netcmd("list", stdout=out)
         self._check(cli, proc)
 
-    def _parse_shares(self, fh):
+    def _parse_shares(self, fh) -> typing.Iterable[str]:
         out = []
         for line in fh.readlines():
             line = line.strip().decode("utf8")
@@ -74,7 +79,7 @@ class NetCmdLoader:
             out.append(line)
         return out
 
-    def current_shares(self):
+    def current_shares(self) -> typing.Iterable[str]:
         """Returns a list of current shares."""
         cli, proc = self._netcmd("listshares", stdout=subprocess.PIPE)
         # read and parse shares list
@@ -84,7 +89,7 @@ class NetCmdLoader:
             self._check(cli, proc)
         return shares
 
-    def set(self, section, param, value):
+    def set(self, section: str, param: str, value: str) -> None:
         """Set an individual config parameter."""
         cli, proc = self._netcmd("setparm", section, param, value)
         self._check(cli, proc)
