@@ -19,13 +19,16 @@
 import enum
 import json
 import subprocess
+import typing
 
 
 class JoinError(Exception):
-    pass
+    def __init__(self, v):
+        super().__init__(v)
+        self.errors = []
 
 
-def _utf8(s):
+def _utf8(s) -> bytes:
     return s.encode("utf8")
 
 
@@ -69,7 +72,9 @@ class Joiner:
         cmd.extend(args)
         return cmd, subprocess.Popen(cmd, **kwargs)
 
-    def add_source(self, method: JoinBy, value=None):
+    def add_source(
+        self, method: JoinBy, value: typing.Optional[str] = None
+    ) -> None:
         if method in {JoinBy.PASSWORD, JoinBy.INTERACTIVE}:
             if not isinstance(value, UserPass):
                 raise ValueError("expected UserPass value")
@@ -80,7 +85,7 @@ class Joiner:
             raise ValueError(f"invalid method: {method}")
         self._sources.append((method, value))
 
-    def join(self, dns_updates=False):
+    def join(self, dns_updates=False) -> None:
         if not self._sources:
             raise JoinError("no sources for join data")
         errors = []
@@ -106,7 +111,7 @@ class Joiner:
             err.errors = errors
             raise err
 
-    def _read_from(self, path):
+    def _read_from(self, path) -> UserPass:
         try:
             with open(path) as fh:
                 data = json.load(fh)
@@ -124,7 +129,7 @@ class Joiner:
             raise JoinError("invalid file content: invalid password")
         return upass
 
-    def _join(self, upass, dns_updates=False):
+    def _join(self, upass: UserPass, dns_updates=False) -> None:
         args = []
         if not dns_updates:
             args.append("--no-dns-updates")
@@ -141,12 +146,12 @@ class Joiner:
         if ret != 0:
             raise JoinError("failed to run {}".format(cli))
 
-    def _set_marker(self):
+    def _set_marker(self) -> None:
         if self.marker is not None:
             with open(self.marker, "w") as fh:
                 json.dump({"joined": True}, fh)
 
-    def did_join(self):
+    def did_join(self) -> bool:
         """Return true if the join marker exists and contains a true
         value in the joined key.
         """
