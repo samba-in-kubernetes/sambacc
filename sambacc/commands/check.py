@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-import os
+from sambacc import samba_cmds
 
 from .cli import commands, Fail
 
@@ -33,10 +33,7 @@ def _check_args(parser):
 def check(cli, config) -> None:
     """Check that a given subsystem is functioning."""
     if cli.target == "winbind":
-        cmd = [
-            "wbinfo",
-            "--ping",
-        ]
-        os.execvp(cmd[0], cmd)
+        cmd = samba_cmds.wbinfo["--ping"]
+        samba_cmds.execute(cmd)
     else:
         raise Fail("unknown subsystem: {}".format(cli.target))
