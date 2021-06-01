@@ -20,14 +20,11 @@ import subprocess
 import typing
 
 from sambacc import config
+from sambacc import samba_cmds
 
 
 class LoaderError(Exception):
     pass
-
-
-def _utf8(s) -> bytes:
-    return s.encode("utf8")
 
 
 def template_config(
@@ -44,11 +41,10 @@ def template_config(
 
 
 class NetCmdLoader:
-    cmd_prefix = ["net", "conf"]
+    _net_conf = samba_cmds.net["conf"]
 
-    def _netcmd(self, *args, **kwargs):
-        cmd = list(self.cmd_prefix)
-        cmd.extend(args)
+    def _cmd(self, *args, **kwargs):
+        cmd = list(self._net_conf[args])
         return cmd, subprocess.Popen(cmd, **kwargs)
 
     def _check(self, cli, proc) -> None:
@@ -58,8 +54,8 @@ class NetCmdLoader:
 
     def import_config(self, iconfig: config.InstanceConfig) -> None:
         """Import to entire instance config to samba config."""
-        cli, proc = self._netcmd("import", "/dev/stdin", stdin=subprocess.PIPE)
-        template_config(proc.stdin, iconfig, enc=_utf8)
+        cli, proc = self._cmd("import", "/dev/stdin", stdin=subprocess.PIPE)
+        template_config(proc.stdin, iconfig, enc=samba_cmds.encode)
         proc.stdin.close()
         self._check(cli, proc)
 
@@ -67,7 +63,7 @@ class NetCmdLoader:
         """Dump the current smb config in an smb.conf format.
         Writes the dump to `out`.
         """
-        cli, proc = self._netcmd("list", stdout=out)
+        cli, proc = self._cmd("list", stdout=out)
         self._check(cli, proc)
 
     def _parse_shares(self, fh) -> typing.Iterable[str]:
@@ -81,7 +77,7 @@ class NetCmdLoader:
 
     def current_shares(self) -> typing.Iterable[str]:
         """Returns a list of current shares."""
-        cli, proc = self._netcmd("listshares", stdout=subprocess.PIPE)
+        cli, proc = self._cmd("listshares", stdout=subprocess.PIPE)
         # read and parse shares list
         try:
             shares = self._parse_shares(proc.stdout)
@@ -91,5 +87,5 @@ class NetCmdLoader:
 
     def set(self, section: str, param: str, value: str) -> None:
         """Set an individual config parameter."""
-        cli, proc = self._netcmd("setparm", section, param, value)
+        cli, proc = self._cmd("setparm", section, param, value)
         self._check(cli, proc)

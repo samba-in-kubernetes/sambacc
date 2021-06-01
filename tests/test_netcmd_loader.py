@@ -21,6 +21,7 @@ import pytest
 
 import sambacc.config
 import sambacc.netcmd_loader
+import sambacc.samba_cmds
 
 smb_conf = """
 [global]
@@ -87,7 +88,9 @@ def testloader(tmp_path):
         fh.write(smb_conf.format(path=data_path))
 
     ldr = sambacc.netcmd_loader.NetCmdLoader()
-    ldr.cmd_prefix = ["net", "--configfile={}".format(smb_conf_path), "conf"]
+    ldr._net_conf = sambacc.samba_cmds.net[
+        "--configfile={}".format(smb_conf_path), "conf"
+    ]
     return ldr
 
 
