@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import os
 import typing
 
 DebugLevel = typing.Optional[str]
@@ -107,3 +108,8 @@ def encode(value: typing.Union[str, bytes, None]) -> bytes:
     elif isinstance(value, str):
         value = value.encode("utf8")
     return value
+
+
+def execute(cmd: SambaCommand) -> None:
+    """Exec into the command specified (without forking)."""
+    os.execvp(cmd.name, cmd.argv())
