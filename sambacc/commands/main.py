@@ -20,6 +20,7 @@ import os
 import time
 
 from sambacc import config
+from sambacc import samba_cmds
 
 from . import check  # noqa: F401
 from . import config as config_cmds
@@ -80,6 +81,10 @@ def global_args(parser) -> None:
         default=DEFAULT_JOIN_MARKER,
         help="Path to a file used to indicate a join has been peformed.",
     )
+    parser.add_argument(
+        "--samba-debug-level",
+        choices=[str(v) for v in range(0, 11)],
+        help="Specify samba debug level for commands.")
 
 
 def from_env(ns, var, ename, default=None, vtype=str) -> None:
@@ -121,6 +126,7 @@ def env_to_cli(cli) -> None:
     from_env(cli, "identity", "SAMBA_CONTAINER_ID")
     from_env(cli, "username", "JOIN_USERNAME")
     from_env(cli, "password", "INSECURE_JOIN_PASSWORD")
+    from_env(cli, "samba_debug_level", "SAMBA_DEBUG_LEVEL")
 
 
 def pre_action(cli) -> None:
@@ -129,6 +135,8 @@ def pre_action(cli) -> None:
     """
     if cli.debug_delay:
         time.sleep(int(cli.debug_delay))
+    if cli.samba_debug_level:
+        samba_cmds.set_global_debug(cli.samba_debug_level)
 
 
 def main(args=None) -> None:
