@@ -20,6 +20,7 @@ import json
 import os
 import pytest
 
+from sambacc import samba_cmds
 import sambacc.join
 
 
@@ -41,7 +42,7 @@ def testjoiner(tmp_path):
     os.chmod(fake_net_script, 0x0755)
 
     class TestJoiner(sambacc.join.Joiner):
-        cmd_prefix = [fake_net_script, "ads"]
+        _net_ads_join = samba_cmds.SambaCommand(fake_net_script)["ads", "join"]
         path = tmp_path
         logpath = data_path / "log"
 

@@ -21,15 +21,13 @@ import json
 import subprocess
 import typing
 
+from sambacc import samba_cmds
+
 
 class JoinError(Exception):
     def __init__(self, v):
         super().__init__(v)
         self.errors = []
-
-
-def _utf8(s) -> bytes:
-    return s.encode("utf8")
 
 
 _PROMPT = object()
@@ -44,8 +42,8 @@ class JoinBy(enum.Enum):
 class UserPass:
     """Encapsulate a username/password pair."""
 
-    username = "Administrator"
-    password = None
+    username: str = "Administrator"
+    password: typing.Optional[str] = None
 
     def __init__(self, username=None, password=None):
         if username is not None:
@@ -61,16 +59,11 @@ class Joiner:
     data. Call `join` to commit and join the "host" to AD.
     """
 
-    cmd_prefix = ["net", "ads"]
+    _net_ads_join = samba_cmds.net["ads", "join"]
 
     def __init__(self, marker=None):
         self._sources = []
         self.marker = marker
-
-    def _netcmd(self, *args, **kwargs):
-        cmd = list(self.cmd_prefix)
-        cmd.extend(args)
-        return cmd, subprocess.Popen(cmd, **kwargs)
 
     def add_source(
         self, method: JoinBy, value: typing.Optional[str] = None
@@ -136,15 +129,20 @@ class Joiner:
         args.extend(["-U", upass.username])
 
         if upass.password is _PROMPT:
-            cli, proc = self._netcmd("join", *args)
+            cmd = list(self._net_ads_join[args])
+            proc = subprocess.Popen(cmd)
         else:
-            cli, proc = self._netcmd("join", *args, stdin=subprocess.PIPE)
-            proc.stdin.write(_utf8(upass.password))
-            proc.stdin.write(b"\n")
-            proc.stdin.close()
+            cmd = list(self._net_ads_join[args])
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+            pw_data = samba_cmds.encode(upass.password)
+            # mypy can't seem to handle the following lines, and none of my web
+            # searches turned up a clear answer. ignore for now
+            proc.stdin.write(pw_data)  # type: ignore
+            proc.stdin.write(b"\n")  # type: ignore
+            proc.stdin.close()  # type: ignore
         ret = proc.wait()
         if ret != 0:
-            raise JoinError("failed to run {}".format(cli))
+            raise JoinError("failed to run {}".format(cmd))
 
     def _set_marker(self) -> None:
         if self.marker is not None:
