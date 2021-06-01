@@ -19,6 +19,8 @@
 import json
 import subprocess
 
+from sambacc import samba_cmds
+
 
 class HostState:
     def __init__(self, ref="", items=[]):
@@ -74,18 +76,15 @@ def parse_file(path):
         return parse(fh)
 
 
-_cmd_prefix = ["net", "ads"]
-
-
-def register(domain, hs, prefix=None):
-    if prefix is None:
-        prefix = _cmd_prefix
+def register(domain, hs, prefix=None) -> bool:
     updated = False
     for item in hs.external_addrs():
         ip = item.ipv4_addr
         fqdn = "{}.{}".format(item.name, domain)
-        cmd = list(prefix) + ["-P", "dns", "register", fqdn, ip]
-        subprocess.check_call(cmd)
+        cmd = samba_cmds.net["ads", "-P", "dns", "register", fqdn, ip]
+        if prefix is not None:
+            cmd.cmd_prefix = prefix
+        subprocess.check_call(list(cmd))
         updated = True
     return updated
 

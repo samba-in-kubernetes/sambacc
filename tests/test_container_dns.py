@@ -119,7 +119,9 @@ def test_same():
 def test_register_dummy(capfd):
     def register(iconfig, hs):
         return sambacc.container_dns.register(
-            iconfig, hs, prefix=["echo", "net", "ads"]
+            iconfig,
+            hs,
+            prefix=["echo"],
         )
 
     hs = sambacc.container_dns.HostState(
