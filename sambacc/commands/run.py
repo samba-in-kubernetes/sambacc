@@ -16,8 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-import os
-
+from sambacc import samba_cmds
 import sambacc.paths as paths
 
 from .cli import commands, Fail
@@ -56,23 +55,11 @@ def run_container(cli, config):
         paths.ensure_samba_dirs()
     if cli.target == "smbd":
         # execute smbd process
-        cmd = [
-            "/usr/sbin/smbd",
-            "--foreground",
-            "--log-stdout",
-            "--no-process-group",
-        ]
-        os.execvp(cmd[0], cmd)
+        samba_cmds.execute(samba_cmds.smbd_foreground)
     elif cli.target == "winbindd":
         if getattr(cli, "insecure_auto_join", False):
             join(cli, config)
         # execute winbind process
-        cmd = [
-            "/usr/sbin/winbindd",
-            "--foreground",
-            "--stdout",
-            "--no-process-group",
-        ]
-        os.execvp(cmd[0], cmd)
+        samba_cmds.execute(samba_cmds.winbindd_foreground)
     else:
         raise Fail(f"invalid target process: {cli.target}")
