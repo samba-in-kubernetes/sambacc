@@ -17,13 +17,10 @@
 #
 
 import sys
-import time
 
 import sambacc.join as joinutil
 
-from .cli import commands, toggle_option, Fail
-
-WAIT_SECONDS = 5
+from .cli import commands, toggle_option, best_waiter, Fail
 
 
 def _print_join_error(err) -> None:
@@ -132,16 +129,16 @@ def must_join(cli, config) -> None:
     # Interactive join is not allowed on must-join
     setattr(cli, "interactive", False)
     _add_join_sources(joiner, cli, config)
-    try:
-        joiner.join()
-    except joinutil.JoinError as err:
-        _print_join_error(err)
-    if not cli.wait:
-        raise Fail(
-            "failed to join to a domain and waiting for join is disabled"
+    if cli.wait:
+        waiter = best_waiter(cli.join_marker, max_timeout=120)
+        joinutil.join_when_possible(
+            joiner, waiter, error_handler=_print_join_error
         )
-    while True:
-        if joiner.did_join():
-            print("found valid join marker")
-            return
-        time.sleep(WAIT_SECONDS)
+    else:
+        try:
+            joiner.join()
+        except joinutil.JoinError as err:
+            _print_join_error(err)
+            raise Fail(
+                "failed to join to a domain - waiting for join is disabled"
+            )
