@@ -22,6 +22,7 @@ import subprocess
 import typing
 
 from sambacc import samba_cmds
+from sambacc.simple_waiter import Waiter
 
 
 class JoinError(Exception):
@@ -164,3 +165,22 @@ class Joiner:
             return data["joined"]
         except (TypeError, KeyError):
             return False
+
+
+def join_when_possible(
+    joiner: Joiner, waiter: Waiter, error_handler=None
+) -> None:
+    while True:
+        if joiner.did_join():
+            print("found valid join marker")
+            return
+        try:
+            joiner.join()
+            print("successful join")
+            return
+        except JoinError as err:
+            if error_handler is not None:
+                error_handler(err)
+            else:
+                raise
+        waiter.wait()

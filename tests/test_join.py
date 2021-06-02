@@ -237,3 +237,53 @@ def test_join_no_marker(testjoiner):
     # join was successful, but no marker was set on the joiner
     # thus did_join must return false
     assert not testjoiner.did_join()
+
+
+def test_join_when_possible(testjoiner):
+    class DummyWaiter:
+        wcount = 0
+
+        def wait(self):
+            self.wcount += 1
+
+    waiter = DummyWaiter()
+
+    errors = []
+
+    def ehandler(err):
+        nonlocal errors
+        if len(errors) > 5:
+            raise ValueError("xxx")
+        errors.append(err)
+
+    # error case - no valid join souces
+    with pytest.raises(ValueError):
+        sambacc.join.join_when_possible(
+            testjoiner, waiter, error_handler=ehandler
+        )
+
+    assert len(errors) == 6
+    assert waiter.wcount == 6
+
+    # success case - performs a password join
+    errors[:] = []
+    testjoiner.add_source(
+        sambacc.join.JoinBy.PASSWORD,
+        sambacc.join.UserPass("bugs", "whatsupdoc"),
+    )
+    testjoiner.marker = os.path.join(testjoiner.path, "marker.json")
+    sambacc.join.join_when_possible(testjoiner, waiter, error_handler=ehandler)
+
+    assert len(errors) == 0
+    assert waiter.wcount == 6
+    with open(testjoiner.logpath) as fh:
+        lines = fh.readlines()
+    assert lines[0].startswith("ARGS")
+    assert "bugs" in lines[0]
+    assert "whatsupdoc" in lines[1]
+
+    # success case - join marker exists
+    sambacc.join.join_when_possible(testjoiner, waiter, error_handler=ehandler)
+
+    assert len(errors) == 0
+    assert waiter.wcount == 6
