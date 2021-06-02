@@ -17,6 +17,7 @@
 #
 
 import time
+import typing
 
 
 def generate_sleeps():
@@ -51,3 +52,10 @@ class Sleeper:
 
     def wait(self):
         self._sleep(next(self._times))
+
+
+class Waiter(typing.Protocol):
+    """Waiter protocol - interfaces common to all waiters."""
+
+    def wait(self) -> None:
+        ...
