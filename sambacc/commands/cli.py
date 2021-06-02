@@ -18,6 +18,15 @@
 
 from collections import namedtuple
 import argparse
+import typing
+
+from sambacc import simple_waiter
+
+_INOTIFY_OK = True
+try:
+    from sambacc import inotify_waiter as iw
+except ImportError:
+    _INOTIFY_OK = False
 
 
 class Fail(ValueError):
@@ -89,6 +98,18 @@ class CommandBuilder:
         for cmd in self._commands:
             add_command(subparsers, cmd)
         return parser
+
+
+def best_waiter(
+    filename: typing.Optional[str] = None,
+    max_timeout: typing.Optional[int] = None,
+) -> simple_waiter.Waiter:
+    """Fetch the best waiter type for our sambacc command."""
+    if filename and _INOTIFY_OK:
+        print("enabling inotify support")
+        return iw.INotify(filename, print_func=print, timeout=max_timeout)
+    # should max_timeout change Sleeper too? probably.
+    return simple_waiter.Sleeper()
 
 
 commands = CommandBuilder()

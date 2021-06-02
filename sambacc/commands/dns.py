@@ -19,22 +19,8 @@
 import argparse
 
 from sambacc import container_dns
-from sambacc import simple_waiter
 
-from .cli import commands, Fail
-
-_INOTIFY_OK = True
-try:
-    from sambacc import inotify_waiter as iw
-except ImportError:
-    _INOTIFY_OK = False
-
-
-def _waiter(filename=None):
-    if filename and _INOTIFY_OK:
-        print("enabling inotify support")
-        return iw.INotify(filename, print_func=print)
-    return simple_waiter.Sleeper()
+from .cli import commands, best_waiter, Fail
 
 
 def _dns_register_args(parser: argparse.ArgumentParser) -> None:
@@ -67,7 +53,7 @@ def dns_register(cli, config) -> None:
             raise Fail("instance not configured with domain (realm)")
 
     if cli.watch:
-        waiter = _waiter(cli.source)
+        waiter = best_waiter(cli.source)
         container_dns.watch(
             domain,
             cli.source,
