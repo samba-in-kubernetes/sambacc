@@ -42,8 +42,7 @@ def test_inotify(tmp_path):
     tfile = str(tmp_path / "foobar.txt")
     tfile2 = str(tmp_path / "other.txt")
 
-    iw = sambacc.inotify_waiter.INotify(tfile, print_func=print)
-    iw.timeout = 3
+    iw = sambacc.inotify_waiter.INotify(tfile, print_func=print, timeout=3)
 
     def _touch():
         time.sleep(0.2)

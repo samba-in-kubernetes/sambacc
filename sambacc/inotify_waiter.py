@@ -17,8 +17,11 @@
 #
 
 import os
+import typing
 
 import inotify_simple as _inotify  # type: ignore
+
+DEFAULT_TIMEOUT = 300
 
 
 class INotify:
@@ -30,10 +33,14 @@ class INotify:
     A `print_func` can be specified as a simple logging method.
     """
 
-    timeout = 300
+    timeout: int = DEFAULT_TIMEOUT
     print_func = None
 
-    def __init__(self, path: str, print_func=None):
+    def __init__(
+        self, path: str, print_func=None, timeout: typing.Optional[int] = None
+    ):
+        if timeout is not None:
+            self.timeout = timeout
         self.print_func = print_func
         self._inotify = _inotify.INotify()
         dirpath, fpath = os.path.split(path)
