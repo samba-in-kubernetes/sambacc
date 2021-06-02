@@ -84,7 +84,8 @@ def global_args(parser) -> None:
     parser.add_argument(
         "--samba-debug-level",
         choices=[str(v) for v in range(0, 11)],
-        help="Specify samba debug level for commands.")
+        help="Specify samba debug level for commands.",
+    )
 
 
 def from_env(ns, var, ename, default=None, vtype=str) -> None:
