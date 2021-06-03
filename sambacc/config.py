@@ -74,6 +74,14 @@ def check_config_data(data) -> dict:
     return data
 
 
+class SambaConfig(typing.Protocol):
+    def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
+        ...
+
+    def shares(self) -> typing.Iterable[ShareConfig]:
+        ...
+
+
 class GlobalConfig:
     def __init__(self, source=None):
         self.data = {}

@@ -28,7 +28,7 @@ class LoaderError(Exception):
 
 
 def template_config(
-    fh: typing.IO, iconfig: config.InstanceConfig, enc=str
+    fh: typing.IO, iconfig: config.SambaConfig, enc=str
 ) -> None:
     fh.write(enc("[global]\n"))
     for gkey, gval in iconfig.global_options():
