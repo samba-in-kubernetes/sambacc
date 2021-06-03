@@ -32,6 +32,12 @@ _open = open
 PasswdEntryTuple = typing.Tuple[str, str, str, str, str, str, str]
 GroupEntryTuple = typing.Tuple[str, str, str, str]
 
+# the standard location for samba's smb.conf
+SMB_CONF = "/etc/samba/smb.conf"
+
+CTDB = "ctdb"
+FEATURES = "instance_features"
+
 
 def read_config_files(fnames) -> GlobalConfig:
     """Read the global container config from the given filenames.
@@ -141,6 +147,27 @@ class InstanceConfig:
             yield ge
         for uentry in user_gids.values():
             yield uentry.vgroup()
+
+    @property
+    def with_ctdb(self):
+        return CTDB in self.iconfig.get(FEATURES, [])
+
+    def ctdb_smb_config(self) -> CTDBSambaConfig:
+        if not self.with_ctdb:
+            raise ValueError("ctdb not supported in configuration")
+        return CTDBSambaConfig()
+
+
+class CTDBSambaConfig:
+    def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
+        return [
+            ("clustering", "yes"),
+            ("ctdb:registry.tdb", "yes"),
+            ("include", "registry"),
+        ]
+
+    def shares(self) -> typing.Iterable[ShareConfig]:
+        return []
 
 
 class ShareConfig:
