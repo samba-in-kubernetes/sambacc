@@ -17,6 +17,7 @@
 #
 
 import argparse
+import functools
 
 from sambacc import container_dns
 
@@ -33,6 +34,12 @@ def _dns_register_args(parser: argparse.ArgumentParser) -> None:
         "--domain",
         default="",
         help=("Manually specify parent domain for DNS entries."),
+    )
+    parser.add_argument(
+        "--target",
+        default=container_dns.EXTERNAL,
+        choices=[container_dns.EXTERNAL, container_dns.INTERNAL],
+        help=("Register IPs that fulfill the given access target."),
     )
     parser.add_argument("source", help="Path to source JSON file.")
 
@@ -52,15 +59,20 @@ def dns_register(cli, config) -> None:
         except KeyError:
             raise Fail("instance not configured with domain (realm)")
 
+    update_func = functools.partial(
+        container_dns.parse_and_update,
+        target_name=cli.target,
+    )
+
     if cli.watch:
         waiter = best_waiter(cli.source)
         container_dns.watch(
             domain,
             cli.source,
-            container_dns.parse_and_update,
+            update_func,
             waiter.wait,
             print_func=print,
         )
     else:
-        container_dns.parse_and_update(domain, cli.source)
+        update_func(domain, cli.source)
     return
