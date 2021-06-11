@@ -143,7 +143,7 @@ def test_register_dummy(capfd):
 def test_parse_and_update(tmp_path):
     reg_data = []
 
-    def _register(domain, hs):
+    def _register(domain, hs, target_name=""):
         reg_data.append((domain, hs))
         return True
 
@@ -175,7 +175,7 @@ def test_parse_and_update(tmp_path):
 def test_watch(tmp_path):
     reg_data = []
 
-    def _register(domain, hs):
+    def _register(domain, hs, target_name=""):
         reg_data.append((domain, hs))
 
     def _update(domain, source, previous=None):

@@ -18,8 +18,12 @@
 
 import json
 import subprocess
+import typing
 
 from sambacc import samba_cmds
+
+EXTERNAL: str = "external"
+INTERNAL: str = "internal"
 
 
 class HostState:
@@ -33,9 +37,6 @@ class HostState:
             ref=d["ref"],
             items=[HostInfo.from_dict(i) for i in d.get("items", [])],
         )
-
-    def external_addrs(self):
-        return [h for h in self.items if h.target == "external"]
 
     def __eq__(self, other):
         return (
@@ -76,9 +77,13 @@ def parse_file(path):
         return parse(fh)
 
 
-def register(domain, hs, prefix=None) -> bool:
+def match_target(state: HostState, target_name: str) -> typing.List[HostInfo]:
+    return [h for h in state.items if h.target == target_name]
+
+
+def register(domain, hs, prefix=None, target_name: str = EXTERNAL) -> bool:
     updated = False
-    for item in hs.external_addrs():
+    for item in match_target(hs, target_name):
         ip = item.ipv4_addr
         fqdn = "{}.{}".format(item.name, domain)
         cmd = samba_cmds.net["ads", "-P", "dns", "register", fqdn, ip]
@@ -89,12 +94,18 @@ def register(domain, hs, prefix=None) -> bool:
     return updated
 
 
-def parse_and_update(domain, source, previous=None, reg_func=register):
+def parse_and_update(
+    domain: str,
+    source: str,
+    previous: typing.Optional[HostState] = None,
+    target_name: str = EXTERNAL,
+    reg_func=register,
+) -> typing.Tuple[HostState, bool]:
     hs = parse_file(source)
     if previous is not None and hs == previous:
         # no changes
         return hs, False
-    updated = reg_func(domain, hs)
+    updated = reg_func(domain, hs, target_name=target_name)
     return hs, updated
 
 
