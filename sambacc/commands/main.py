@@ -16,8 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import argparse
 import os
 import time
+import typing
 
 from sambacc import config
 from sambacc import samba_cmds
@@ -128,6 +130,26 @@ def env_to_cli(cli) -> None:
     from_env(cli, "username", "JOIN_USERNAME")
     from_env(cli, "password", "INSECURE_JOIN_PASSWORD")
     from_env(cli, "samba_debug_level", "SAMBA_DEBUG_LEVEL")
+
+
+class CommandContext:
+    """CLI Context for standard samba-container commands."""
+    def __init__(self, cli_args: argparse.Namespace):
+        self._cli = cli_args
+        self._iconfig: typing.Optional[config.InstanceConfig] = None
+
+    @property
+    def cli(self) -> argparse.Namespace:
+        return self._cli
+
+    @property
+    def instance_config(self) -> config.InstanceConfig:
+        if self._iconfig is None:
+            cfgs = self.cli.config or []
+            self._iconfig = config.read_config_files(cfgs).get(
+                self.cli.identity
+            )
+        return self._iconfig
 
 
 def pre_action(cli) -> None:
