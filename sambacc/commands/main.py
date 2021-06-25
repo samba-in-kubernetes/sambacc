@@ -170,7 +170,7 @@ def main(args=None) -> None:
 
     pre_action(cli)
     cfunc = getattr(cli, "cfunc", default_cfunc)
-    cfunc(cli, config)
+    cfunc(CommandContext(cli))
     return
 
 

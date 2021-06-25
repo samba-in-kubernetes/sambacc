@@ -18,16 +18,16 @@
 
 import sambacc.nsswitch_loader as nsswitch
 
-from .cli import commands
+from .cli import commands, Context
 from .config import import_config
 from .users import import_users
 
 
 @commands.command(name="init")
-def init_container(cli, config) -> None:
+def init_container(ctx: Context) -> None:
     """Initialize the entire container environment."""
-    import_config(cli, config)
-    import_users(cli, config)
+    import_config(ctx)
+    import_users(ctx)
 
     # should nsswitch validation/edit be conditional only on ads?
     nss = nsswitch.NameServiceSwitchLoader("/etc/nsswitch.conf")

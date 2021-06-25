@@ -20,7 +20,7 @@ import sys
 
 import sambacc.join as joinutil
 
-from .cli import commands, toggle_option, best_waiter, Fail
+from .cli import commands, Context, toggle_option, best_waiter, Fail
 
 
 def _print_join_error(err) -> None:
@@ -29,7 +29,7 @@ def _print_join_error(err) -> None:
         print(f"  - {suberr}", file=sys.stderr)
 
 
-def _add_join_sources(joiner, cli, config) -> None:
+def _add_join_sources(joiner, cli) -> None:
     if cli.insecure or getattr(cli, "insecure_auto_join", False):
         upass = joinutil.UserPass(cli.username, cli.password)
         joiner.add_source(joinutil.JoinBy.PASSWORD, upass)
@@ -71,7 +71,7 @@ def _join_args(parser) -> None:
 
 
 @commands.command(name="join", arg_func=_join_args)
-def join(cli, config) -> None:
+def join(ctx: Context) -> None:
     """Perform a domain join. The supported sources for join
     can be provided by supplying command line arguments.
     This includes an *insecure* mode that sources the password
@@ -79,8 +79,8 @@ def join(cli, config) -> None:
     testing/non-production purposes.
     """
     # maybe in the future we'll have more secure methods
-    joiner = joinutil.Joiner(cli.join_marker)
-    _add_join_sources(joiner, cli, config)
+    joiner = joinutil.Joiner(ctx.cli.join_marker)
+    _add_join_sources(joiner, ctx.cli)
     try:
         joiner.join()
     except joinutil.JoinError as err:
@@ -118,19 +118,19 @@ def _must_join_args(parser) -> None:
 
 
 @commands.command(name="must-join", arg_func=_must_join_args)
-def must_join(cli, config) -> None:
+def must_join(ctx: Context) -> None:
     """If possible, perform an unattended domain join. Otherwise,
     exit or block until a join has been perfmed by another process.
     """
-    joiner = joinutil.Joiner(cli.join_marker)
+    joiner = joinutil.Joiner(ctx.cli.join_marker)
     if joiner.did_join():
         print("already joined")
         return
     # Interactive join is not allowed on must-join
-    setattr(cli, "interactive", False)
-    _add_join_sources(joiner, cli, config)
-    if cli.wait:
-        waiter = best_waiter(cli.join_marker, max_timeout=120)
+    setattr(ctx.cli, "interactive", False)
+    _add_join_sources(joiner, ctx.cli)
+    if ctx.cli.wait:
+        waiter = best_waiter(ctx.cli.join_marker, max_timeout=120)
         joinutil.join_when_possible(
             joiner, waiter, error_handler=_print_join_error
         )

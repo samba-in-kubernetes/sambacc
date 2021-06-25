@@ -19,18 +19,17 @@
 import sambacc.passdb_loader as passdb
 import sambacc.passwd_loader as ugl
 
-from .cli import commands
+from .cli import commands, Context
 
 
 @commands.command(name="import-users")
-def import_users(cli, config) -> None:
+def import_users(ctx: Context) -> None:
     """Import users and groups from the sambacc config to the passwd
     and group files to support local (non-domain based) login.
     """
-    cfgs = cli.config or []
-    iconfig = config.read_config_files(cfgs).get(cli.identity)
-    etc_passwd_loader = ugl.PasswdFileLoader(cli.etc_passwd_path)
-    etc_group_loader = ugl.GroupFileLoader(cli.etc_group_path)
+    iconfig = ctx.instance_config
+    etc_passwd_loader = ugl.PasswdFileLoader(ctx.cli.etc_passwd_path)
+    etc_group_loader = ugl.GroupFileLoader(ctx.cli.etc_group_path)
     smb_passdb_loader = passdb.PassDBLoader()
 
     etc_passwd_loader.read()

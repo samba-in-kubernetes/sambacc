@@ -21,28 +21,24 @@ import sys
 import sambacc.netcmd_loader as nc
 import sambacc.paths as paths
 
-from .cli import commands
+from .cli import commands, Context
 
 
 @commands.command(name="print-config")
-def print_config(cli, config) -> None:
+def print_config(ctx: Context) -> None:
     """Display the samba configuration sourced from the sambacc config
     in the format of smb.conf.
     """
-    cfgs = cli.config or []
-    iconfig = config.read_config_files(cfgs).get(cli.identity)
-    nc.template_config(sys.stdout, iconfig)
+    nc.template_config(sys.stdout, ctx.instance_config)
 
 
 @commands.command(name="import")
-def import_config(cli, config) -> None:
+def import_config(ctx: Context) -> None:
     """Import configuration parameters from the sambacc config to
     samba's registry config.
     """
     # there are some expectations about what dirs exist and perms
     paths.ensure_samba_dirs()
 
-    cfgs = cli.config or []
-    iconfig = config.read_config_files(cfgs).get(cli.identity)
     loader = nc.NetCmdLoader()
-    loader.import_config(iconfig)
+    loader.import_config(ctx.instance_config)

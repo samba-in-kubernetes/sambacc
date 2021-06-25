@@ -19,7 +19,7 @@
 from sambacc import samba_cmds
 import sambacc.paths as paths
 
-from .cli import commands, Fail
+from .cli import commands, Context, Fail
 from .initialize import init_container
 from .join import join
 
@@ -47,19 +47,19 @@ def _run_container_args(parser):
 
 
 @commands.command(name="run", arg_func=_run_container_args)
-def run_container(cli, config):
+def run_container(ctx: Context):
     """Run a specified server process."""
-    if not getattr(cli, "no_init", False):
-        init_container(cli, config)
+    if not getattr(ctx.cli, "no_init", False):
+        init_container(ctx)
     else:
         paths.ensure_samba_dirs()
-    if cli.target == "smbd":
+    if ctx.cli.target == "smbd":
         # execute smbd process
         samba_cmds.execute(samba_cmds.smbd_foreground)
-    elif cli.target == "winbindd":
-        if getattr(cli, "insecure_auto_join", False):
-            join(cli, config)
+    elif ctx.cli.target == "winbindd":
+        if getattr(ctx.cli, "insecure_auto_join", False):
+            join(ctx)
         # execute winbind process
         samba_cmds.execute(samba_cmds.winbindd_foreground)
     else:
-        raise Fail(f"invalid target process: {cli.target}")
+        raise Fail(f"invalid target process: {ctx.cli.target}")

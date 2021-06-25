@@ -18,7 +18,7 @@
 
 from sambacc import samba_cmds
 
-from .cli import commands, Fail
+from .cli import commands, Context, Fail
 
 
 def _check_args(parser):
@@ -30,10 +30,10 @@ def _check_args(parser):
 
 
 @commands.command(name="check", arg_func=_check_args)
-def check(cli, config) -> None:
+def check(ctx: Context) -> None:
     """Check that a given subsystem is functioning."""
-    if cli.target == "winbind":
+    if ctx.cli.target == "winbind":
         cmd = samba_cmds.wbinfo["--ping"]
         samba_cmds.execute(cmd)
     else:
-        raise Fail("unknown subsystem: {}".format(cli.target))
+        raise Fail("unknown subsystem: {}".format(ctx.cli.target))

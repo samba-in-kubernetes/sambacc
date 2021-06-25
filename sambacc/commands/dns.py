@@ -21,7 +21,7 @@ import functools
 
 from sambacc import container_dns
 
-from .cli import commands, best_waiter, Fail
+from .cli import commands, Context, best_waiter, Fail
 
 
 def _dns_register_args(parser: argparse.ArgumentParser) -> None:
@@ -45,14 +45,13 @@ def _dns_register_args(parser: argparse.ArgumentParser) -> None:
 
 
 @commands.command(name="dns-register", arg_func=_dns_register_args)
-def dns_register(cli, config) -> None:
+def dns_register(ctx: Context) -> None:
     """Register container & container orchestration IPs with AD DNS."""
     # This command assumes a cooperating JSON state file.
     # This file is expected to be supplied & kept up to date by
     # a container-orchestration specific component.
-    cfgs = cli.config or []
-    iconfig = config.read_config_files(cfgs).get(cli.identity)
-    domain = cli.domain or ""
+    iconfig = ctx.instance_config
+    domain = ctx.cli.domain or ""
     if not domain:
         try:
             domain = dict(iconfig.global_options())["realm"].lower()
@@ -61,18 +60,18 @@ def dns_register(cli, config) -> None:
 
     update_func = functools.partial(
         container_dns.parse_and_update,
-        target_name=cli.target,
+        target_name=ctx.cli.target,
     )
 
-    if cli.watch:
-        waiter = best_waiter(cli.source)
+    if ctx.cli.watch:
+        waiter = best_waiter(ctx.cli.source)
         container_dns.watch(
             domain,
-            cli.source,
+            ctx.cli.source,
             update_func,
             waiter.wait,
             print_func=print,
         )
     else:
-        update_func(domain, cli.source)
+        update_func(domain, ctx.cli.source)
     return
