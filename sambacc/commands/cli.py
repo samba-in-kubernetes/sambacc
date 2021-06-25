@@ -20,6 +20,7 @@ from collections import namedtuple
 import argparse
 import typing
 
+from sambacc import config
 from sambacc import simple_waiter
 
 _INOTIFY_OK = True
@@ -98,6 +99,20 @@ class CommandBuilder:
         for cmd in self._commands:
             add_command(subparsers, cmd)
         return parser
+
+
+class Context(typing.Protocol):
+    """Protocol type for CLI Context.
+    Used to share simple, common state, derived from the CLI, across individual
+    command functions.
+    """
+    @property
+    def cli(self) -> argparse.Namespace:
+        ...
+
+    @property
+    def instance_config(self) -> config.InstanceConfig:
+        ...
 
 
 def best_waiter(
