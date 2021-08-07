@@ -92,6 +92,11 @@ def global_args(parser) -> None:
         "--samba-command-prefix",
         help="Wrap samba commands within a supplied command prefix",
     )
+    parser.add_argument(
+        "--skip-if-file",
+        action="append",
+        help=("Perform no action if the specified path exists."),
+    )
 
 
 def from_env(ns, var, ename, default=None, vtype=str) -> None:
@@ -169,6 +174,13 @@ def pre_action(cli) -> None:
         samba_cmds.set_global_prefix([cli.samba_command_prefix])
 
 
+def action_filter(cli) -> typing.Optional[str]:
+    for path in (cli.skip_if_file or []):
+        if os.path.exists(path):
+            return f"skip-if-file: {path} exists"
+    return None
+
+
 def main(args=None) -> None:
     cli = commands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
@@ -176,6 +188,10 @@ def main(args=None) -> None:
         raise Fail("missing container identity")
 
     pre_action(cli)
+    skip = action_filter(cli)
+    if skip:
+        print(f"Action skipped: {skip}")
+        return
     cfunc = getattr(cli, "cfunc", default_cfunc)
     cfunc(CommandContext(cli))
     return
