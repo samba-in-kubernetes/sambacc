@@ -157,6 +157,19 @@ class InstanceConfig:
             raise ValueError("ctdb not supported in configuration")
         return CTDBSambaConfig()
 
+    def ctdb_config(self) -> typing.Dict[str, str]:
+        """Common configuration of CTDB itself."""
+        if not self.with_ctdb:
+            return {}
+        ctdb = dict(self.gconfig.data.get("ctdb", {}))
+        ctdb.setdefault("nodes_json", "/var/lib/ctdb/shared/ctdb-nodes.json")
+        ctdb.setdefault("nodes_path", "/var/lib/ctdb/shared/nodes")
+        ctdb.setdefault("recovery_lock", "/var/lib/ctdb/shared/RECOVERY")
+        ctdb.setdefault("log_level", "DEBUG")
+        ctdb.setdefault("script_log_level", "DEBUG")
+        ctdb.setdefault("realtime_scheduling", "false")
+        return ctdb
+
 
 class CTDBSambaConfig:
     def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
