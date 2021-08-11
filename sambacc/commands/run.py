@@ -20,8 +20,11 @@ from sambacc import samba_cmds
 import sambacc.paths as paths
 
 from .cli import commands, Context, Fail
-from .initialize import init_container
+from .initialize import init_container, setup_step_names
 from .join import join
+
+
+INIT_ALL = "init-all"
 
 
 def _run_container_args(parser):
@@ -29,8 +32,19 @@ def _run_container_args(parser):
         "--no-init",
         action="store_true",
         help=(
-            "Do not initialize the container envionment."
-            " Only start running the target process."
+            "(DEPRECATED - see --setup) Do not initialize the container"
+            " envionment. Only start running the target process."
+        ),
+    )
+    _setup_choices = [INIT_ALL] + list(setup_step_names())
+    parser.add_argument(
+        "--setup",
+        action="append",
+        choices=_setup_choices,
+        help=(
+            "Specify one or more setup step names to preconfigure the"
+            " container environment before the server process is started."
+            " The special 'init-all' name will perform all known setup steps."
         ),
     )
     parser.add_argument(
@@ -49,10 +63,17 @@ def _run_container_args(parser):
 @commands.command(name="run", arg_func=_run_container_args)
 def run_container(ctx: Context):
     """Run a specified server process."""
-    if not getattr(ctx.cli, "no_init", False):
+    if ctx.cli.no_init and ctx.cli.setup:
+        raise Fail("can not specify both --no-init and --setup")
+    if not ctx.cli.no_init and not ctx.cli.setup:
+        # TODO: drop this along with --no-init and move to a opt-in
+        # rather than opt-out form of pre-run setup
         init_container(ctx)
-    else:
-        paths.ensure_samba_dirs()
+    elif ctx.cli.setup:
+        steps = list(ctx.cli.setup)
+        init_container(ctx, steps=(None if INIT_ALL in steps else steps))
+
+    paths.ensure_samba_dirs()
     if ctx.cli.target == "smbd":
         # execute smbd process
         samba_cmds.execute(samba_cmds.smbd_foreground)
