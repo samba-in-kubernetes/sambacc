@@ -134,6 +134,7 @@ def env_to_cli(cli) -> None:
 
 class CommandContext:
     """CLI Context for standard samba-container commands."""
+
     def __init__(self, cli_args: argparse.Namespace):
         self._cli = cli_args
         self._iconfig: typing.Optional[config.InstanceConfig] = None

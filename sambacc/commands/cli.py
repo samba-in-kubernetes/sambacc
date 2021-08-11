@@ -106,6 +106,7 @@ class Context(typing.Protocol):
     Used to share simple, common state, derived from the CLI, across individual
     command functions.
     """
+
     @property
     def cli(self) -> argparse.Namespace:
         ...
