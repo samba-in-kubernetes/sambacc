@@ -101,6 +101,14 @@ winbindd_foreground = winbindd[
     "--no-process-group",
 ]
 
+ctdbd = SambaCommand("/usr/sbin/ctdbd")
+
+ctdbd_foreground = ctdbd["--interactive"]
+
+ltdbtool = SambaCommand("ltdbtool")
+
+ctdb = SambaCommand("ctdb")
+
 
 def encode(value: typing.Union[str, bytes, None]) -> bytes:
     if value is None:
