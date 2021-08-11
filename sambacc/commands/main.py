@@ -147,6 +147,7 @@ class CommandContext:
     def __init__(self, cli_args: argparse.Namespace):
         self._cli = cli_args
         self._iconfig: typing.Optional[config.InstanceConfig] = None
+        self.expects_ctdb = False
 
     @property
     def cli(self) -> argparse.Namespace:

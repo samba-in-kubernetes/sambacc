@@ -107,6 +107,10 @@ class Context(typing.Protocol):
     command functions.
     """
 
+    # The expects_ctdb attribute indicates that the command can, and should,
+    # make use of ctdb whenever ctdb is enabled in the configuration.
+    expects_ctdb: bool
+
     @property
     def cli(self) -> argparse.Namespace:
         ...
