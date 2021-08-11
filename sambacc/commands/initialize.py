@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+from sambacc import ctdb
 import sambacc.nsswitch_loader as nsswitch
 
 from .cli import commands, Context
@@ -32,11 +33,43 @@ def _import_nsswitch(ctx: Context) -> None:
         nss.write()
 
 
+def _smb_conf_for_ctdb(ctx: Context) -> None:
+    if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
+        print("Enabling ctdb in samba config file")
+        ctdb.ensure_smb_conf(ctx.instance_config)
+
+
+def _ctdb_conf_for_ctdb(ctx: Context) -> None:
+    if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
+        print("Ensuring ctdb config")
+        ctdb.ensure_ctdb_conf(ctx.instance_config)
+
+
+def _ctdb_nodes_exists(ctx: Context) -> None:
+    if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
+        print("Ensuring ctdb nodes file")
+        persistent_path = ctx.instance_config.ctdb_config()["nodes_path"]
+        ctdb.ensure_ctdb_nodes(
+            ctdb_nodes=ctdb.read_ctdb_nodes(persistent_path),
+            real_path=persistent_path,
+        )
+
+
+def _ctdb_etc_files(ctx: Context) -> None:
+    if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
+        print("Ensuring ctdb etc files")
+        ctdb.ensure_ctdbd_etc_files()
+
+
 _setup_steps = [
     ("config", import_config),
     ("users", import_sys_users),
+    ("smb_ctdb", _smb_conf_for_ctdb),
     ("users_passdb", import_passdb_users),
     ("nsswitch", _import_nsswitch),
+    ("ctdb_config", _ctdb_conf_for_ctdb),
+    ("ctdb_etc", _ctdb_etc_files),
+    ("ctdb_nodes", _ctdb_nodes_exists),
 ]
 
 
