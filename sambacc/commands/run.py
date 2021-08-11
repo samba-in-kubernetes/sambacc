@@ -56,15 +56,19 @@ def _run_container_args(parser):
         ),
     )
     parser.add_argument(
-        "target", choices=["smbd", "winbindd"], help="Which process to run"
+        "target",
+        choices=["smbd", "winbindd", "ctdbd"],
+        help="Which process to run",
     )
 
 
 @commands.command(name="run", arg_func=_run_container_args)
-def run_container(ctx: Context):
+def run_container(ctx: Context) -> None:
     """Run a specified server process."""
     if ctx.cli.no_init and ctx.cli.setup:
         raise Fail("can not specify both --no-init and --setup")
+    # running servers expect to make use of ctdb whenever it is configured
+    ctx.expects_ctdb = True
     if not ctx.cli.no_init and not ctx.cli.setup:
         # TODO: drop this along with --no-init and move to a opt-in
         # rather than opt-out form of pre-run setup
@@ -82,5 +86,7 @@ def run_container(ctx: Context):
             join(ctx)
         # execute winbind process
         samba_cmds.execute(samba_cmds.winbindd_foreground)
+    elif ctx.cli.target == "ctdbd":
+        samba_cmds.execute(samba_cmds.ctdbd_foreground)
     else:
         raise Fail(f"invalid target process: {ctx.cli.target}")
