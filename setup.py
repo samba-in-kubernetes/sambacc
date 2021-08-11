@@ -15,7 +15,11 @@ setup(
     data_files=[
         (
             "share/sambacc/examples",
-            ["examples/example1.json", "examples/minimal.json"],
+            [
+                "examples/ctdb.json",
+                "examples/example1.json",
+                "examples/minimal.json",
+            ],
         )
     ],
 )
