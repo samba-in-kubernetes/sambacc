@@ -27,20 +27,30 @@ def import_users(ctx: Context) -> None:
     """Import users and groups from the sambacc config to the passwd
     and group files to support local (non-domain based) login.
     """
-    iconfig = ctx.instance_config
+    import_sys_users(ctx)
+    import_passdb_users(ctx)
+
+
+def import_sys_users(ctx: Context) -> None:
+    """Import users and groups from sambacc config to the passwd and
+    group files.
+    """
     etc_passwd_loader = ugl.PasswdFileLoader(ctx.cli.etc_passwd_path)
     etc_group_loader = ugl.GroupFileLoader(ctx.cli.etc_group_path)
-    smb_passdb_loader = passdb.PassDBLoader()
 
     etc_passwd_loader.read()
     etc_group_loader.read()
-    for u in iconfig.users():
+    for u in ctx.instance_config.users():
         etc_passwd_loader.add_user(u)
-    for g in iconfig.groups():
+    for g in ctx.instance_config.groups():
         etc_group_loader.add_group(g)
     etc_passwd_loader.write()
     etc_group_loader.write()
 
-    for u in iconfig.users():
+
+def import_passdb_users(ctx: Context) -> None:
+    """Import users into samba's passdb."""
+    smb_passdb_loader = passdb.PassDBLoader()
+    for u in ctx.instance_config.users():
         smb_passdb_loader.add_user(u)
     return

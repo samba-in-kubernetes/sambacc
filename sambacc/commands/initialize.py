@@ -20,7 +20,7 @@ import sambacc.nsswitch_loader as nsswitch
 
 from .cli import commands, Context
 from .config import import_config
-from .users import import_users
+from .users import import_sys_users, import_passdb_users
 
 
 def _import_nsswitch(ctx: Context) -> None:
@@ -34,7 +34,8 @@ def _import_nsswitch(ctx: Context) -> None:
 
 _setup_steps = [
     ("config", import_config),
-    ("users", import_users),
+    ("users", import_sys_users),
+    ("users_passdb", import_passdb_users),
     ("nsswitch", _import_nsswitch),
 ]
 
