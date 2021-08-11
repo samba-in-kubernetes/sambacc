@@ -88,6 +88,10 @@ def global_args(parser) -> None:
         choices=[str(v) for v in range(0, 11)],
         help="Specify samba debug level for commands.",
     )
+    parser.add_argument(
+        "--samba-command-prefix",
+        help="Wrap samba commands within a supplied command prefix",
+    )
 
 
 def from_env(ns, var, ename, default=None, vtype=str) -> None:
@@ -161,6 +165,8 @@ def pre_action(cli) -> None:
         time.sleep(int(cli.debug_delay))
     if cli.samba_debug_level:
         samba_cmds.set_global_debug(cli.samba_debug_level)
+    if cli.samba_command_prefix:
+        samba_cmds.set_global_prefix([cli.samba_command_prefix])
 
 
 def main(args=None) -> None:
