@@ -23,15 +23,31 @@ from .config import import_config
 from .users import import_users
 
 
-@commands.command(name="init")
-def init_container(ctx: Context) -> None:
-    """Initialize the entire container environment."""
-    import_config(ctx)
-    import_users(ctx)
-
+def _import_nsswitch(ctx: Context) -> None:
     # should nsswitch validation/edit be conditional only on ads?
     nss = nsswitch.NameServiceSwitchLoader("/etc/nsswitch.conf")
     nss.read()
     if not nss.winbind_enabled():
         nss.ensure_winbind_enabled()
         nss.write()
+
+
+_setup_steps = [
+    ("config", import_config),
+    ("users", import_users),
+    ("nsswitch", _import_nsswitch),
+]
+
+
+def setup_step_names():
+    """Return a list of names for the steps that init supports."""
+    return [s[0] for s in _setup_steps]
+
+
+@commands.command(name="init")
+def init_container(ctx: Context, steps=None) -> None:
+    """Initialize the entire container environment."""
+    for name, setup_func in _setup_steps:
+        if steps and name not in steps:
+            continue
+        setup_func(ctx)
