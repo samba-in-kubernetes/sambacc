@@ -26,6 +26,7 @@ from sambacc import samba_cmds
 
 from . import check  # noqa: F401
 from . import config as config_cmds
+from . import ctdb  # noqa: F401
 from . import dns  # noqa: F401
 from . import initialize  # noqa: F401
 from . import join  # noqa: F401
