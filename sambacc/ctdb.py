@@ -336,15 +336,19 @@ _SRC_TDB_FILES = [
     "winbindd_idmap.tdb",
 ]
 
+_SRC_TDB_DIRS = [
+    "/var/lib/samba",
+    "/var/lib/samba/private",
+]
+
 
 def migrate_tdb(
     iconfig: config.InstanceConfig, dest_dir: str, pnn: int = 0
 ) -> None:
     """Migrate TDB files into CTDB."""
     # TODO: these paths should be based on our instance config, not hard coded
-    tdb_locations = ["/var/lib/samba", "/var/lib/samba/private"]
     for tdbfile in _SRC_TDB_FILES:
-        for parent in tdb_locations:
+        for parent in _SRC_TDB_DIRS:
             tdb_path = os.path.join(parent, tdbfile)
             if _has_tdb_file(tdb_path):
                 _convert_tdb_file(tdb_path, dest_dir, pnn=pnn)
