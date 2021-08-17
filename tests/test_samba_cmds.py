@@ -49,3 +49,27 @@ def test_global_prefix():
         assert list(cmd) == ["bob", "deep"]
     finally:
         sambacc.samba_cmds.set_global_prefix([])
+
+
+def test_command_repr():
+    cmd = sambacc.samba_cmds.SambaCommand("doop")
+    cr = repr(cmd)
+    assert cr.startswith("SambaCommand")
+    assert "doop" in cr
+
+
+def test_encode_none():
+    res = sambacc.samba_cmds.encode(None)
+    assert res == b""
+
+
+def test_execute():
+    import os
+
+    cmd = sambacc.samba_cmds.SambaCommand("true")
+    pid = os.fork()
+    if pid == 0:
+        sambacc.samba_cmds.execute(cmd)
+    else:
+        _, status = os.waitpid(pid, 0)
+        assert status == 0
