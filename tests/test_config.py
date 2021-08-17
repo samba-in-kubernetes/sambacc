@@ -159,6 +159,52 @@ config3 = """
 """
 
 
+ctdb_config1 = """
+{
+  "samba-container-config": "v0",
+  "configs": {
+    "ctdb1": {
+      "shares": [
+        "demo"
+      ],
+      "globals": [
+        "global0"
+      ],
+      "instance_features": ["ctdb"],
+      "instance_name": "ceeteedeebee"
+    }
+  },
+  "shares": {
+    "demo": {
+      "options": {
+        "path": "/share"
+      }
+    }
+  },
+  "globals": {
+    "global0": {
+      "options": {
+        "security": "user",
+        "load printers": "no",
+        "printing": "bsd",
+        "printcap name": "/dev/null",
+        "disable spoolss": "yes",
+        "guest ok": "no"
+      }
+    }
+  },
+  "users": {
+    "all_entries": [
+      {
+        "name": "bob",
+        "password": "notSoSafe"
+      }
+    ]
+  }
+}
+"""
+
+
 class TestConfig(unittest.TestCase):
     def test_non_json(self):
         with self.assertRaises(Exception):
@@ -346,3 +392,41 @@ def test_tesd_config_files_realerr_rootok(monkeypatch):
     fname = "/etc/foobar"
     with pytest.raises(OSError):
         sambacc.config.read_config_files([fname])
+
+
+def test_instance_with_ctdb():
+    c1 = sambacc.config.GlobalConfig(io.StringIO(config1))
+    i1 = c1.get("foobar")
+    assert not i1.with_ctdb
+
+    c2 = sambacc.config.GlobalConfig(io.StringIO(ctdb_config1))
+    i2 = c2.get("ctdb1")
+    assert i2.with_ctdb
+
+
+def test_instance_ctdb_smb_config():
+    c1 = sambacc.config.GlobalConfig(io.StringIO(config1))
+    i1 = c1.get("foobar")
+    with pytest.raises(ValueError):
+        i1.ctdb_smb_config()
+
+    c2 = sambacc.config.GlobalConfig(io.StringIO(ctdb_config1))
+    i2 = c2.get("ctdb1")
+    csc = i2.ctdb_smb_config()
+    gopts = dict(csc.global_options())
+    assert gopts["clustering"] == "yes"
+    assert gopts["include"] == "registry"
+    assert csc.shares() == []
+
+
+def test_instance_ctdb_config():
+    c1 = sambacc.config.GlobalConfig(io.StringIO(config1))
+    i1 = c1.get("foobar")
+    assert i1.ctdb_config() == {}
+
+    c2 = sambacc.config.GlobalConfig(io.StringIO(ctdb_config1))
+    i2 = c2.get("ctdb1")
+    cfg = i2.ctdb_config()
+    assert "nodes_json" in cfg
+    assert "nodes_path" in cfg
+    assert "log_level" in cfg
