@@ -19,7 +19,7 @@
 import sambacc.passdb_loader as passdb
 import sambacc.passwd_loader as ugl
 
-from .cli import commands, Context
+from .cli import commands, setup_steps, Context
 
 
 @commands.command(name="import-users")
@@ -31,6 +31,7 @@ def import_users(ctx: Context) -> None:
     import_passdb_users(ctx)
 
 
+@setup_steps.command("users")
 def import_sys_users(ctx: Context) -> None:
     """Import users and groups from sambacc config to the passwd and
     group files.
@@ -48,6 +49,7 @@ def import_sys_users(ctx: Context) -> None:
     etc_group_loader.write()
 
 
+@setup_steps.command("users_passdb")
 def import_passdb_users(ctx: Context) -> None:
     """Import users into samba's passdb."""
     smb_passdb_loader = passdb.PassDBLoader()

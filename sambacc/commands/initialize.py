@@ -19,11 +19,12 @@
 from sambacc import ctdb
 import sambacc.nsswitch_loader as nsswitch
 
-from .cli import commands, Context
-from .config import import_config
-from .users import import_sys_users, import_passdb_users
+from . import config  # noqa: F401
+from . import users  # noqa: F401
+from .cli import commands, setup_steps, Context
 
 
+@setup_steps.command("nsswitch")
 def _import_nsswitch(ctx: Context) -> None:
     # should nsswitch validation/edit be conditional only on ads?
     nss = nsswitch.NameServiceSwitchLoader("/etc/nsswitch.conf")
@@ -33,18 +34,21 @@ def _import_nsswitch(ctx: Context) -> None:
         nss.write()
 
 
+@setup_steps.command("smb_ctdb")
 def _smb_conf_for_ctdb(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
         print("Enabling ctdb in samba config file")
         ctdb.ensure_smb_conf(ctx.instance_config)
 
 
+@setup_steps.command("ctdb_config")
 def _ctdb_conf_for_ctdb(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
         print("Ensuring ctdb config")
         ctdb.ensure_ctdb_conf(ctx.instance_config)
 
 
+@setup_steps.command("ctdb_nodes")
 def _ctdb_nodes_exists(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
         print("Ensuring ctdb nodes file")
@@ -55,33 +59,31 @@ def _ctdb_nodes_exists(ctx: Context) -> None:
         )
 
 
+@setup_steps.command("ctdb_etc")
 def _ctdb_etc_files(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
         print("Ensuring ctdb etc files")
         ctdb.ensure_ctdbd_etc_files()
 
 
-_setup_steps = [
-    ("config", import_config),
-    ("users", import_sys_users),
-    ("smb_ctdb", _smb_conf_for_ctdb),
-    ("users_passdb", import_passdb_users),
-    ("nsswitch", _import_nsswitch),
-    ("ctdb_config", _ctdb_conf_for_ctdb),
-    ("ctdb_etc", _ctdb_etc_files),
-    ("ctdb_nodes", _ctdb_nodes_exists),
+_init_setup_steps = [
+    "config",
+    "users",
+    "smb_ctdb",
+    "users_passdb",
+    "nsswitch",
 ]
 
 
 def setup_step_names():
     """Return a list of names for the steps that init supports."""
-    return [s[0] for s in _setup_steps]
+    return list(setup_steps.dict().keys())
 
 
 @commands.command(name="init")
 def init_container(ctx: Context, steps=None) -> None:
     """Initialize the entire container environment."""
-    for name, setup_func in _setup_steps:
-        if steps and name not in steps:
-            continue
-        setup_func(ctx)
+    steps = _init_setup_steps if steps is None else list(steps)
+    cmds = setup_steps.dict()
+    for step_name in steps:
+        cmds[step_name].cmd_func(ctx)

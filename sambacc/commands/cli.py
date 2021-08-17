@@ -137,3 +137,4 @@ def best_waiter(
 
 
 commands = CommandBuilder()
+setup_steps = CommandBuilder()

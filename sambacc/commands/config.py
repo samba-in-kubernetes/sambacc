@@ -21,7 +21,7 @@ import sys
 import sambacc.netcmd_loader as nc
 import sambacc.paths as paths
 
-from .cli import commands, Context
+from .cli import commands, setup_steps, Context
 
 
 @commands.command(name="print-config")
@@ -33,6 +33,7 @@ def print_config(ctx: Context) -> None:
 
 
 @commands.command(name="import")
+@setup_steps.command(name="config")
 def import_config(ctx: Context) -> None:
     """Import configuration parameters from the sambacc config to
     samba's registry config.
