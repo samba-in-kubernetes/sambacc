@@ -100,6 +100,10 @@ class CommandBuilder:
             add_command(subparsers, cmd)
         return parser
 
+    def dict(self) -> typing.Dict[str, Command]:
+        """Return a dict mapping command names to Command object."""
+        return {c.name: c for c in self._commands}
+
 
 class Context(typing.Protocol):
     """Protocol type for CLI Context.
