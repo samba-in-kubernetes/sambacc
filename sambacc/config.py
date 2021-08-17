@@ -82,10 +82,10 @@ def check_config_data(data) -> dict:
 
 class SambaConfig(typing.Protocol):
     def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
-        ...
+        ...  # pragma: no cover
 
     def shares(self) -> typing.Iterable[ShareConfig]:
-        ...
+        ...  # pragma: no cover
 
 
 class GlobalConfig:
