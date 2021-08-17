@@ -16,13 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-import fcntl
-import json
 import os
 import subprocess
 import typing
 
 from sambacc import config
+from sambacc import jfile
 from sambacc import samba_cmds
 from sambacc.netcmd_loader import template_config
 
@@ -145,45 +144,17 @@ def ensure_ctdb_node_present(
     ensure_ctdb_nodes(nodes, real_path=real_path, canon_path=canon_path)
 
 
-def _json_load(fh, default=None):
-    if fh.read(4) == "":
-        # probe it to see if its an empty file
-        data = default
-    else:
-        fh.seek(0)
-        data = json.load(fh)
-    return data
-
-
-def _json_dump(data, fh):
-    fh.seek(0)
-    fh.truncate(0)
-    json.dump(data, fh)
-
-
-def _json_flock(fh):
-    fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-
-
-JSON_OPEN_RO = os.O_RDONLY
-JSON_OPEN_RW = os.O_CREAT | os.O_RDWR
-
-
-def _json_open(path, flags, mode=0o644):
-    return os.fdopen(os.open(path, flags, mode), "r+")
-
-
 def add_node_to_statefile(
     node: str, pnn: int, path: str, in_nodes: bool = False
 ) -> None:
     """Add the given node (IP) at the line for the given PNN to
     the ctdb nodes file located at path.
     """
-    with _json_open(path, JSON_OPEN_RW) as fh:
-        _json_flock(fh)
-        data = _json_load(fh, {})
+    with jfile.open(path, jfile.OPEN_RW) as fh:
+        jfile.flock(fh)
+        data = jfile.load(fh, {})
         _update_statefile(data, node, pnn, in_nodes=in_nodes)
-        _json_dump(data, fh)
+        jfile.dump(data, fh)
 
 
 def _update_statefile(
@@ -206,9 +177,9 @@ def pnn_in_nodes(pnn: int, nodes_json: str, real_path: str) -> bool:
     """Returns true if the specified pnn has an entry in the nodes json
     file.
     """
-    with _json_open(nodes_json, JSON_OPEN_RO) as fh:
-        _json_flock(fh)
-        json_data = _json_load(fh, {})
+    with jfile.open(nodes_json, jfile.OPEN_RO) as fh:
+        jfile.flock(fh)
+        json_data = jfile.load(fh, {})
         current_nodes = json_data.get("nodes", [])
         for entry in current_nodes:
             if pnn == entry["pnn"] and entry["in_nodes"]:
@@ -232,9 +203,9 @@ def manage_nodes(
 
 
 def _node_check(pnn: int, nodes_json: str, real_path: str) -> bool:
-    with _json_open(nodes_json, JSON_OPEN_RO) as fh:
-        _json_flock(fh)
-        desired = _json_load(fh, {}).get("nodes", [])
+    with jfile.open(nodes_json, jfile.OPEN_RO) as fh:
+        jfile.flock(fh)
+        desired = jfile.load(fh, {}).get("nodes", [])
     ctdb_nodes = read_ctdb_nodes(real_path)
     # first: check to see if the current node is in the nodes file
     try:
@@ -280,9 +251,9 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
     # open r/o so that we don't initailly open for write.  we do a probe and
     # decide if anything needs to be updated if we are wrong, its not a
     # problem, we'll "time out" and reprobe later
-    with _json_open(nodes_json, JSON_OPEN_RO) as fh:
-        _json_flock(fh)
-        json_data = _json_load(fh, {})
+    with jfile.open(nodes_json, jfile.OPEN_RO) as fh:
+        jfile.flock(fh)
+        json_data = jfile.load(fh, {})
         _, test_new_nodes, test_need_reload = _node_update_check(
             json_data, nodes_json, real_path
         )
@@ -292,9 +263,9 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
     # we probably need to make a change. but we recheck our state again
     # under lock, with the data file open r/w
     # update the nodes file and make changes to ctdb
-    with _json_open(nodes_json, JSON_OPEN_RW) as fh:
-        _json_flock(fh)
-        json_data = _json_load(fh, {})
+    with jfile.open(nodes_json, jfile.OPEN_RW) as fh:
+        jfile.flock(fh)
+        json_data = jfile.load(fh, {})
         ctdb_nodes, new_nodes, need_reload = _node_update_check(
             json_data, nodes_json, real_path
         )
@@ -311,7 +282,7 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
         subprocess.check_call(list(samba_cmds.ctdb["reloadnodes"]))
         for entry in need_reload:
             entry["in_nodes"] = True
-        _json_dump(json_data, fh)
+        jfile.dump(json_data, fh)
         fh.flush()
         os.fsync(fh)
     return True
