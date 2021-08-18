@@ -128,10 +128,7 @@ def ensure_ctdb_node_present(
     node given. The optional `expect_pnn` can be provided to ensure that
     the node occupies the correct position in the nodes file.
     """
-    try:
-        nodes = read_ctdb_nodes(real_path)
-    except FileNotFoundError:
-        nodes = []
+    nodes = read_ctdb_nodes(real_path)
     if node not in nodes:
         nodes.append(node)
     if expected_pnn is not None:
