@@ -117,11 +117,11 @@ class Context(typing.Protocol):
 
     @property
     def cli(self) -> argparse.Namespace:
-        ...
+        ...  # pragma: no cover
 
     @property
     def instance_config(self) -> config.InstanceConfig:
-        ...
+        ...  # pragma: no cover
 
 
 def best_waiter(
