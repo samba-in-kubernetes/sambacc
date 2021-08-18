@@ -233,14 +233,17 @@ def _node_update_check(json_data, nodes_json: str, real_path: str):
         if matched and entry["in_nodes"]:
             # everything's fine. skip this entry
             continue
-        if not entry["in_nodes"]:
+        elif not matched:
+            # node not present in real nodes file
+            if len(ctdb_nodes) > entry["pnn"]:
+                msg = f'unexpected pnn {entry["pnn"]} for nodes {ctdb_nodes}'
+                raise ValueError(msg)
+            new_nodes.append(entry["node"])
             need_reload.append(entry)
-            continue
-        if len(ctdb_nodes) > entry["pnn"]:
-            msg = f'unexpected pnn {entry["pnn"]} for nodes {ctdb_nodes}'
-            raise ValueError(msg)
-        new_nodes.append(entry["node"])
-        need_reload.append(entry)
+        else:
+            # node present but in_nodes marker indicates
+            # update is not finalized
+            need_reload.append(entry)
     return ctdb_nodes, new_nodes, need_reload
 
 
