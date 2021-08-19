@@ -17,6 +17,7 @@
 #
 
 import argparse
+import logging
 import os
 import time
 import typing
@@ -176,6 +177,17 @@ def pre_action(cli) -> None:
         samba_cmds.set_global_prefix([cli.samba_command_prefix])
 
 
+def enable_logging(cli) -> None:
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    handler.setFormatter(
+        logging.Formatter("{asctime}: {levelname}: {message}", style="{")
+    )
+    handler.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+
 def action_filter(cli) -> typing.Optional[str]:
     for path in (cli.skip_if_file or []):
         if os.path.exists(path):
@@ -186,6 +198,7 @@ def action_filter(cli) -> typing.Optional[str]:
 def main(args=None) -> None:
     cli = commands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
+    enable_logging(cli)
     if not cli.identity:
         raise Fail("missing container identity")
 
