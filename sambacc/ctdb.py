@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import logging
 import os
 import subprocess
 import typing
@@ -24,6 +25,8 @@ from sambacc import config
 from sambacc import jfile
 from sambacc import samba_cmds
 from sambacc.netcmd_loader import template_config
+
+_logger = logging.getLogger(__name__)
 
 
 DB_DIR = "/var/lib/ctdb/persistent"
@@ -189,13 +192,13 @@ def manage_nodes(
 ) -> None:
     """Monitor nodes json for updates, reflecting those changes into ctdb."""
     while True:
-        print("checking if node is able to make updates")
+        _logger.info("checking if node is able to make updates")
         if _node_check(pnn, nodes_json, real_path):
-            print("checking for node updates")
+            _logger.info("checking for node updates")
             if _node_update(nodes_json, real_path):
-                print("updated nodes")
+                _logger.info("updated nodes")
         else:
-            print("node can not make updates")
+            _logger.warning("node can not make updates")
         pause_func()
 
 
@@ -209,7 +212,7 @@ def _node_check(pnn: int, nodes_json: str, real_path: str) -> bool:
         my_desired = [e for e in desired if e.get("pnn") == pnn][0]
     except IndexError:
         # no entry found for this node
-        print(f"PNN {pnn} not found in json state file")
+        _logger.warning(f"PNN {pnn} not found in json state file")
         return False
     if my_desired["node"] not in ctdb_nodes:
         # this current node is not in the nodes file.
@@ -258,7 +261,7 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
             json_data, nodes_json, real_path
         )
         if not test_new_nodes and not test_need_reload:
-            print("examined nodes state - no changes")
+            _logger.info("examined nodes state - no changes")
             return False
     # we probably need to make a change. but we recheck our state again
     # under lock, with the data file open r/w
@@ -270,15 +273,15 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
             json_data, nodes_json, real_path
         )
         if not new_nodes and not need_reload:
-            print("reexamined nodes state - no changes")
+            _logger.info("reexamined nodes state - no changes")
             return False
-        print("writing updates to ctdb nodes file")
+        _logger.info("writing updates to ctdb nodes file")
         all_nodes = ctdb_nodes + new_nodes
         with open(real_path, "w") as nffh:
             write_nodes_file(nffh, all_nodes)
             nffh.flush()
             os.fsync(nffh)
-        print("running: ctdb reloadnodes")
+        _logger.info("running: ctdb reloadnodes")
         subprocess.check_call(list(samba_cmds.ctdb["reloadnodes"]))
         for entry in need_reload:
             entry["in_nodes"] = True
@@ -359,13 +362,13 @@ def _has_tdb_file(tdb_path: str) -> bool:
     # function only, but it if ltdbtool is missing it raises FileNotFoundError
     # and its not simple to disambiguate between the command missing and the
     # tdb file missing.
-    print(f"Checking for {tdb_path}")
+    _logger.info(f"Checking for {tdb_path}")
     return os.path.isfile(tdb_path)
 
 
 def _convert_tdb_file(tdb_path: str, dest_dir: str, pnn: int = 0) -> None:
     orig_name = os.path.basename(tdb_path)
     opath = os.path.join(dest_dir, f"{orig_name}.{pnn}")
-    print(f"Converting {tdb_path} to {opath} ...")
+    _logger.info(f"Converting {tdb_path} to {opath} ...")
     cmd = samba_cmds.ltdbtool["convert", "-s0", tdb_path, opath]
     subprocess.check_call(list(cmd))
