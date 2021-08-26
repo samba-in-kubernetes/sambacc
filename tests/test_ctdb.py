@@ -87,8 +87,8 @@ def test_pnn_in_nodes(tmpdir):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "in_nodes": true},
-                {"node": "10.0.0.11", "pnn": 1, "in_nodes": false}
+                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
+                {"node": "10.0.0.11", "pnn": 1, "state": "new"}
             ]}
         """
         )
@@ -133,7 +133,7 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "in_nodes": false}
+                {"node": "10.0.0.10", "pnn": 0, "state": "new"}
             ]}
         """
         )
@@ -147,7 +147,7 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "in_nodes": true}
+                {"node": "10.0.0.10", "pnn": 0, "state": "ready"}
             ]}
         """
         )
@@ -163,8 +163,8 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "in_nodes": true},
-                {"node": "10.0.0.11", "pnn": 1, "in_nodes": false}
+                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
+                {"node": "10.0.0.11", "pnn": 1, "state": "new"}
             ]}
         """
         )
@@ -184,8 +184,8 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "in_nodes": true},
-                {"node": "10.0.0.11", "pnn": 1, "in_nodes": false}
+                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
+                {"node": "10.0.0.11", "pnn": 1, "state": "new"}
             ]}
         """
         )
@@ -203,8 +203,8 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "in_nodes": true},
-                {"node": "10.0.0.11", "pnn": 1, "in_nodes": false}
+                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
+                {"node": "10.0.0.11", "pnn": 1, "state": "new"}
             ]}
         """
         )
@@ -222,7 +222,7 @@ def test_manage_nodes(tmpdir, monkeypatch):
     with open(nodes_json, "r") as fh:
         jdata = json.load(fh)
     assert jdata["nodes"][1]["node"] == "10.0.0.11"
-    assert jdata["nodes"][1]["in_nodes"]
+    assert jdata["nodes"][1]["state"] == "ready"
 
 
 def test_manage_nodes_refresh_fails(tmpdir, monkeypatch):
@@ -238,8 +238,8 @@ def test_manage_nodes_refresh_fails(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "in_nodes": true},
-                {"node": "10.0.0.11", "pnn": 1, "in_nodes": false}
+                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
+                {"node": "10.0.0.11", "pnn": 1, "state": "new"}
             ]}
         """
         )
@@ -256,7 +256,7 @@ def test_manage_nodes_refresh_fails(tmpdir, monkeypatch):
     with open(nodes_json, "r") as fh:
         jdata = json.load(fh)
     assert jdata["nodes"][1]["node"] == "10.0.0.11"
-    assert not jdata["nodes"][1]["in_nodes"]
+    assert jdata["nodes"][1]["state"] == "new"
 
 
 def test_add_node_to_statefile(tmpdir):
@@ -269,7 +269,7 @@ def test_add_node_to_statefile(tmpdir):
         jdata = json.load(fh)
     assert jdata["nodes"][0]["node"] == "10.0.0.10"
     assert jdata["nodes"][0]["pnn"] == 0
-    assert jdata["nodes"][0]["in_nodes"]
+    assert jdata["nodes"][0]["state"] == "ready"
 
     with pytest.raises(ValueError):
         ctdb.add_node_to_statefile(
@@ -283,10 +283,10 @@ def test_add_node_to_statefile(tmpdir):
         jdata = json.load(fh)
     assert jdata["nodes"][0]["node"] == "10.0.0.10"
     assert jdata["nodes"][0]["pnn"] == 0
-    assert jdata["nodes"][0]["in_nodes"]
+    assert jdata["nodes"][0]["state"] == "ready"
     assert jdata["nodes"][1]["node"] == "10.0.0.11"
     assert jdata["nodes"][1]["pnn"] == 1
-    assert not jdata["nodes"][1]["in_nodes"]
+    assert jdata["nodes"][1]["state"] == "new"
 
 
 def test_ensure_ctdb_node_present(tmpdir):
