@@ -37,15 +37,15 @@ _AFTER_LAST_DASH = "after-last-dash"
 
 
 def _ctdb_ok():
-    sambacc_ctdb = os.environ.get('SAMBACC_CTDB')
-    gate = 'ctdb-is-experimental'
+    sambacc_ctdb = os.environ.get("SAMBACC_CTDB")
+    gate = "ctdb-is-experimental"
     if sambacc_ctdb == gate:
         return
-    print('Using CTDB with samba-container (sambacc) is experimental.')
-    print('If you are developing or testing features for sambacc please')
-    print('set the environment variable SAMBACC_CTDB to the value:')
-    print('    ', gate)
-    print('before continuing and try again.')
+    print("Using CTDB with samba-container (sambacc) is experimental.")
+    print("If you are developing or testing features for sambacc please")
+    print("set the environment variable SAMBACC_CTDB to the value:")
+    print("    ", gate)
+    print("before continuing and try again.")
     print()
     raise Fail(gate)
 
@@ -97,8 +97,8 @@ class NodeParams:
     _ctx: Context
     node_number: typing.Optional[int] = None
     hostname: typing.Optional[str] = None
-    persistent_path: str = ''
-    nodes_json: str = ''
+    persistent_path: str = ""
+    nodes_json: str = ""
     _ip_addr: typing.Optional[str] = None
 
     def __init__(self, ctx: Context):
