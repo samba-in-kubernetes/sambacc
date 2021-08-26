@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import enum
 import logging
 import os
 import subprocess
@@ -35,6 +36,14 @@ SHARE_DIR = "/usr/share/ctdb"
 
 CTDB_CONF: str = "/etc/ctdb/ctdb.conf"
 CTDB_NODES: str = "/etc/ctdb/nodes"
+
+
+class NodeState(str, enum.Enum):
+    NEW = "new"
+    READY = "ready"
+    CHANGED = "changed"  # reserved
+    REPLACED = "replaced"  # reserved
+    GONE = "gone"  # reserved
 
 
 def ensure_smb_conf(
@@ -164,13 +173,24 @@ def _update_statefile(
     for entry in data["nodes"]:
         if pnn == entry["pnn"]:
             raise ValueError("duplicate pnn")
+    state = NodeState.NEW
+    if in_nodes:
+        state = NodeState.READY
     data["nodes"].append(
         {
             "node": node,
             "pnn": pnn,
-            "in_nodes": in_nodes,
+            "state": state,
         }
     )
+
+
+def _get_state(entry) -> NodeState:
+    return NodeState(entry["state"])
+
+
+def _get_state_ok(entry) -> bool:
+    return _get_state(entry) == NodeState.READY
 
 
 def pnn_in_nodes(pnn: int, nodes_json: str, real_path: str) -> bool:
@@ -182,7 +202,7 @@ def pnn_in_nodes(pnn: int, nodes_json: str, real_path: str) -> bool:
         json_data = jfile.load(fh, {})
         current_nodes = json_data.get("nodes", [])
         for entry in current_nodes:
-            if pnn == entry["pnn"] and entry["in_nodes"]:
+            if pnn == entry["pnn"] and _get_state_ok(entry):
                 return True
     return False
 
@@ -233,7 +253,7 @@ def _node_update_check(json_data, nodes_json: str, real_path: str):
             matched = entry["node"] == ctdb_nodes[pnn]
         except IndexError:
             matched = False
-        if matched and entry["in_nodes"]:
+        if matched and _get_state_ok(entry):
             # everything's fine. skip this entry
             continue
         elif not matched:
@@ -244,7 +264,7 @@ def _node_update_check(json_data, nodes_json: str, real_path: str):
             new_nodes.append(entry["node"])
             need_reload.append(entry)
         else:
-            # node present but in_nodes marker indicates
+            # node present but state indicates
             # update is not finalized
             need_reload.append(entry)
     return ctdb_nodes, new_nodes, need_reload
@@ -284,7 +304,7 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
         _logger.info("running: ctdb reloadnodes")
         subprocess.check_call(list(samba_cmds.ctdb["reloadnodes"]))
         for entry in need_reload:
-            entry["in_nodes"] = True
+            entry["state"] = NodeState.READY
         jfile.dump(json_data, fh)
         fh.flush()
         os.fsync(fh)
