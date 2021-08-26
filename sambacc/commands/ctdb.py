@@ -141,6 +141,18 @@ class NodeParams:
                 raise ValueError("can not determine node ip")
         return self._ip_addr
 
+    @property
+    def identity(self):
+        # this could be extended to use something like /etc/machine-id
+        # or whatever in the future.
+        if self.hostname:
+            return self.hostname
+        elif self.node_number:
+            return f"node-{self.node_number}"
+        else:
+            # the dashes make this an invalid dns name
+            return "-unknown-"
+
 
 @commands.command(name="ctdb-migrate", arg_func=_ctdb_migrate_args)
 def ctdb_migrate(ctx: Context) -> None:
