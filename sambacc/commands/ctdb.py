@@ -175,6 +175,18 @@ def ctdb_set_node(ctx: Context) -> None:
     _ctdb_ok()
     np = NodeParams(ctx)
     expected_pnn = np.node_number
+
+    try:
+        ctdb.refresh_node_in_statefile(
+            np.identity,
+            np.node_ip_addr,
+            int(expected_pnn or 0),
+            path=np.nodes_json,
+        )
+        return
+    except ctdb.NodeNotPresent:
+        pass
+
     ctdb.add_node_to_statefile(
         np.identity,
         np.node_ip_addr,
