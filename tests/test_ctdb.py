@@ -373,3 +373,61 @@ def test_ensure_smb_conf(tmpdir):
         data = fh.read()
     assert "clustering = yes" in data
     assert "include = registry" in data
+
+
+def test_refresh_node_in_statefile(tmpdir):
+    nodes_json = tmpdir / "nodes.json"
+
+    ctdb.add_node_to_statefile(
+        identity="node-0",
+        node="10.0.0.10",
+        pnn=0,
+        path=nodes_json,
+        in_nodes=True,
+    )
+
+    # no changes
+    ctdb.refresh_node_in_statefile(
+        identity="node-0",
+        node="10.0.0.10",
+        pnn=0,
+        path=nodes_json,
+    )
+    with open(nodes_json, "r") as fh:
+        jdata = json.load(fh)
+    assert len(jdata["nodes"]) == 1
+    assert jdata["nodes"][0]["node"] == "10.0.0.10"
+    assert jdata["nodes"][0]["identity"] == "node-0"
+    assert jdata["nodes"][0]["pnn"] == 0
+    assert jdata["nodes"][0]["state"] == "ready"
+
+    # ip has changed
+    ctdb.refresh_node_in_statefile(
+        identity="node-0",
+        node="10.0.1.10",
+        pnn=0,
+        path=nodes_json,
+    )
+    with open(nodes_json, "r") as fh:
+        jdata = json.load(fh)
+    assert len(jdata["nodes"]) == 1
+    assert jdata["nodes"][0]["node"] == "10.0.1.10"
+    assert jdata["nodes"][0]["identity"] == "node-0"
+    assert jdata["nodes"][0]["pnn"] == 0
+    assert jdata["nodes"][0]["state"] == "changed"
+
+    with pytest.raises(ValueError):
+        ctdb.refresh_node_in_statefile(
+            identity="foobar",
+            node="10.0.1.10",
+            pnn=0,
+            path=nodes_json,
+        )
+
+    with pytest.raises(ctdb.NodeNotPresent):
+        ctdb.refresh_node_in_statefile(
+            identity="node-1",
+            node="10.0.0.11",
+            pnn=1,
+            path=nodes_json,
+        )
