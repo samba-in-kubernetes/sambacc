@@ -263,7 +263,11 @@ def test_add_node_to_statefile(tmpdir):
     nodes_json = tmpdir / "nodes.json"
 
     ctdb.add_node_to_statefile(
-        node="10.0.0.10", pnn=0, path=nodes_json, in_nodes=True
+        identity="node-0",
+        node="10.0.0.10",
+        pnn=0,
+        path=nodes_json,
+        in_nodes=True,
     )
     with open(nodes_json, "r") as fh:
         jdata = json.load(fh)
@@ -273,11 +277,19 @@ def test_add_node_to_statefile(tmpdir):
 
     with pytest.raises(ValueError):
         ctdb.add_node_to_statefile(
-            node="10.0.0.11", pnn=0, path=nodes_json, in_nodes=False
+            identity="node-0",
+            node="10.0.0.11",
+            pnn=0,
+            path=nodes_json,
+            in_nodes=False,
         )
 
     ctdb.add_node_to_statefile(
-        node="10.0.0.11", pnn=1, path=nodes_json, in_nodes=False
+        identity="node-1",
+        node="10.0.0.11",
+        pnn=1,
+        path=nodes_json,
+        in_nodes=False,
     )
     with open(nodes_json, "r") as fh:
         jdata = json.load(fh)

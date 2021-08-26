@@ -154,30 +154,34 @@ def ensure_ctdb_node_present(
 
 
 def add_node_to_statefile(
-    node: str, pnn: int, path: str, in_nodes: bool = False
+    identity: str, node: str, pnn: int, path: str, in_nodes: bool = False
 ) -> None:
-    """Add the given node (IP) at the line for the given PNN to
-    the ctdb nodes file located at path.
+    """Add the given node's identity, (node) IP, and PNN to the JSON based
+    state file, located at `path`. If in_nodes is true, the state file will
+    reflect that the node is already added to the CTDB nodes file.
     """
     with jfile.open(path, jfile.OPEN_RW) as fh:
         jfile.flock(fh)
         data = jfile.load(fh, {})
-        _update_statefile(data, node, pnn, in_nodes=in_nodes)
+        _update_statefile(data, identity, node, pnn, in_nodes=in_nodes)
         jfile.dump(data, fh)
 
 
 def _update_statefile(
-    data, node: str, pnn: int, in_nodes: bool = False
+    data, identity: str, node: str, pnn: int, in_nodes: bool = False
 ) -> None:
     data.setdefault("nodes", [])
     for entry in data["nodes"]:
         if pnn == entry["pnn"]:
             raise ValueError("duplicate pnn")
+        if identity == entry["identity"]:
+            raise ValueError("duplicate identity")
     state = NodeState.NEW
     if in_nodes:
         state = NodeState.READY
     data["nodes"].append(
         {
+            "identity": identity,
             "node": node,
             "pnn": pnn,
             "state": state,

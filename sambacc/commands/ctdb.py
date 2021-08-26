@@ -176,6 +176,7 @@ def ctdb_set_node(ctx: Context) -> None:
     np = NodeParams(ctx)
     expected_pnn = np.node_number
     ctdb.add_node_to_statefile(
+        np.identity,
         np.node_ip_addr,
         int(expected_pnn or 0),
         path=np.nodes_json,
