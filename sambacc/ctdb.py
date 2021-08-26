@@ -41,9 +41,16 @@ CTDB_NODES: str = "/etc/ctdb/nodes"
 class NodeState(str, enum.Enum):
     NEW = "new"
     READY = "ready"
-    CHANGED = "changed"  # reserved
+    CHANGED = "changed"
     REPLACED = "replaced"  # reserved
     GONE = "gone"  # reserved
+
+
+class NodeNotPresent(KeyError):
+    def __init__(self, identity, pnn=None):
+        super().__init__(identity)
+        self.identity = identity
+        self.pnn = pnn
 
 
 def ensure_smb_conf(
@@ -167,6 +174,19 @@ def add_node_to_statefile(
         jfile.dump(data, fh)
 
 
+def refresh_node_in_statefile(
+    identity: str, node: str, pnn: int, path: str
+) -> None:
+    """Assuming the node is already in the statefile, update the state in
+    the case that the node (IP) has changed.
+    """
+    with jfile.open(path, jfile.OPEN_RW) as fh:
+        jfile.flock(fh)
+        data = jfile.load(fh, {})
+        _refresh_statefile(data, identity, node, pnn)
+        jfile.dump(data, fh)
+
+
 def _update_statefile(
     data, identity: str, node: str, pnn: int, in_nodes: bool = False
 ) -> None:
@@ -189,6 +209,28 @@ def _update_statefile(
     )
 
 
+def _refresh_statefile(
+    data, identity: str, node: str, pnn: int, in_nodes: bool = False
+) -> None:
+    data.setdefault("nodes", [])
+    node_entry = None
+    for entry in data["nodes"]:
+        if pnn == entry["pnn"] and identity == entry["identity"]:
+            node_entry = entry
+            break
+        if pnn == entry["pnn"]:
+            raise ValueError(
+                f"matching pnn ({pnn}) identity={entry['identity']}"
+            )
+    if not node_entry:
+        raise NodeNotPresent(identity, pnn)
+    if node_entry["node"] == node:
+        # do nothing
+        return
+    node_entry["node"] = node
+    node_entry["state"] = NodeState.CHANGED
+
+
 def _get_state(entry) -> NodeState:
     return NodeState(entry["state"])
 
@@ -199,7 +241,7 @@ def _get_state_ok(entry) -> bool:
 
 def pnn_in_nodes(pnn: int, nodes_json: str, real_path: str) -> bool:
     """Returns true if the specified pnn has an entry in the nodes json
-    file.
+    file and that the node is already added to the ctdb nodes file.
     """
     with jfile.open(nodes_json, jfile.OPEN_RO) as fh:
         jfile.flock(fh)
