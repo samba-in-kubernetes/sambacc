@@ -306,6 +306,31 @@ def test_manage_nodes_refresh_fails(tmpdir, monkeypatch):
     assert jdata["nodes"][1]["state"] == "new"
 
 
+def test_manage_nodes_invalid_state(tmpdir):
+    nodes_json = tmpdir / "nodes.json"
+    real_path = tmpdir / "nodes"
+
+    def once():
+        raise _Stop()
+
+    # node is ready but missing from nodes file
+    with open(nodes_json, "w") as fh:
+        fh.write(
+            """
+            {"nodes": [
+                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
+                {"node": "10.0.0.11", "pnn": 1, "state": "ready"}
+            ]}
+        """
+        )
+    with open(real_path, "w") as fh:
+        fh.write("10.0.0.10\n")
+    with pytest.raises(ValueError):
+        ctdb.manage_nodes(
+            0, nodes_json=nodes_json, real_path=real_path, pause_func=once
+        )
+
+
 def test_add_node_to_statefile(tmpdir):
     nodes_json = tmpdir / "nodes.json"
 
@@ -327,6 +352,15 @@ def test_add_node_to_statefile(tmpdir):
             identity="node-0",
             node="10.0.0.11",
             pnn=0,
+            path=nodes_json,
+            in_nodes=False,
+        )
+
+    with pytest.raises(ValueError):
+        ctdb.add_node_to_statefile(
+            identity="node-0",
+            node="10.0.1.11",
+            pnn=2,
             path=nodes_json,
             in_nodes=False,
         )
@@ -478,3 +512,10 @@ def test_refresh_node_in_statefile(tmpdir):
             pnn=1,
             path=nodes_json,
         )
+
+
+def test_next_state():
+    assert ctdb.next_state(ctdb.NodeState.READY) == ctdb.NodeState.READY
+    assert ctdb.next_state(ctdb.NodeState.NEW) == ctdb.NodeState.READY
+    assert ctdb.next_state(ctdb.NodeState.REPLACED) == ctdb.NodeState.READY
+    assert ctdb.next_state(ctdb.NodeState.CHANGED) == ctdb.NodeState.REPLACED
