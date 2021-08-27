@@ -133,7 +133,7 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "state": "new"}
+                {"identity":"a", "node": "10.0.0.10", "pnn": 0, "state": "new"}
             ]}
         """
         )
@@ -147,7 +147,8 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "state": "ready"}
+                {"identity":"a", "node": "10.0.0.10", "pnn": 0,
+                 "state": "ready"}
             ]}
         """
         )
@@ -163,8 +164,10 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
-                {"node": "10.0.0.11", "pnn": 1, "state": "new"}
+                {"identity":"a", "node": "10.0.0.10", "pnn": 0,
+                 "state": "ready"},
+                {"identity":"b", "node": "10.0.0.11", "pnn": 1,
+                 "state": "new"}
             ]}
         """
         )
@@ -184,8 +187,10 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
-                {"node": "10.0.0.11", "pnn": 1, "state": "new"}
+                {"identity":"a", "node": "10.0.0.10", "pnn": 0,
+                 "state": "ready"},
+                {"identity":"b", "node": "10.0.0.11", "pnn": 1,
+                 "state": "new"}
             ]}
         """
         )
@@ -203,8 +208,10 @@ def test_manage_nodes(tmpdir, monkeypatch):
         fh.write(
             """
             {"nodes": [
-                {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
-                {"node": "10.0.0.11", "pnn": 1, "state": "new"}
+                {"identity":"a", "node": "10.0.0.10", "pnn": 0,
+                 "state": "ready"},
+                {"identity":"b", "node": "10.0.0.11", "pnn": 1,
+                 "state": "new"}
             ]}
         """
         )
@@ -222,6 +229,46 @@ def test_manage_nodes(tmpdir, monkeypatch):
     with open(nodes_json, "r") as fh:
         jdata = json.load(fh)
     assert jdata["nodes"][1]["node"] == "10.0.0.11"
+    assert jdata["nodes"][1]["state"] == "ready"
+
+    with open(nodes_json, "w") as fh:
+        fh.write(
+            """
+            {"nodes": [
+                {"identity":"a", "node": "10.0.0.10", "pnn": 0,
+                 "state": "ready"},
+                {"identity":"b", "node": "10.0.1.11", "pnn": 1,
+                 "state": "changed"}
+            ]}
+        """
+        )
+    with open(real_path, "w") as fh:
+        fh.write("10.0.0.10\n")
+        fh.write("10.0.0.11\n")
+    with pytest.raises(_Stop):
+        ctdb.manage_nodes(
+            0, nodes_json=nodes_json, real_path=real_path, pause_func=once
+        )
+    with open(real_path, "r") as fh:
+        lines = [x.strip() for x in fh.readlines()]
+    assert "10.0.0.10" in lines
+    assert "#10.0.0.11" in lines
+    with open(nodes_json, "r") as fh:
+        jdata = json.load(fh)
+    assert jdata["nodes"][1]["node"] == "10.0.1.11"
+    assert jdata["nodes"][1]["state"] == "replaced"
+
+    with pytest.raises(_Stop):
+        ctdb.manage_nodes(
+            0, nodes_json=nodes_json, real_path=real_path, pause_func=once
+        )
+    with open(real_path, "r") as fh:
+        lines = [x.strip() for x in fh.readlines()]
+    assert "10.0.0.10" in lines
+    assert "10.0.1.11" in lines
+    with open(nodes_json, "r") as fh:
+        jdata = json.load(fh)
+    assert jdata["nodes"][1]["node"] == "10.0.1.11"
     assert jdata["nodes"][1]["state"] == "ready"
 
 
