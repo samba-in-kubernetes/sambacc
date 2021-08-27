@@ -42,8 +42,18 @@ class NodeState(str, enum.Enum):
     NEW = "new"
     READY = "ready"
     CHANGED = "changed"
-    REPLACED = "replaced"  # reserved
+    REPLACED = "replaced"
     GONE = "gone"  # reserved
+
+
+def next_state(state: NodeState) -> NodeState:
+    if state == NodeState.NEW:
+        return NodeState.READY
+    elif state == NodeState.CHANGED:
+        return NodeState.REPLACED
+    elif state == NodeState.REPLACED:
+        return NodeState.READY
+    return state
 
 
 class NodeNotPresent(KeyError):
@@ -291,29 +301,41 @@ def _node_check(pnn: int, nodes_json: str, real_path: str) -> bool:
 def _node_update_check(json_data, nodes_json: str, real_path: str):
     desired = json_data.get("nodes", [])
     ctdb_nodes = read_ctdb_nodes(real_path)
-    new_nodes = []
+    update_nodes = []
     need_reload = []
+    _update_states = (NodeState.NEW, NodeState.CHANGED, NodeState.REPLACED)
     for entry in desired:
         pnn = entry["pnn"]
-        try:
-            matched = entry["node"] == ctdb_nodes[pnn]
-        except IndexError:
-            matched = False
+        matched = _node_line(ctdb_nodes, pnn) == entry["node"]
         if matched and _get_state_ok(entry):
             # everything's fine. skip this entry
             continue
         elif not matched:
-            # node not present in real nodes file
-            if len(ctdb_nodes) > entry["pnn"]:
-                msg = f'unexpected pnn {entry["pnn"]} for nodes {ctdb_nodes}'
+            if entry["state"] in _update_states:
+                update_nodes.append(entry)
+                need_reload.append(entry)
+            elif entry["state"] == NodeState.READY:
+                msg = f"ready node (pnn {pnn}) missing from {ctdb_nodes}"
                 raise ValueError(msg)
-            new_nodes.append(entry["node"])
-            need_reload.append(entry)
         else:
             # node present but state indicates
             # update is not finalized
             need_reload.append(entry)
-    return ctdb_nodes, new_nodes, need_reload
+    return ctdb_nodes, update_nodes, need_reload
+
+
+def _node_line(ctdb_nodes, pnn) -> str:
+    try:
+        return ctdb_nodes[pnn]
+    except IndexError:
+        return ""
+
+
+def _entry_to_node(ctdb_nodes, entry) -> str:
+    pnn = entry["pnn"]
+    if entry["state"] == NodeState.CHANGED:
+        return "#{}".format(ctdb_nodes[pnn].strip("#"))
+    return entry["node"]
 
 
 def _node_update(nodes_json: str, real_path: str) -> bool:
@@ -323,10 +345,10 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
     with jfile.open(nodes_json, jfile.OPEN_RO) as fh:
         jfile.flock(fh)
         json_data = jfile.load(fh, {})
-        _, test_new_nodes, test_need_reload = _node_update_check(
+        _, test_chg_nodes, test_need_reload = _node_update_check(
             json_data, nodes_json, real_path
         )
-        if not test_new_nodes and not test_need_reload:
+        if not test_chg_nodes and not test_need_reload:
             _logger.info("examined nodes state - no changes")
             return False
     # we probably need to make a change. but we recheck our state again
@@ -335,22 +357,42 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
     with jfile.open(nodes_json, jfile.OPEN_RW) as fh:
         jfile.flock(fh)
         json_data = jfile.load(fh, {})
-        ctdb_nodes, new_nodes, need_reload = _node_update_check(
+        ctdb_nodes, chg_nodes, need_reload = _node_update_check(
             json_data, nodes_json, real_path
         )
-        if not new_nodes and not need_reload:
+        if not chg_nodes and not need_reload:
             _logger.info("reexamined nodes state - no changes")
             return False
         _logger.info("writing updates to ctdb nodes file")
-        all_nodes = ctdb_nodes + new_nodes
+        new_ctdb_nodes = list(ctdb_nodes)
+        for entry in chg_nodes:
+            pnn = entry["pnn"]
+            expected_line = _entry_to_node(ctdb_nodes, entry)
+            if _node_line(new_ctdb_nodes, pnn) == expected_line:
+                continue
+            if entry["state"] == NodeState.NEW:
+                if pnn != len(new_ctdb_nodes):
+                    raise ValueError(
+                        f"unexpected pnn in new entry {entry}:"
+                        " nodes: {new_ctdb_nodes}"
+                    )
+                new_ctdb_nodes.append(expected_line)
+            else:
+                new_ctdb_nodes[pnn] = expected_line
         with open(real_path, "w") as nffh:
-            write_nodes_file(nffh, all_nodes)
+            write_nodes_file(nffh, new_ctdb_nodes)
             nffh.flush()
             os.fsync(nffh)
         _logger.info("running: ctdb reloadnodes")
         subprocess.check_call(list(samba_cmds.ctdb["reloadnodes"]))
         for entry in need_reload:
-            entry["state"] = NodeState.READY
+            entry["state"] = next_state(entry["state"])
+            _logger.debug(
+                "setting node identity=[{}] pnn={} to {}",
+                entry["identity"],
+                entry["pnn"],
+                entry["state"],
+            )
         jfile.dump(json_data, fh)
         fh.flush()
         os.fsync(fh)
