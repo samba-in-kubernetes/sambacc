@@ -28,12 +28,24 @@ _GLOBAL_PREFIX: typing.List[str] = []
 _GLOBAL_DEBUG: str = ""
 
 
+# Known flags for SAMBA_SPECIFICS env variable
+_SMBD_CLI_STDOUT_OPT: str = "smbd_cli_debug_output"
+
+
 def get_samba_specifics() -> typing.Set[str]:
     value = os.environ.get("SAMBA_SPECIFICS", "")
     out = set()
     for v in value.split(","):
         out.add(v)
     return out
+
+
+def _smbd_stdout_opt() -> str:
+    opt = "--log-stdout"
+    opt_lst = get_samba_specifics()
+    if _SMBD_CLI_STDOUT_OPT in opt_lst:
+        opt = "--debug-stdout"
+    return opt
 
 
 def set_global_prefix(lst: typing.List[str]) -> None:
@@ -97,11 +109,10 @@ smbd = SambaCommand("/usr/sbin/smbd")
 
 winbindd = SambaCommand("/usr/sbin/winbindd")
 
-smbd_foreground = smbd[
-    "--foreground",
-    "--log-stdout",
-    "--no-process-group",
-]
+
+def smbd_foreground():
+    return smbd["--foreground", _smbd_stdout_opt(), "--no-process-group"]
+
 
 winbindd_foreground = winbindd[
     "--foreground",
