@@ -80,7 +80,7 @@ def run_container(ctx: Context) -> None:
     paths.ensure_samba_dirs()
     if ctx.cli.target == "smbd":
         # execute smbd process
-        samba_cmds.execute(samba_cmds.smbd_foreground)
+        samba_cmds.execute(samba_cmds.smbd_foreground())
     elif ctx.cli.target == "winbindd":
         if getattr(ctx.cli, "insecure_auto_join", False):
             join(ctx)
