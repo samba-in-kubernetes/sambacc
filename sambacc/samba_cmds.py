@@ -28,6 +28,14 @@ _GLOBAL_PREFIX: typing.List[str] = []
 _GLOBAL_DEBUG: str = ""
 
 
+def get_samba_specifics() -> typing.Set[str]:
+    value = os.environ.get("SAMBA_SPECIFICS", "")
+    out = set()
+    for v in value.split(","):
+        out.add(v)
+    return out
+
+
 def set_global_prefix(lst: typing.List[str]) -> None:
     _GLOBAL_PREFIX[:] = lst
 
