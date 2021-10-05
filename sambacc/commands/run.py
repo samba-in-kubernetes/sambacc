@@ -85,7 +85,7 @@ def run_container(ctx: Context) -> None:
         if getattr(ctx.cli, "insecure_auto_join", False):
             join(ctx)
         # execute winbind process
-        samba_cmds.execute(samba_cmds.winbindd_foreground)
+        samba_cmds.execute(samba_cmds.winbindd_foreground())
     elif ctx.cli.target == "ctdbd":
         samba_cmds.execute(samba_cmds.ctdbd_foreground)
     else:

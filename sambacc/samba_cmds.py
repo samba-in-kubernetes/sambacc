@@ -29,7 +29,7 @@ _GLOBAL_DEBUG: str = ""
 
 
 # Known flags for SAMBA_SPECIFICS env variable
-_SMBD_CLI_STDOUT_OPT: str = "smbd_cli_debug_output"
+_DAEMON_CLI_STDOUT_OPT: str = "daemon_cli_debug_output"
 
 
 def get_samba_specifics() -> typing.Set[str]:
@@ -40,10 +40,13 @@ def get_samba_specifics() -> typing.Set[str]:
     return out
 
 
-def _smbd_stdout_opt() -> str:
-    opt = "--log-stdout"
+def _daemon_stdout_opt(daemon: str) -> str:
+    if daemon == "smbd":
+        opt = "--log-stdout"
+    else:
+        opt = "--stdout"
     opt_lst = get_samba_specifics()
-    if _SMBD_CLI_STDOUT_OPT in opt_lst:
+    if _DAEMON_CLI_STDOUT_OPT in opt_lst:
         opt = "--debug-stdout"
     return opt
 
@@ -111,14 +114,16 @@ winbindd = SambaCommand("/usr/sbin/winbindd")
 
 
 def smbd_foreground():
-    return smbd["--foreground", _smbd_stdout_opt(), "--no-process-group"]
+    return smbd["--foreground",
+                _daemon_stdout_opt("smbd"),
+                "--no-process-group"]
 
 
-winbindd_foreground = winbindd[
-    "--foreground",
-    "--stdout",
-    "--no-process-group",
-]
+def winbindd_foreground():
+    return winbindd["--foreground",
+                    _daemon_stdout_opt("winbindd"),
+                    "--no-process-group"]
+
 
 ctdbd = SambaCommand("/usr/sbin/ctdbd")
 
