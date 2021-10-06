@@ -114,15 +114,15 @@ winbindd = SambaCommand("/usr/sbin/winbindd")
 
 
 def smbd_foreground():
-    return smbd["--foreground",
-                _daemon_stdout_opt("smbd"),
-                "--no-process-group"]
+    return smbd[
+        "--foreground", _daemon_stdout_opt("smbd"), "--no-process-group"
+    ]
 
 
 def winbindd_foreground():
-    return winbindd["--foreground",
-                    _daemon_stdout_opt("winbindd"),
-                    "--no-process-group"]
+    return winbindd[
+        "--foreground", _daemon_stdout_opt("winbindd"), "--no-process-group"
+    ]
 
 
 ctdbd = SambaCommand("/usr/sbin/ctdbd")
