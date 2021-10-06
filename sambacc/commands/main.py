@@ -189,7 +189,7 @@ def enable_logging(cli) -> None:
 
 
 def action_filter(cli) -> typing.Optional[str]:
-    for path in (cli.skip_if_file or []):
+    for path in cli.skip_if_file or []:
         if os.path.exists(path):
             return f"skip-if-file: {path} exists"
     return None
