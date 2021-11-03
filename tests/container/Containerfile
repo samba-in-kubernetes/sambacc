@@ -1,4 +1,4 @@
-FROM fedora
+FROM fedora:34
 
 RUN yum install \
     -y --setopt=install_weak_deps=False \
