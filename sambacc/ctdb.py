@@ -480,3 +480,44 @@ def _convert_tdb_file(tdb_path: str, dest_dir: str, pnn: int = 0) -> None:
     _logger.info(f"Converting {tdb_path} to {opath} ...")
     cmd = samba_cmds.ltdbtool["convert", "-s0", tdb_path, opath]
     subprocess.check_call(list(cmd))
+
+
+class CLILeaderStatus:
+    _isleader = False
+
+    def is_leader(self) -> bool:
+        return self._isleader
+
+
+class CLILeaderLocator:
+    """A leader locator that relies entirely on checking the
+    recovery master using the ctdb command line tool.
+    """
+
+    def __enter__(self) -> CLILeaderStatus:
+        mypnn = recmaster = ""
+        # mypnn = <ctdb pnn>
+        pnn_cmd = samba_cmds.ctdb["pnn"]
+        try:
+            out = subprocess.check_output(list(pnn_cmd))
+            mypnn = str(out).strip()
+        except subprocess.CalledProcessError as err:
+            _logger.error(f"command {pnn_cmd!r} failed: {err!r}")
+        except FileNotFoundError:
+            _logger.error(f"ctdb command ({pnn_cmd!r}) not found")
+        # recmaster = <ctdb recmaster>
+        recmaster_cmd = samba_cmds.ctdb["recmaster"]
+        try:
+            out = subprocess.check_output(list(recmaster_cmd))
+            recmaster = str(out).strip()
+        except subprocess.CalledProcessError as err:
+            _logger.error(f"command {recmaster_cmd!r} failed: {err!r}")
+        except FileNotFoundError:
+            _logger.error(f"ctdb command ({recmaster_cmd!r}) not found")
+
+        sts = CLILeaderStatus()
+        sts._isleader = bool(mypnn) and mypnn == recmaster
+        return sts
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        pass
