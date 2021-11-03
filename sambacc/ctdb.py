@@ -388,10 +388,11 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
         for entry in need_reload:
             entry["state"] = next_state(entry["state"])
             _logger.debug(
-                "setting node identity=[{}] pnn={} to {}",
-                entry["identity"],
-                entry["pnn"],
-                entry["state"],
+                "setting node identity=[{}] pnn={} to {}".format(
+                    entry["identity"],
+                    entry["pnn"],
+                    entry["state"],
+                )
             )
         jfile.dump(json_data, fh)
         fh.flush()
