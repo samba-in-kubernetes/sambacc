@@ -18,10 +18,14 @@
 
 import argparse
 import functools
+import logging
+import typing
 
 from sambacc import container_dns
 
-from .cli import commands, Context, best_waiter, Fail
+from .cli import commands, Context, best_waiter, best_leader_locator, Fail
+
+_logger = logging.getLogger(__name__)
 
 
 def _dns_register_args(parser: argparse.ArgumentParser) -> None:
@@ -63,7 +67,12 @@ def dns_register(ctx: Context) -> None:
         target_name=ctx.cli.target,
     )
 
+    if iconfig.with_ctdb:
+        _logger.info("enabling ctdb support: will check for leadership")
+        update_func = _exec_if_leader(iconfig, update_func)
+
     if ctx.cli.watch:
+        _logger.info("will watch source")
         waiter = best_waiter(ctx.cli.source)
         container_dns.watch(
             domain,
@@ -75,3 +84,19 @@ def dns_register(ctx: Context) -> None:
     else:
         update_func(domain, ctx.cli.source)
     return
+
+
+def _exec_if_leader(iconfig, update_func):
+    def leader_update_func(
+        domain: str,
+        source: str,
+        previous: typing.Optional[container_dns.HostState] = None,
+    ):
+        with best_leader_locator(iconfig) as ll:
+            if not ll.is_leader():
+                _logger.info("skipping dns update. node not leader")
+                return previous, False
+            _logger.info("checking for update. node is leader")
+            return update_func(domain, source, previous)
+
+    return leader_update_func
