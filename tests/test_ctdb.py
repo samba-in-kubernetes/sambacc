@@ -519,3 +519,47 @@ def test_next_state():
     assert ctdb.next_state(ctdb.NodeState.NEW) == ctdb.NodeState.READY
     assert ctdb.next_state(ctdb.NodeState.REPLACED) == ctdb.NodeState.READY
     assert ctdb.next_state(ctdb.NodeState.CHANGED) == ctdb.NodeState.REPLACED
+
+
+def test_cli_leader_locator(tmpdir, monkeypatch, caplog):
+    import logging
+
+    caplog.set_level(logging.INFO)
+    fake_ctdb = tmpdir / "fake_ctdb.sh"
+    monkeypatch.setattr(sambacc.samba_cmds, "_GLOBAL_PREFIX", [fake_ctdb])
+
+    def _fake_ctdb_script(pnn, recmaster):
+        with open(fake_ctdb, "w") as fh:
+            fh.write("#!/bin/sh\n")
+            fh.write("case $2 in\n")
+            fh.write(f"pnn) {pnn};;\n")
+            fh.write(f"recmaster) {recmaster};;\n")
+            fh.write("esac\n")
+            fh.write("exit 5\n")
+        os.chmod(fake_ctdb, 0o700)
+
+    _fake_ctdb_script(pnn="echo 0; exit 0", recmaster="echo 0; exit 0")
+    with ctdb.CLILeaderLocator() as status:
+        assert status.is_leader()
+
+    _fake_ctdb_script(pnn="echo 1; exit 0", recmaster="echo 0; exit 0")
+    with ctdb.CLILeaderLocator() as status:
+        assert not status.is_leader()
+
+    # test error handling
+    _fake_ctdb_script(pnn="exit 1", recmaster="echo 0; exit 0")
+    with ctdb.CLILeaderLocator() as status:
+        assert not status.is_leader()
+    assert "pnn" in caplog.records[-1].getMessage()
+    assert "recmaster" not in caplog.records[-1].getMessage()
+    _fake_ctdb_script(pnn="echo 1; exit 0", recmaster="exit 1")
+    with ctdb.CLILeaderLocator() as status:
+        assert not status.is_leader()
+    assert "pnn" not in caplog.records[-1].getMessage()
+    assert "recmaster" in caplog.records[-1].getMessage()
+
+    os.unlink(fake_ctdb)
+    with ctdb.CLILeaderLocator() as status:
+        assert not status.is_leader()
+    assert "pnn" in caplog.records[-2].getMessage()
+    assert "recmaster" in caplog.records[-1].getMessage()
