@@ -21,6 +21,7 @@ import argparse
 import typing
 
 from sambacc import config
+from sambacc import leader
 from sambacc import simple_waiter
 
 _INOTIFY_OK = True
@@ -134,6 +135,17 @@ def best_waiter(
         return iw.INotify(filename, print_func=print, timeout=max_timeout)
     # should max_timeout change Sleeper too? probably.
     return simple_waiter.Sleeper()
+
+
+def best_leader_locator(
+    iconfig: config.InstanceConfig,
+) -> leader.LeaderLocator:
+    """Fetch the best leader locator for our sambacc command.
+    This only makes sense to be used in a clustered scenario.
+    """
+    from sambacc import ctdb
+
+    return ctdb.CLILeaderLocator()
 
 
 commands = CommandBuilder()
