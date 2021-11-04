@@ -17,6 +17,7 @@
 #
 
 import argparse
+import logging
 import os
 import socket
 import typing
@@ -24,6 +25,8 @@ import typing
 from sambacc import ctdb
 
 from .cli import best_waiter, commands, Context, Fail
+
+_logger = logging.getLogger(__name__)
 
 # Rather irritatingly, k8s does not have a simple method for passing the
 # ordinal index of a stateful set down to the containers. This has been
@@ -165,7 +168,7 @@ def _lookup_hostname(hostname):
     # XXX this is a nasty little hack.
     ips = socket.gethostbyname_ex(hostname)[2]
     addr = [ip for ip in ips if ip != "127.0.0.1"][0]
-    print(f"Determined address for {hostname}: {addr}")
+    _logger.info(f"Determined address for {hostname}: {addr}")
     return addr
 
 
@@ -226,9 +229,13 @@ def ctdb_manage_nodes(ctx: Context) -> None:
         except KeyboardInterrupt:
             raise
         except Exception as err:
-            print(f"ERROR: {err}")
+            _logger.error(
+                f"error during manage_nodes: {err}, count={errors}",
+                exc_info=True,
+            )
             errors += 1
             if errors > 10:
+                _logger.error(f"too many retries ({errors}). giving up")
                 raise
             waiter.wait()
 
@@ -248,5 +255,5 @@ def ctdb_must_have_node(ctx: Context) -> None:
             real_path=np.persistent_path,
         ):
             return
-        print("node not yet ready")
+        _logger.info("node not yet ready")
         waiter.wait()
