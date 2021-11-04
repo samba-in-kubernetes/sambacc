@@ -18,11 +18,14 @@
 
 import enum
 import json
+import logging
 import subprocess
 import typing
 
 from sambacc import samba_cmds
 from sambacc.simple_waiter import Waiter
+
+_logger = logging.getLogger(__name__)
 
 
 class JoinError(Exception):
@@ -172,11 +175,11 @@ def join_when_possible(
 ) -> None:
     while True:
         if joiner.did_join():
-            print("found valid join marker")
+            _logger.info("found valid join marker")
             return
         try:
             joiner.join()
-            print("successful join")
+            _logger.info("successful join")
             return
         except JoinError as err:
             if error_handler is not None:
