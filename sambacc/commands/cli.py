@@ -18,6 +18,7 @@
 
 from collections import namedtuple
 import argparse
+import logging
 import typing
 
 from sambacc import config
@@ -29,6 +30,8 @@ try:
     from sambacc import inotify_waiter as iw
 except ImportError:
     _INOTIFY_OK = False
+
+_logger = logging.getLogger(__name__)
 
 
 class Fail(ValueError):
@@ -131,8 +134,10 @@ def best_waiter(
 ) -> simple_waiter.Waiter:
     """Fetch the best waiter type for our sambacc command."""
     if filename and _INOTIFY_OK:
-        print("enabling inotify support")
-        return iw.INotify(filename, print_func=print, timeout=max_timeout)
+        _logger.info("enabling inotify support")
+        return iw.INotify(
+            filename, print_func=_logger.info, timeout=max_timeout
+        )
     # should max_timeout change Sleeper too? probably.
     return simple_waiter.Sleeper()
 
