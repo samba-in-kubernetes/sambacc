@@ -16,12 +16,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import logging
+
 from sambacc import ctdb
 import sambacc.nsswitch_loader as nsswitch
 
 from . import config  # noqa: F401
 from . import users  # noqa: F401
 from .cli import commands, setup_steps, Context
+
+
+_logger = logging.getLogger(__name__)
 
 
 @setup_steps.command("nsswitch")
@@ -37,21 +42,21 @@ def _import_nsswitch(ctx: Context) -> None:
 @setup_steps.command("smb_ctdb")
 def _smb_conf_for_ctdb(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
-        print("Enabling ctdb in samba config file")
+        _logger.info("Enabling ctdb in samba config file")
         ctdb.ensure_smb_conf(ctx.instance_config)
 
 
 @setup_steps.command("ctdb_config")
 def _ctdb_conf_for_ctdb(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
-        print("Ensuring ctdb config")
+        _logger.info("Ensuring ctdb config")
         ctdb.ensure_ctdb_conf(ctx.instance_config)
 
 
 @setup_steps.command("ctdb_nodes")
 def _ctdb_nodes_exists(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
-        print("Ensuring ctdb nodes file")
+        _logger.info("Ensuring ctdb nodes file")
         persistent_path = ctx.instance_config.ctdb_config()["nodes_path"]
         ctdb.ensure_ctdb_nodes(
             ctdb_nodes=ctdb.read_ctdb_nodes(persistent_path),
@@ -62,7 +67,7 @@ def _ctdb_nodes_exists(ctx: Context) -> None:
 @setup_steps.command("ctdb_etc")
 def _ctdb_etc_files(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
-        print("Ensuring ctdb etc files")
+        _logger.info("Ensuring ctdb etc files")
         ctdb.ensure_ctdbd_etc_files()
 
 
