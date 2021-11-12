@@ -24,7 +24,7 @@ update() {
     if [[ -d "$d/.hg" ]]; then
         hg update --check "${node}"
     else
-        git checkout -b "${node}" "${node}"
+        git checkout "${node}"
     fi
 }
 
