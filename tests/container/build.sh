@@ -62,5 +62,5 @@ export NSS_WRAPPER_GROUP=/etc/group
 # modules. The container env already provides us control over the env.
 tox --sitepackages
 
-$python setup.py sdist
-$python setup.py bdist_wheel
+pip -qq install build
+$python -m build
