@@ -6,6 +6,10 @@ python=python3
 url="https://github.com/samba-in-kubernetes/sambacc"
 bdir="/var/tmp/build/sambacc"
 
+info() {
+    echo "[[sambacc/build]] $*"
+}
+
 checked_out() {
     local d="$1"
     # allow manual clones with either git or hg
@@ -37,8 +41,9 @@ fi
 
 mkdir -p /var/tmp/build/ || true
 if checked_out "${bdir}" ; then
-    echo "repo already checked out"
+    info "repo already checked out"
 else
+    info "cloning sambacc repo"
     clone "$url" "${bdir}"
 fi
 
@@ -60,7 +65,9 @@ export NSS_WRAPPER_GROUP=/etc/group
 
 # Run tox with sitepackages enabled to allow access to system installed samba
 # modules. The container env already provides us control over the env.
+info "running test suite with tox"
 tox --sitepackages
 
+info "building python package(s)"
 pip -qq install build
 $python -m build
