@@ -5,6 +5,7 @@ set -e
 python=python3
 url="https://github.com/samba-in-kubernetes/sambacc"
 bdir="/var/tmp/build/sambacc"
+distname="${SAMBACC_DISTNAME}"
 
 info() {
     echo "[[sambacc/build]] $*"
@@ -70,4 +71,15 @@ tox --sitepackages
 
 info "building python package(s)"
 pip -qq install build
-$python -m build
+if [ "$distname" ]; then
+    # building for a given "distribution name" - meaning this could be
+    # consumed externally
+    distdir="/srv/dist/$distname"
+    info "using dist dir: $distdir"
+    mkdir -p "$distdir"
+    $python -m build --outdir "$distdir"
+    (cd "$distdir" && sha512sum * > "$distdir/sha512sums")
+else
+    # just run the build as a test to make sure it succeeds
+    $python -m build
+fi
