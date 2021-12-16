@@ -78,9 +78,10 @@ Currently the only method of install is from source control.
 
 * Clone the repo: `git clone https://github.com/samba-in-kubernetes/sambacc`
 * `cd sambacc`
-* Install locally: `python setup.py install --user`
+* Install locally: `python -m pip install --user .`
 
-The typical setup.py commands should work.
+The test & build container may also be used to build source tarballs and
+wheels. Then you can distribute and install from the wheel if you need to.
 
 ### Testing
 
@@ -99,6 +100,21 @@ canonical way to run the test suite and is what is used by the CI tests. When
 run this way certain system packages can be installed, etc. to support
 running a wider range of test cases.
 
+To produce builds using the container, mount a directory into the container at
+"/srv/dist" and set the environment variable `SAMBACC_DISTNAME` to a term of
+your choice (example: "latest"). This will then save the builds in a dir of
+that name in your output dir. Example:
+```
+$ mkdir -p $HOME/tmp/sambacc
+$ podman run --rm \
+  -v $HOME/tmp/sambacc:/srv/dist -e SAMBACC_DISTNAME=latest \
+  quay.io/samba.org/sambacc:latest
+$ ls $HOME/tmp/sambacc
+latest
+$ ls $HOME/tmp/sambacc/latest
+sambacc-0.1.dev225+g10059ff-py3-none-any.whl  sha512sums
+sambacc-0.1.dev225+g10059ff.tar.gz
+```
 
 ## License
 
