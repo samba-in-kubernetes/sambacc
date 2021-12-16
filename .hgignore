@@ -9,3 +9,4 @@ htmlcov
 ^dist/
 ^build/
 .mypy_cache
+sambacc/_version.py
