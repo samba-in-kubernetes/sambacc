@@ -1,0 +1,10 @@
+.venv
+.tox
+.egg-info
+__pycache__
+htmlcov
+*.swp
+dist/
+build/
+.mypy_cache
+sambacc/_version.py
