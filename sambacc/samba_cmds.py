@@ -140,6 +140,8 @@ smbd = SambaCommand("/usr/sbin/smbd")
 
 winbindd = SambaCommand("/usr/sbin/winbindd")
 
+samba_dc = SambaCommand("/usr/sbin/samba")
+
 
 def smbd_foreground():
     return smbd[
@@ -151,6 +153,10 @@ def winbindd_foreground():
     return winbindd[
         "--foreground", _daemon_stdout_opt("winbindd"), "--no-process-group"
     ]
+
+
+def samba_dc_foreground():
+    return samba_dc["--foreground"]
 
 
 ctdbd = SambaCommand("/usr/sbin/ctdbd")
