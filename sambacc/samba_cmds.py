@@ -161,6 +161,8 @@ ltdbtool = CommandArgs("ltdbtool")
 
 ctdb = SambaCommand("ctdb")
 
+sambatool = SambaCommand("samba-tool")
+
 
 def encode(value: typing.Union[str, bytes, None]) -> bytes:
     if value is None:
