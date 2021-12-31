@@ -1,0 +1,138 @@
+#
+# sambacc: a samba container configuration tool
+# Copyright (C) 2021  John Mulligan
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>
+#
+
+import logging
+import subprocess
+import typing
+
+_logger = logging.getLogger(__name__)
+
+
+def provision(
+    realm: str,
+    dcname: str,
+    admin_password: str,
+    dns_backend: typing.Optional[str] = None,
+    domain: typing.Optional[str] = None,
+) -> None:
+    # this function is a direct translation of a previous shell script
+    # as samba-tool is based on python libs, this function could possibly
+    # be converted to import samba's libs and use that.
+    _logger.info(f"Provisioning AD domain: realm={realm}")
+    subprocess.check_call(
+        _provision_cmd(
+            realm,
+            dcname,
+            admin_password=admin_password,
+            dns_backend=dns_backend,
+            domain=domain,
+        )
+    )
+    return
+
+
+def create_user(
+    name: str,
+    password: str,
+    surname: typing.Optional[str],
+    given_name: typing.Optional[str],
+) -> None:
+    cmd = _user_create_cmd(name, password, surname, given_name)
+    _logger.info("Creating user: %r", name)
+    subprocess.check_call(cmd)
+
+
+def create_group(name: str) -> None:
+    cmd = _group_add_cmd(name)
+    _logger.info("Creating group: %r", name)
+    subprocess.check_call(cmd)
+
+
+def add_group_members(group_name: str, members: typing.List[str]) -> None:
+    cmd = _group_add_members_cmd(group_name, members)
+    _logger.info("Adding group members: %r", cmd)
+    subprocess.check_call(cmd)
+
+
+def _provision_cmd(
+    realm: str,
+    dcname: str,
+    admin_password: str,
+    dns_backend: typing.Optional[str] = None,
+    domain: typing.Optional[str] = None,
+) -> typing.List[str]:
+    if not dns_backend:
+        dns_backend = "SAMBA_INTERNAL"
+    if not domain:
+        domain = realm.split(".")[0].upper()
+    cmd = [
+        "samba-tool",
+        "domain",
+        "provision",
+        f"--option=netbios name={dcname}",
+        "--use-rfc2307",
+        f"--dns-backend={dns_backend}",
+        "--server-role=dc",
+        f"--realm={realm}",
+        f"--domain={domain}",
+        f"--adminpass={admin_password}",
+    ]
+    return cmd
+
+
+def _user_create_cmd(
+    name: str,
+    password: str,
+    surname: typing.Optional[str],
+    given_name: typing.Optional[str],
+) -> typing.List[str]:
+    cmd = [
+        "samba-tool",
+        "user",
+        "create",
+        name,
+        password,
+    ]
+    if surname:
+        cmd.append(f"--surname={surname}")
+    if given_name:
+        cmd.append(f"--given-name={given_name}")
+    return cmd
+
+
+def _group_add_cmd(name: str) -> typing.List[str]:
+    cmd = [
+        "samba-tool",
+        "group",
+        "add",
+        name,
+    ]
+    return cmd
+
+
+def _group_add_members_cmd(
+    group_name: str, members: typing.List[str]
+) -> typing.List[str]:
+    cmd = [
+        "samba-tool",
+        "group",
+        "addmembers",
+        group_name,
+        ",".join(members),
+    ]
+    return cmd
