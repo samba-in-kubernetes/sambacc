@@ -63,13 +63,14 @@ def _prep_provision(ctx: Context) -> None:
     if os.path.exists(_provisioned):
         _logger.info("Domain already provisioned")
         return
-    _logger.info("Provisioning domain")
+    domconfig = ctx.instance_config.domain()
+    _logger.info(f"Provisioning domain: {domconfig.realm}")
 
     addc.provision(
-        realm="DOMAIN1.SINK.TEST",
-        domain="DOMAIN1",
-        dcname="dc1",
-        admin_password="Passw0rd",
+        realm=domconfig.realm,
+        domain=domconfig.short_domain,
+        dcname=domconfig.dcname,
+        admin_password=domconfig.admin_password,
     )
 
 
@@ -79,42 +80,19 @@ def _prep_populate(ctx: Context) -> None:
         return
     _logger.info("Populating domain with default entries")
 
-    addc.create_group("supervisors")
-    addc.create_group("employees")
-    addc.create_group("characters")
-    addc.create_group("bulk")
+    for dgroup in ctx.instance_config.domain_groups():
+        addc.create_group(dgroup.groupname)
 
-    pw = "1115Rose."
-    addc.create_user(name="johnm", password=pw, surname="John", given_name="M")
-    addc.create_user(
-        name="ckent", password=pw, surname="Clark", given_name="Kent"
-    )
-    addc.create_user(
-        name="bwayne", password=pw, surname="Bruce", given_name="Wayne"
-    )
-    addc.create_user(
-        name="bbanner", password=pw, surname="Bruce", given_name="Banner"
-    )
-    addc.create_user(
-        name="pparker", password=pw, surname="Peter", given_name="Parker"
-    )
-
-    addc.add_group_members(group_name="supervisors", members=["johnm"])
-    addc.add_group_members(
-        group_name="employees",
-        members=["johnm", "ckent", "bwayne", "pparker", "bbanner"],
-    )
-    addc.add_group_members(
-        group_name="characters",
-        members=["ckent", "bwayne", "pparker", "bbanner"],
-    )
-
-    for i in range(42):
-        uname = f"user{i}"
+    for duser in ctx.instance_config.domain_users():
         addc.create_user(
-            name=uname, password=pw, surname="Hue-Sir", given_name=f"George{i}"
+            name=duser.username,
+            password=duser.plaintext_passwd,
+            surname=duser.surname,
+            given_name=duser.given_name,
         )
-        addc.add_group_members(group_name="bulk", members=[uname])
+        # TODO: probably should improve this to avoid extra calls / loops
+        for gname in duser.member_of:
+            addc.add_group_members(group_name=gname, members=[duser.username])
 
     # "touch" the populated marker
     with open(_populated, "w"):
