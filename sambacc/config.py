@@ -35,8 +35,8 @@ GroupEntryTuple = typing.Tuple[str, str, str, str]
 # the standard location for samba's smb.conf
 SMB_CONF = "/etc/samba/smb.conf"
 
-CTDB = "ctdb"
-FEATURES = "instance_features"
+CTDB: typing.Final[str] = "ctdb"
+FEATURES: typing.Final[str] = "instance_features"
 
 
 def read_config_files(fnames) -> GlobalConfig:
@@ -149,7 +149,7 @@ class InstanceConfig:
             yield uentry.vgroup()
 
     @property
-    def with_ctdb(self):
+    def with_ctdb(self) -> bool:
         return CTDB in self.iconfig.get(FEATURES, [])
 
     def ctdb_smb_config(self) -> CTDBSambaConfig:
