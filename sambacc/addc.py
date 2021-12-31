@@ -20,6 +20,8 @@ import logging
 import subprocess
 import typing
 
+from sambacc import samba_cmds
+
 _logger = logging.getLogger(__name__)
 
 
@@ -80,8 +82,7 @@ def _provision_cmd(
         dns_backend = "SAMBA_INTERNAL"
     if not domain:
         domain = realm.split(".")[0].upper()
-    cmd = [
-        "samba-tool",
+    cmd = samba_cmds.sambatool[
         "domain",
         "provision",
         f"--option=netbios name={dcname}",
@@ -91,7 +92,7 @@ def _provision_cmd(
         f"--realm={realm}",
         f"--domain={domain}",
         f"--adminpass={admin_password}",
-    ]
+    ].argv()
     return cmd
 
 
@@ -101,13 +102,12 @@ def _user_create_cmd(
     surname: typing.Optional[str],
     given_name: typing.Optional[str],
 ) -> typing.List[str]:
-    cmd = [
-        "samba-tool",
+    cmd = samba_cmds.sambatool[
         "user",
         "create",
         name,
         password,
-    ]
+    ].argv()
     if surname:
         cmd.append(f"--surname={surname}")
     if given_name:
@@ -116,23 +116,21 @@ def _user_create_cmd(
 
 
 def _group_add_cmd(name: str) -> typing.List[str]:
-    cmd = [
-        "samba-tool",
+    cmd = samba_cmds.sambatool[
         "group",
         "add",
         name,
-    ]
+    ].argv()
     return cmd
 
 
 def _group_add_members_cmd(
     group_name: str, members: typing.List[str]
 ) -> typing.List[str]:
-    cmd = [
-        "samba-tool",
+    cmd = samba_cmds.sambatool[
         "group",
         "addmembers",
         group_name,
         ",".join(members),
-    ]
+    ].argv()
     return cmd
