@@ -175,6 +175,33 @@ class InstanceConfig:
         ctdb.setdefault("realtime_scheduling", "false")
         return ctdb
 
+    def domain(self) -> DomainConfig:
+        """Return the general domain settings for this DC instance."""
+        if not self.with_addc:
+            raise ValueError("ad dc not supported by configuration")
+        domains = self.gconfig.data.get("domain_settings", {})
+        instance_name: str = self.iconfig.get("instance_name", "")
+        return DomainConfig(
+            drec=domains[self.iconfig["domain_settings"]],
+            instance_name=instance_name,
+        )
+
+    def domain_users(self) -> typing.Iterable[DomainUserEntry]:
+        if not self.with_addc:
+            raise ValueError("ad dc not supported by configuration")
+        ds_name: str = self.iconfig["domain_settings"]
+        dusers = self.gconfig.data.get("domain_users", {}).get(ds_name, [])
+        for n, entry in enumerate(dusers):
+            yield DomainUserEntry(self, entry, n)
+
+    def domain_groups(self) -> typing.Iterable[DomainGroupEntry]:
+        if not self.with_addc:
+            raise ValueError("ad dc not supported by configuration")
+        ds_name: str = self.iconfig["domain_settings"]
+        dgroups = self.gconfig.data.get("domain_groups", {}).get(ds_name, [])
+        for n, entry in enumerate(dgroups):
+            yield DomainGroupEntry(self, entry, n)
+
 
 class CTDBSambaConfig:
     def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
@@ -284,3 +311,25 @@ class GroupEntry:
     def group_fields(self) -> GroupEntryTuple:
         # fields: name, passwd, gid, members(comma separated)
         return (self.groupname, "x", str(self.gid), "")
+
+
+class DomainConfig:
+    def __init__(self, drec: dict, instance_name: str):
+        self.realm = drec["realm"]
+        self.short_domain = drec.get("short_domain", "")
+        self.admin_password = drec.get("admin_password", "")
+        self.dcname = instance_name
+
+
+class DomainUserEntry(UserEntry):
+    def __init__(self, iconf: InstanceConfig, urec: dict, num: int):
+        super().__init__(iconf, urec, num)
+        self.surname = urec.get("surname")
+        self.given_name = urec.get("given_name")
+        self.member_of = urec.get("member_of", [])
+        if not isinstance(self.member_of, list):
+            raise ValueError("member_of should contain a list of group names")
+
+
+class DomainGroupEntry(GroupEntry):
+    pass
