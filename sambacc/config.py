@@ -36,6 +36,7 @@ GroupEntryTuple = typing.Tuple[str, str, str, str]
 SMB_CONF = "/etc/samba/smb.conf"
 
 CTDB: typing.Final[str] = "ctdb"
+ADDC: typing.Final[str] = "addc"
 FEATURES: typing.Final[str] = "instance_features"
 
 
@@ -151,6 +152,10 @@ class InstanceConfig:
     @property
     def with_ctdb(self) -> bool:
         return CTDB in self.iconfig.get(FEATURES, [])
+
+    @property
+    def with_addc(self) -> bool:
+        return ADDC in self.iconfig.get(FEATURES, [])
 
     def ctdb_smb_config(self) -> CTDBSambaConfig:
         if not self.with_ctdb:
