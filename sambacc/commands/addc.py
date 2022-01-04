@@ -23,7 +23,17 @@ import shutil
 from sambacc import addc
 from sambacc import samba_cmds
 
-from .cli import CommandBuilder, Context
+from .cli import best_waiter, CommandBuilder, Context, Fail
+
+try:
+    import dns
+    import dns.resolver
+    import dns.exception
+
+    _DNS = True
+except ImportError:
+    _DNS = False
+
 
 _logger = logging.getLogger(__name__)
 
@@ -38,7 +48,7 @@ def summary(ctx: Context) -> None:
     print("Hello", ctx)
 
 
-_setup_choices = ["init-all", "provision", "populate"]
+_setup_choices = ["init-all", "provision", "populate", "wait-domain", "join"]
 
 
 def _dosetup(ctx: Context, step_name: str) -> bool:
@@ -74,6 +84,38 @@ def _prep_provision(ctx: Context) -> None:
     )
 
 
+def _prep_join(ctx: Context) -> None:
+    if os.path.exists(_provisioned):
+        _logger.info("Already configured. Not joining")
+        return
+    domconfig = ctx.instance_config.domain()
+    _logger.info(f"Provisioning domain: {domconfig.realm}")
+
+    addc.join(
+        realm=domconfig.realm,
+        domain=domconfig.short_domain,
+        dcname=domconfig.dcname,
+        admin_password=domconfig.admin_password,
+    )
+
+
+def _prep_wait_on_domain(ctx: Context) -> None:
+    if not _DNS:
+        _logger.info("Can not query domain. Exiting.")
+        raise Fail("no dns support available (missing dnsypthon)")
+
+    realm = ctx.instance_config.domain().realm
+    waiter = best_waiter(max_timeout=30)
+    while True:
+        _logger.info(f"checking for AD domain in dns: {realm}")
+        try:
+            dns.resolver.query(f"_ldap._tcp.{realm}.", "SRV")
+            return
+        except dns.exception.DNSException:
+            _logger.info(f"dns record for {realm} not found")
+            waiter.wait()
+
+
 def _prep_populate(ctx: Context) -> None:
     if os.path.exists(_populated):
         _logger.info("populated marker exists")
@@ -106,6 +148,10 @@ def _prep_krb5_conf(ctx: Context) -> None:
 @dccommands.command(name="run", arg_func=_run_container_args)
 def run(ctx: Context) -> None:
     _logger.info("Running AD DC container")
+    if _dosetup(ctx, "wait-domain"):
+        _prep_wait_on_domain(ctx)
+    if _dosetup(ctx, "join"):
+        _prep_join(ctx)
     if _dosetup(ctx, "provision"):
         _prep_provision(ctx)
     if _dosetup(ctx, "populate"):
