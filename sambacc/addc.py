@@ -48,6 +48,24 @@ def provision(
     return
 
 
+def join(
+    realm: str,
+    dcname: str,
+    admin_password: str,
+    dns_backend: typing.Optional[str] = None,
+    domain: typing.Optional[str] = None,
+) -> None:
+    _logger.info(f"Joining AD domain: realm={realm}")
+    subprocess.check_call(
+        _join_cmd(
+            realm,
+            dcname,
+            admin_password=admin_password,
+            dns_backend=dns_backend,
+        )
+    )
+
+
 def create_user(
     name: str,
     password: str,
@@ -92,6 +110,30 @@ def _provision_cmd(
         f"--realm={realm}",
         f"--domain={domain}",
         f"--adminpass={admin_password}",
+    ].argv()
+    return cmd
+
+
+def _join_cmd(
+    realm: str,
+    dcname: str,
+    admin_password: str,
+    dns_backend: typing.Optional[str] = None,
+    domain: typing.Optional[str] = None,
+) -> typing.List[str]:
+    if not dns_backend:
+        dns_backend = "SAMBA_INTERNAL"
+    if not domain:
+        domain = realm.split(".")[0].upper()
+    cmd = samba_cmds.sambatool[
+        "domain",
+        "join",
+        realm,
+        "DC",
+        f"-U{domain}\\Administrator",
+        f"--option=netbios name={dcname}",
+        f"--dns-backend={dns_backend}",
+        f"--password={admin_password}",
     ].argv()
     return cmd
 
