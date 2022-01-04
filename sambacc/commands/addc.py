@@ -67,6 +67,10 @@ def _run_container_args(parser):
             " The special 'init-all' name will perform all known setup steps."
         ),
     )
+    parser.add_argument(
+        "--name",
+        help="Specify a custom name for the dc, overriding the config file.",
+    )
 
 
 def _prep_provision(ctx: Context) -> None:
@@ -76,10 +80,11 @@ def _prep_provision(ctx: Context) -> None:
     domconfig = ctx.instance_config.domain()
     _logger.info(f"Provisioning domain: {domconfig.realm}")
 
+    dcname = ctx.cli.name or domconfig.dcname
     addc.provision(
         realm=domconfig.realm,
         domain=domconfig.short_domain,
-        dcname=domconfig.dcname,
+        dcname=dcname,
         admin_password=domconfig.admin_password,
     )
 
@@ -91,10 +96,11 @@ def _prep_join(ctx: Context) -> None:
     domconfig = ctx.instance_config.domain()
     _logger.info(f"Provisioning domain: {domconfig.realm}")
 
+    dcname = ctx.cli.name or domconfig.dcname
     addc.join(
         realm=domconfig.realm,
         domain=domconfig.short_domain,
-        dcname=domconfig.dcname,
+        dcname=dcname,
         admin_password=domconfig.admin_password,
     )
 
