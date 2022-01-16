@@ -35,8 +35,9 @@ _DAEMON_CLI_STDOUT_OPT: str = "daemon_cli_debug_output"
 def get_samba_specifics() -> typing.Set[str]:
     value = os.environ.get("SAMBA_SPECIFICS", "")
     out = set()
-    for v in value.split(","):
-        out.add(v)
+    if value:
+        for v in value.split(","):
+            out.add(v)
     return out
 
 
