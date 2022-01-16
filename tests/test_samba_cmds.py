@@ -91,3 +91,44 @@ def test_command_args_repr():
     assert r.startswith("CommandArgs")
     assert "something" in r
     assert "nice" in r
+
+
+def test_get_samba_specifics(monkeypatch):
+    monkeypatch.setenv("SAMBA_SPECIFICS", "")
+    ss = sambacc.samba_cmds.get_samba_specifics()
+    assert not ss
+
+    monkeypatch.setenv("SAMBA_SPECIFICS", "wibble,quux")
+    ss = sambacc.samba_cmds.get_samba_specifics()
+    assert ss
+    assert len(ss) == 2
+    assert "wibble" in ss
+    assert "quux" in ss
+
+
+def test_smbd_foreground(monkeypatch):
+    monkeypatch.setenv("SAMBA_SPECIFICS", "")
+    sf = sambacc.samba_cmds.smbd_foreground()
+    assert "smbd" in sf.name
+    assert "--log-stdout" in sf.argv()
+    assert "--debug-stdout" not in sf.argv()
+
+    monkeypatch.setenv("SAMBA_SPECIFICS", "daemon_cli_debug_output")
+    sf = sambacc.samba_cmds.smbd_foreground()
+    assert "smbd" in sf.name
+    assert "--log-stdout" not in sf.argv()
+    assert "--debug-stdout" in sf.argv()
+
+
+def test_winbindd_foreground(monkeypatch):
+    monkeypatch.setenv("SAMBA_SPECIFICS", "")
+    wf = sambacc.samba_cmds.winbindd_foreground()
+    assert "winbindd" in wf.name
+    assert "--stdout" in wf.argv()
+    assert "--debug-stdout" not in wf.argv()
+
+    monkeypatch.setenv("SAMBA_SPECIFICS", "daemon_cli_debug_output")
+    wf = sambacc.samba_cmds.winbindd_foreground()
+    assert "winbindd" in wf.name
+    assert "--stdout" not in wf.argv()
+    assert "--debug-stdout" in wf.argv()
