@@ -171,4 +171,4 @@ def encode(value: typing.Union[str, bytes, None]) -> bytes:
 
 def execute(cmd: SambaCommand) -> None:
     """Exec into the command specified (without forking)."""
-    os.execvp(cmd.name, cmd.argv())
+    os.execvp(cmd.name, cmd.argv())  # pragma: no cover
