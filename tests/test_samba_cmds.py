@@ -73,3 +73,21 @@ def test_execute():
     else:
         _, status = os.waitpid(pid, 0)
         assert status == 0
+
+
+def test_create_command_args():
+    # this is the simpler base class for SambaCommand. It lacks
+    # the samba debug level option.
+    cmd = sambacc.samba_cmds.CommandArgs("something")
+    assert cmd.name == "something"
+    cmd2 = cmd["nice"]
+    assert cmd.name == "something"
+    assert list(cmd) == ["something"]
+    assert list(cmd2) == ["something", "nice"]
+
+
+def test_command_args_repr():
+    r = str(sambacc.samba_cmds.CommandArgs("something", ["nice"]))
+    assert r.startswith("CommandArgs")
+    assert "something" in r
+    assert "nice" in r
