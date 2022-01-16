@@ -156,7 +156,7 @@ ctdbd = SambaCommand("/usr/sbin/ctdbd")
 
 ctdbd_foreground = ctdbd["--interactive"]
 
-ltdbtool = SambaCommand("ltdbtool")
+ltdbtool = CommandArgs("ltdbtool")
 
 ctdb = SambaCommand("ctdb")
 
