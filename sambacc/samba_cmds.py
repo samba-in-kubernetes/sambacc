@@ -60,45 +60,72 @@ def set_global_debug(level: str) -> None:
     _GLOBAL_DEBUG = level
 
 
-class SambaCommand:
-    """A utility class for building samba (or any) command line command."""
+def _to_args(value) -> typing.List[str]:
+    if isinstance(value, str):
+        return [value]
+    return [str(v) for v in value]
+
+
+class CommandArgs:
+    """A utility class for building command line commands."""
 
     name: str
     args: typing.List[str]
     cmd_prefix: typing.List[str]
+
+    def __init__(self, name: str, args: ArgList = None):
+        self.name = name
+        self.args = args or []
+        self.cmd_prefix = []
+
+    def __getitem__(self, new_value) -> CommandArgs:
+        return self.__class__(self.name, args=self.args + _to_args(new_value))
+
+    def raw_args(self) -> typing.List[str]:
+        return [self.name] + self.args
+
+    def prefix_args(self) -> typing.List[str]:
+        return list(_GLOBAL_PREFIX) + list(self.cmd_prefix)
+
+    def argv(self) -> typing.List[str]:
+        return self.prefix_args() + self.raw_args()
+
+    def __iter__(self) -> typing.Iterator[str]:
+        return iter(self.argv())
+
+    def __repr__(self) -> str:
+        return "CommandArgs({!r}, {!r})".format(self.name, self.args)
+
+
+class SambaCommand(CommandArgs):
+    """A utility class for building samba (or any) command line command."""
+
     debug: DebugLevel
 
     def __init__(
         self, name: str, args: ArgList = None, debug: DebugLevel = None
     ):
-        self.name = name
-        self.args = args or []
+        super().__init__(name, args)
         self.debug = debug
-        self.cmd_prefix = []
 
-    def __getitem__(self, new_args) -> SambaCommand:
-        if isinstance(new_args, str):
-            new_args = [new_args]
-        else:
-            new_args = list(new_args)
-        args = self.args + new_args
-        return self.__class__(self.name, args=args, debug=self.debug)
+    def __getitem__(self, new_value) -> SambaCommand:
+        return self.__class__(
+            self.name,
+            args=self.args + _to_args(new_value),
+            debug=self.debug,
+        )
 
-    def _prefix(self) -> typing.List[str]:
-        return list(_GLOBAL_PREFIX) + list(self.cmd_prefix)
-
-    def argv(self) -> typing.List[str]:
-        cmd = self._prefix() + [self.name]
+    def _debug_args(self, dlvl: str = "--debuglevel={}") -> typing.List[str]:
         if self.debug:
-            cmd.append("--debuglevel={}".format(self.debug))
-        elif _GLOBAL_DEBUG:
-            cmd.append("--debuglevel={}".format(_GLOBAL_DEBUG))
-        return cmd + self.args
+            return [dlvl.format(self.debug)]
+        if _GLOBAL_DEBUG:
+            return [dlvl.format(_GLOBAL_DEBUG)]
+        return []
 
-    def __iter__(self) -> typing.Iterator[str]:
-        return iter(self.argv())
+    def raw_args(self) -> typing.List[str]:
+        return [self.name] + self._debug_args() + self.args
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "SambaCommand({!r}, {!r}, {!r})".format(
             self.name, self.args, self.debug
         )
