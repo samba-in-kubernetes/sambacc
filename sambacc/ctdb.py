@@ -483,6 +483,11 @@ def _convert_tdb_file(tdb_path: str, dest_dir: str, pnn: int = 0) -> None:
     subprocess.check_call(list(cmd))
 
 
+def check_nodestatus(cmd: samba_cmds.SambaCommand = samba_cmds.ctdb):
+    cmd_ctdb_check = cmd["nodestatus"]
+    samba_cmds.execute(cmd_ctdb_check)
+
+
 class CLILeaderStatus:
     _isleader = False
 
