@@ -563,3 +563,41 @@ def test_cli_leader_locator(tmpdir, monkeypatch, caplog):
         assert not status.is_leader()
     assert "pnn" in caplog.records[-2].getMessage()
     assert "recmaster" in caplog.records[-1].getMessage()
+
+
+def test_check_nodestatus(tmp_path):
+    import os
+
+    datapath = tmp_path / "_ctdb"
+    datapath.mkdir()
+
+    fake_ctdb = [
+        "#!/bin/sh",
+        'if [ "$1$TESTFAIL" == "nodestatus" ]',
+        "then exit 0;",
+        "else exit 1;",
+        "fi",
+    ]
+    fake_ctdb_script = datapath / "ctdb.sh"
+    with open(fake_ctdb_script, "w") as fh:
+        fh.write("\n".join(fake_ctdb))
+        fh.write("\n")
+    os.chmod(fake_ctdb_script, 0o755)
+
+    test_cmd = sambacc.samba_cmds.SambaCommand(fake_ctdb_script)
+    # simulate nodestatus == OK
+    pid = os.fork()
+    if pid == 0:
+        ctdb.check_nodestatus(cmd=test_cmd)
+    else:
+        _, status = os.waitpid(pid, 0)
+        assert status == 0
+
+    # simulate nodestatus != OK
+    pid = os.fork()
+    if pid == 0:
+        os.environ["TESTFAIL"] = "yes"
+        ctdb.check_nodestatus(cmd=test_cmd)
+    else:
+        _, status = os.waitpid(pid, 0)
+        assert status != 0
