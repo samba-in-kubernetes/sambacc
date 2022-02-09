@@ -39,7 +39,7 @@ def testjoiner(tmp_path):
     with open(fake_net_script, "w") as fh:
         fh.write("\n".join(fake_net))
         fh.write("\n")
-    os.chmod(fake_net_script, 0x0755)
+    os.chmod(fake_net_script, 0o755)
 
     class TestJoiner(sambacc.join.Joiner):
         _net_ads_join = samba_cmds.SambaCommand(fake_net_script)["ads", "join"]
