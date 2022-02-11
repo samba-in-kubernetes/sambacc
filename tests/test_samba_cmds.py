@@ -43,12 +43,43 @@ def test_global_debug():
 
 
 def test_global_prefix():
+    # enabled
     sambacc.samba_cmds.set_global_prefix(["bob"])
     try:
         cmd = sambacc.samba_cmds.SambaCommand("deep")
         assert list(cmd) == ["bob", "deep"]
+        assert cmd.name == "bob"
     finally:
         sambacc.samba_cmds.set_global_prefix([])
+
+    # disabled
+    cmd = sambacc.samba_cmds.SambaCommand("deep")
+    assert list(cmd) == ["deep"]
+    assert cmd.name == "deep"
+
+
+def test_global_prefix_extended():
+    # enabled
+    sambacc.samba_cmds.set_global_prefix(["frank"])
+    try:
+        cmd = sambacc.samba_cmds.SambaCommand("deep")[
+            "13", "--future=not-too-distant"
+        ]
+        assert list(cmd) == ["frank", "deep", "13", "--future=not-too-distant"]
+        assert cmd.name == "frank"
+    finally:
+        sambacc.samba_cmds.set_global_prefix([])
+
+    # disabled, must not "inherit" the prefix
+    cmd2 = cmd["--scheme", "evil"]
+    assert list(cmd2) == [
+        "deep",
+        "13",
+        "--future=not-too-distant",
+        "--scheme",
+        "evil",
+    ]
+    assert cmd2.name == "deep"
 
 
 def test_command_repr():
