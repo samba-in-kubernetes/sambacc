@@ -70,20 +70,20 @@ def _to_args(value) -> typing.List[str]:
 class CommandArgs:
     """A utility class for building command line commands."""
 
-    name: str
+    _name: str
     args: typing.List[str]
     cmd_prefix: typing.List[str]
 
     def __init__(self, name: str, args: ArgList = None):
-        self.name = name
+        self._name = name
         self.args = args or []
         self.cmd_prefix = []
 
     def __getitem__(self, new_value) -> CommandArgs:
-        return self.__class__(self.name, args=self.args + _to_args(new_value))
+        return self.__class__(self._name, args=self.args + _to_args(new_value))
 
     def raw_args(self) -> typing.List[str]:
-        return [self.name] + self.args
+        return [self._name] + self.args
 
     def prefix_args(self) -> typing.List[str]:
         return list(_GLOBAL_PREFIX) + list(self.cmd_prefix)
@@ -95,7 +95,14 @@ class CommandArgs:
         return iter(self.argv())
 
     def __repr__(self) -> str:
-        return "CommandArgs({!r}, {!r})".format(self.name, self.args)
+        return "CommandArgs({!r}, {!r})".format(self._name, self.args)
+
+    @property
+    def name(self) -> str:
+        """Return the command to be executed. This may differ from
+        the underlying command.
+        """
+        return self.argv()[0]
 
 
 class SambaCommand(CommandArgs):
@@ -111,7 +118,7 @@ class SambaCommand(CommandArgs):
 
     def __getitem__(self, new_value) -> SambaCommand:
         return self.__class__(
-            self.name,
+            self._name,
             args=self.args + _to_args(new_value),
             debug=self.debug,
         )
@@ -124,11 +131,11 @@ class SambaCommand(CommandArgs):
         return []
 
     def raw_args(self) -> typing.List[str]:
-        return [self.name] + self._debug_args() + self.args
+        return [self._name] + self._debug_args() + self.args
 
     def __repr__(self) -> str:
         return "SambaCommand({!r}, {!r}, {!r})".format(
-            self.name, self.args, self.debug
+            self._name, self.args, self.debug
         )
 
 
