@@ -49,3 +49,15 @@ def test_ensure_samba_dirs_already(tmp_path):
     os.mkdir(tmp_path / "run/samba/")
     os.mkdir(tmp_path / "run/samba/winbindd")
     sambacc.paths.ensure_samba_dirs(root=tmp_path)
+
+
+def test_ensure_share_dirs(tmp_path):
+    assert not os.path.exists(tmp_path / "foobar")
+    sambacc.paths.ensure_share_dirs("foobar", root=str(tmp_path))
+    assert os.path.exists(tmp_path / "foobar")
+
+    assert not os.path.exists(tmp_path / "wibble")
+    sambacc.paths.ensure_share_dirs("/wibble/cat", root=str(tmp_path))
+    assert os.path.exists(tmp_path / "wibble/cat")
+    sambacc.paths.ensure_share_dirs("/wibble/cat", root=str(tmp_path))
+    assert os.path.exists(tmp_path / "wibble/cat")
