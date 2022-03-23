@@ -225,6 +225,14 @@ class ShareConfig:
         share_section = self.gconfig.data["shares"][self.name]
         return iter(share_section.get("options", {}).items())
 
+    def path(self) -> typing.Optional[str]:
+        """Return the path value from the smb.conf options."""
+        share_section = self.gconfig.data["shares"][self.name]
+        try:
+            return share_section["options"]["path"]
+        except KeyError:
+            return None
+
 
 class UserEntry:
     def __init__(self, iconf: InstanceConfig, urec: dict, num: int):
