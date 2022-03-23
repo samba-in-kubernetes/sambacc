@@ -20,7 +20,7 @@ import errno
 import os
 
 
-def ensure_samba_dirs(root="/") -> None:
+def ensure_samba_dirs(root: str = "/") -> None:
     """Ensure that certain directories that samba servers expect will
     exist. This is useful when mapping iniitally empty dirs into
     the container.
