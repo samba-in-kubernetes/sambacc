@@ -44,3 +44,14 @@ def _mkdir(path: str) -> None:
     except OSError as err:
         if getattr(err, "errno", 0) != errno.EEXIST:
             raise
+
+
+def ensure_share_dirs(path: str, root: str = "/") -> None:
+    """Ensure that the given path exists.
+    The optional root argument allows "reparenting" the path
+    into a virtual root dir.
+    """
+    while path.startswith("/"):
+        path = path[1:]
+    path = os.path.join(root, path)
+    os.makedirs(path, exist_ok=True)
