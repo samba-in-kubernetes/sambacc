@@ -302,6 +302,19 @@ class TestConfig(unittest.TestCase):
             else:
                 raise AssertionError(share.name)
 
+    def test_get_share_paths(self):
+        fh = io.StringIO(config1)
+        g = sambacc.config.GlobalConfig(fh)
+        ic = g.get("foobar")
+        shares = list(ic.shares())
+        for share in shares:
+            if share.name == "demo":
+                assert share.path() == "/mnt/demo"
+            elif share.name == "stuff":
+                assert share.path() == "/mnt/stuff"
+            else:
+                raise AssertionError(share.name)
+
     def test_unique_name(self):
         fh = io.StringIO(config2)
         g = sambacc.config.GlobalConfig(fh)
@@ -556,3 +569,33 @@ def test_ad_dc_bad_memeber_of():
 
     with pytest.raises(ValueError):
         list(i1.domain_users())
+
+
+def test_share_config_no_path():
+    j = """{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar":{
+          "shares": ["flunk"],
+          "globals": ["global0"]
+        }
+    },
+    "shares": {
+       "flunk": {
+          "options": {}
+       }
+    },
+    "globals": {
+        "global0": {
+           "options": {
+             "server min protocol": "SMB2"
+           }
+        }
+    }
+}"""
+    fh = io.StringIO(j)
+    g = sambacc.config.GlobalConfig(fh)
+    ic = g.get("foobar")
+    shares = list(ic.shares())
+    assert len(shares) == 1
+    assert shares[0].path() is None
