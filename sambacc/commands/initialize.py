@@ -71,7 +71,7 @@ def _ctdb_etc_files(ctx: Context) -> None:
         ctdb.ensure_ctdbd_etc_files()
 
 
-_init_setup_steps = [
+_default_setup_steps = [
     "config",
     "users",
     "smb_ctdb",
@@ -88,7 +88,7 @@ def setup_step_names():
 @commands.command(name="init")
 def init_container(ctx: Context, steps=None) -> None:
     """Initialize the entire container environment."""
-    steps = _init_setup_steps if steps is None else list(steps)
+    steps = _default_setup_steps if steps is None else list(steps)
     cmds = setup_steps.dict()
     for step_name in steps:
         cmds[step_name].cmd_func(ctx)
