@@ -19,6 +19,7 @@
 import logging
 
 from sambacc import ctdb
+from sambacc import paths
 import sambacc.nsswitch_loader as nsswitch
 
 from . import config  # noqa: F401
@@ -69,6 +70,23 @@ def _ctdb_etc_files(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
         _logger.info("Ensuring ctdb etc files")
         ctdb.ensure_ctdbd_etc_files()
+
+
+@setup_steps.command("share_paths")
+@commands.command(name="ensure-share-paths")
+def ensure_share_paths(ctx: Context) -> None:
+    """Ensure the paths defined by the configuration exist."""
+    # currently this is completely ignorant of things like vfs
+    # modules that might "virtualize" the share path. It just
+    # assumes that the path in the configuration is an absolute
+    # path in the file system.
+    for share in ctx.instance_config.shares():
+        path = share.path()
+        if not path:
+            continue
+        _logger.info(f"Ensuring share path: {path}")
+        paths.ensure_share_dirs(path)
+        # TODO: set proper perms/acls for a "share root"
 
 
 _default_setup_steps = [
