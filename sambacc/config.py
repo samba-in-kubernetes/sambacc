@@ -202,6 +202,17 @@ class InstanceConfig:
         for n, entry in enumerate(dgroups):
             yield DomainGroupEntry(self, entry, n)
 
+    def __eq__(self, other: typing.Any) -> bool:
+        if isinstance(other, InstanceConfig) and self.iconfig == other.iconfig:
+            self_shares = _shares_data(self.gconfig, self.iconfig)
+            other_shares = _shares_data(other.gconfig, other.iconfig)
+            self_globals = _globals_data(self.gconfig, self.iconfig)
+            other_globals = _globals_data(other.gconfig, other.iconfig)
+            return (
+                self_shares == other_shares and self_globals == other_globals
+            )
+        return False
+
 
 class CTDBSambaConfig:
     def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
@@ -341,3 +352,19 @@ class DomainUserEntry(UserEntry):
 
 class DomainGroupEntry(GroupEntry):
     pass
+
+
+def _shares_data(gconfig: GlobalConfig, iconfig: dict) -> list:
+    try:
+        shares = iconfig["shares"]
+    except KeyError:
+        return []
+    return [gconfig.data["shares"][n] for n in shares]
+
+
+def _globals_data(gconfig: GlobalConfig, iconfig: dict) -> list:
+    try:
+        gnames = iconfig["globals"]
+    except KeyError:
+        return []
+    return [gconfig.data["globals"][n] for n in gnames]
