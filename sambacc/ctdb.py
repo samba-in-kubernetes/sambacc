@@ -506,7 +506,7 @@ class CLILeaderLocator:
         pnn_cmd = samba_cmds.ctdb["pnn"]
         try:
             out = subprocess.check_output(list(pnn_cmd))
-            mypnn = str(out).strip()
+            mypnn = out.decode("utf8").strip()
         except subprocess.CalledProcessError as err:
             _logger.error(f"command {pnn_cmd!r} failed: {err!r}")
         except FileNotFoundError:
@@ -515,7 +515,7 @@ class CLILeaderLocator:
         recmaster_cmd = samba_cmds.ctdb["recmaster"]
         try:
             out = subprocess.check_output(list(recmaster_cmd))
-            recmaster = str(out).strip()
+            recmaster = out.decode("utf8").strip()
         except subprocess.CalledProcessError as err:
             _logger.error(f"command {recmaster_cmd!r} failed: {err!r}")
         except FileNotFoundError:
