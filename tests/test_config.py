@@ -599,3 +599,114 @@ def test_share_config_no_path():
     shares = list(ic.shares())
     assert len(shares) == 1
     assert shares[0].path() is None
+
+
+@pytest.mark.parametrize(
+    "json_a,json_b,iname,expect_equal",
+    [
+        (config1, config1, "foobar", True),
+        (addc_config1, addc_config1, "demo", True),
+        (config1, config2, "foobar", False),
+        (
+            """{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar":{
+          "shares": ["flunk"],
+          "globals": ["global0"]
+        }
+    },
+    "shares": {
+       "flunk": {
+          "options": {"path": "/mnt/yikes"}
+       }
+    },
+    "globals": {
+        "global0": {
+           "options": {
+             "server min protocol": "SMB2"
+           }
+        }
+    }
+}""",
+            """{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar":{
+          "shares": ["flunk"],
+          "globals": ["global0"]
+        }
+    },
+    "shares": {
+       "flunk": {
+          "options": {"path": "/mnt/psych"}
+       }
+    },
+    "globals": {
+        "global0": {
+           "options": {
+             "server min protocol": "SMB2"
+           }
+        }
+    }
+}""",
+            "foobar",
+            False,
+        ),
+        (
+            """{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar":{
+          "shares": ["flunk"],
+          "globals": ["global0"]
+        }
+    },
+    "shares": {
+       "flunk": {
+          "options": {"path": "/mnt/yikes"}
+       }
+    },
+    "globals": {
+        "global0": {
+           "options": {
+             "server min protocol": "SMB2"
+           }
+        }
+    }
+}""",
+            """{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar":{
+          "shares": ["flunk"],
+          "globals": ["global0"]
+        }
+    },
+    "shares": {
+       "flunk": {
+          "options": {"path": "/mnt/yikes"}
+       }
+    },
+    "globals": {
+        "global0": {
+           "options": {
+             "server min protocol": "SMB1"
+           }
+        }
+    }
+}""",
+            "foobar",
+            False,
+        ),
+    ],
+)
+def test_instance_config_equality(json_a, json_b, iname, expect_equal):
+    gca = sambacc.config.GlobalConfig(io.StringIO(json_a))
+    gcb = sambacc.config.GlobalConfig(io.StringIO(json_b))
+    instance_a = gca.get(iname)
+    instance_b = gcb.get(iname)
+    if expect_equal:
+        assert instance_a == instance_b
+    else:
+        assert instance_a != instance_b
