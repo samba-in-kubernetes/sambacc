@@ -53,9 +53,19 @@ class Sleeper:
     def wait(self):
         self._sleep(next(self._times))
 
+    def acted(self):
+        """Inform the sleeper the caller reacted to a change and
+        the sleeps should be reset.
+        """
+        self.times = generate_sleeps()
+
 
 class Waiter(typing.Protocol):
     """Waiter protocol - interfaces common to all waiters."""
 
     def wait(self) -> None:
+        ...
+
+    def acted(self) -> None:
+        """Inform that waiter that changes were made."""
         ...
