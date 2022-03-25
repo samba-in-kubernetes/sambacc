@@ -69,3 +69,28 @@ class Waiter(typing.Protocol):
     def acted(self) -> None:
         """Inform that waiter that changes were made."""
         ...
+
+
+def watch(
+    waiter: Waiter,
+    initial_value: typing.Any,
+    fetch_func: typing.Callable[..., typing.Any],
+    compare_func: typing.Callable[..., typing.Tuple[typing.Any, bool]],
+) -> None:
+    """A very simple "event loop" that fetches current data with
+    `fetch_func`, compares and updates state with `compare_func` and
+    then waits for new events with `pause_func`.
+    """
+    previous = initial_value
+    while True:
+        try:
+            previous, updated = compare_func(fetch_func(), previous)
+        except FileNotFoundError:
+            updated = False
+            previous = None
+        try:
+            if updated:
+                waiter.acted()
+            waiter.wait()
+        except KeyboardInterrupt:
+            return
