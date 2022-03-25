@@ -700,6 +700,10 @@ def test_share_config_no_path():
             False,
         ),
     ],
+    # setting ID to a numeric range makes it a lot easier to read the
+    # output on the console, versus having pytest plop two large json
+    # blobs for each "row" of inputs
+    ids=iter(range(100)),
 )
 def test_instance_config_equality(json_a, json_b, iname, expect_equal):
     gca = sambacc.config.GlobalConfig(io.StringIO(json_a))
