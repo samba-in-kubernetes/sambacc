@@ -60,6 +60,9 @@ class INotify:
         if self.print_func:
             self.print_func("[inotify waiter] {}".format(msg))
 
+    def acted(self) -> None:
+        return  # noop for inotify waiter
+
     def wait(self) -> None:
         next(self._wait())
 
