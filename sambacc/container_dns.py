@@ -109,6 +109,7 @@ def parse_and_update(
     return hs, updated
 
 
+# TODO: replace this with the common version added to simple_waiter
 def watch(domain, source, update_func, pause_func, print_func=None):
     previous = None
     while True:
