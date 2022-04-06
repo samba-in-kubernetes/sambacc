@@ -4,7 +4,7 @@
 
 The sambacc is an young project that aims to consolidate and coordinate
 configuration of [Samba](http://samba.org), and related components, when
-running in a container. The configuation of one or many instances can be
+running in a container. The configuration of one or many instances can be
 provided to the tool by way of a JSON file which then handles the low level
 details of actually configuring smbd and other elements in the container
 environment.
@@ -24,31 +24,50 @@ maintained across many container instances. sambacc is written in Python as
 samba provides Python bindings for some of the aspects of samba we need to
 control.
 
-The sambacc library and samba-container cli command are used by the
+The sambacc library and samba-container CLI command are used by the
 [samba-container project](https://github.com/samba-in-kubernetes/samba-container/)
 as part of the server container images.
 
 
 ## Usage
 
-When installed a `samba-container` command will be available.
+### File Server
 
-Without any additional arguments `samba-container` prints the synthesizsed
+The `samba-container` command is used to manage features related to
+the Samba file server and closely related components.
+
+Without any additional arguments `samba-container` prints the synthesised
 samba (smb.conf) configuration based on the environment variables:
 * `SAMBACC_CONFIG` - configuration file(s)
 * `SAMBA_CONTAINER_ID` - Identity of this instance
 
-Additionally, there are subcommands:
+Additionally, there are many other subcommands the tool supports. These include:
 * `samba-container import` - Import smb.conf-style settings into registry
 * `samba-container import-users` - Import users into /etc files and smb passdb
 * `samba-container init` - Initialize the container environment for use
   by samba services
 * `samba-container run <service>` - Initialize and run a named samba service
 
-For complete usage, run:
+For a complete description of the subcommands supported, run:
 
 ```sh
 samba-container --help
+```
+
+### Active Directory Domain Controller
+
+The `samba-dc-container` command is used to manage features related to
+the Samba AD DC server and related components.
+
+Currently, `samba-dc-container` supports one subcommand. The `run` subcommand
+is used to start an AD DC server. This command supports various setup steps
+including steps to join an existing domain, provision a new domain,
+populate a domain with stock users/groups, etc.
+
+For a complete description of the subcommands supported, run:
+
+```sh
+samba-dc-container --help
 ```
 
 
@@ -60,16 +79,17 @@ samba-container --help
 * Imports users and groups
 * Starts smbd with container friendly settings
 * Starts winbindd with container friendly settings
-* Primitive and insecure support for joining AD
+* Support for joining AD
+* Support for managing CTDB clustering
+* Support for creating/joining Samba Active Directory servers
 
-### TODO
+### Major TODOs
 
-A lot. Important features that are missing include:
+A lot. Various things that are missing include:
 
-* The ability to manage more secure domain joins
-* Better coordination around dependent actions, like being joined
+* Features to perform more secure (password-less) domain joins
 * Better integration (as opposed to unit) testing
-* (Possibly) CTDB integration for scale out use cases
+* Better use of APIs versus executing CLI commands
 
 
 ## Install
