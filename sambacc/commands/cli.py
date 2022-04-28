@@ -23,6 +23,7 @@ import typing
 
 from sambacc import config
 from sambacc import leader
+from sambacc import permissions
 from sambacc import simple_waiter
 
 _INOTIFY_OK = True
@@ -151,6 +152,35 @@ def best_leader_locator(
     from sambacc import ctdb
 
     return ctdb.CLILeaderLocator()
+
+
+def perms_handler(
+    config: config.PermissionsConfig,
+    path: str,
+) -> permissions.PermissionsHandler:
+    """Fetch and instantiate the appropriate permissions handler for the given
+    configuration.
+    """
+    if config.method == "none":
+        _logger.info("Using no-op permissions handler")
+        return permissions.NoopPermsHandler(
+            path, config.status_xattr, options=config.options
+        )
+    if config.method == "initialize-share-perms":
+        _logger.info("Using initializing posix permissions handler")
+        return permissions.InitPosixPermsHandler(
+            path, config.status_xattr, options=config.options
+        )
+    if config.method == "always-share-perms":
+        _logger.info("Using always-setting posix permissions handler")
+        return permissions.AlwaysPosixPermsHandler(
+            path, config.status_xattr, options=config.options
+        )
+    # fall back to init perms handler
+    _logger.info("Using initializing posix permissions handler")
+    return permissions.InitPosixPermsHandler(
+        path, config.status_xattr, options=config.options
+    )
 
 
 commands = CommandBuilder()
