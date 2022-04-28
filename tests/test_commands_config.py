@@ -58,7 +58,8 @@ config2 = """
     "configs": {
         "updateme":{
           "shares": ["uno", "dos"],
-          "globals": ["global0"]
+          "globals": ["global0"],
+          "permissions": {"method": "none"}
         }
     },
     "shares": {
