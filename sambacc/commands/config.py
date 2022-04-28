@@ -34,6 +34,7 @@ from .cli import (
     best_leader_locator,
     best_waiter,
     commands,
+    perms_handler,
     setup_steps,
 )
 
@@ -95,6 +96,8 @@ def _update_config(
                 continue
             _logger.info(f"Ensuring share path: {path}")
             paths.ensure_share_dirs(path)
+            _logger.info(f"Updating permissions if needed: {path}")
+            perms_handler(share.permissions_config(), path).update()
     # update smb config
     if changed:
         _logger.info("Updating samba configuration")

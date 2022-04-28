@@ -24,7 +24,7 @@ import sambacc.nsswitch_loader as nsswitch
 
 from . import config  # noqa: F401
 from . import users  # noqa: F401
-from .cli import commands, setup_steps, Context
+from .cli import commands, perms_handler, setup_steps, Context
 
 
 _logger = logging.getLogger(__name__)
@@ -86,7 +86,8 @@ def ensure_share_paths(ctx: Context) -> None:
             continue
         _logger.info(f"Ensuring share path: {path}")
         paths.ensure_share_dirs(path)
-        # TODO: set proper perms/acls for a "share root"
+        _logger.info(f"Updating permissions if needed: {path}")
+        perms_handler(share.permissions_config(), path).update()
 
 
 _default_setup_steps = [
