@@ -11,6 +11,7 @@ RUN yum install \
     python-tox \
     python3-samba \
     python3-wheel \
+    python3-pyxattr \
     samba-common-tools \
     && yum clean all \
     && true
