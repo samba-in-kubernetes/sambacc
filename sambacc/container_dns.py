@@ -81,7 +81,12 @@ def match_target(state: HostState, target_name: str) -> typing.List[HostInfo]:
     return [h for h in state.items if h.target == target_name]
 
 
-def register(domain, hs, prefix=None, target_name: str = EXTERNAL) -> bool:
+def register(
+    domain: str,
+    hs: HostState,
+    prefix: typing.Optional[list[str]] = None,
+    target_name: str = EXTERNAL,
+) -> bool:
     updated = False
     for item in match_target(hs, target_name):
         ip = item.ipv4_addr
@@ -99,7 +104,7 @@ def parse_and_update(
     source: str,
     previous: typing.Optional[HostState] = None,
     target_name: str = EXTERNAL,
-    reg_func=register,
+    reg_func: typing.Callable = register,
 ) -> typing.Tuple[HostState, bool]:
     hs = parse_file(source)
     if previous is not None and hs == previous:
