@@ -37,8 +37,11 @@ class INotify:
     print_func = None
 
     def __init__(
-        self, path: str, print_func=None, timeout: typing.Optional[int] = None
-    ):
+        self,
+        path: str,
+        print_func: typing.Optional[typing.Callable] = None,
+        timeout: typing.Optional[int] = None,
+    ) -> None:
         if timeout is not None:
             self.timeout = timeout
         self.print_func = print_func
