@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import typing
+
 from . import addc
 from .cli import Fail
 from .main import (
@@ -31,7 +33,7 @@ from .main import (
 default_cfunc = addc.summary
 
 
-def main(args=None) -> None:
+def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
     cli = addc.dccommands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
     enable_logging(cli)
