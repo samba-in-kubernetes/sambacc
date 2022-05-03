@@ -18,6 +18,8 @@
 
 import typing
 
+from sambacc.typelets import ExcType, ExcValue, ExcTraceback
+
 
 class LeaderStatus(typing.Protocol):
     """Fetches information about the current cluster leader."""
@@ -35,5 +37,7 @@ class LeaderLocator(typing.Protocol):
     def __enter__(self) -> LeaderStatus:
         ...
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self, exc_type: ExcType, exc_val: ExcValue, exc_tb: ExcTraceback
+    ) -> bool:
         ...
