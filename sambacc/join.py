@@ -70,7 +70,9 @@ class Joiner:
         self.marker = marker
 
     def add_source(
-        self, method: JoinBy, value: typing.Optional[str] = None
+        self,
+        method: JoinBy,
+        value: typing.Optional[typing.Union[str, UserPass]] = None,
     ) -> None:
         if method in {JoinBy.PASSWORD, JoinBy.INTERACTIVE}:
             if not isinstance(value, UserPass):
@@ -82,7 +84,7 @@ class Joiner:
             raise ValueError(f"invalid method: {method}")
         self._sources.append((method, value))
 
-    def join(self, dns_updates=False) -> None:
+    def join(self, dns_updates: bool = False) -> None:
         if not self._sources:
             raise JoinError("no sources for join data")
         errors = []
@@ -108,7 +110,7 @@ class Joiner:
             err.errors = errors
             raise err
 
-    def _read_from(self, path) -> UserPass:
+    def _read_from(self, path: str) -> UserPass:
         try:
             with open(path) as fh:
                 data = json.load(fh)
@@ -126,7 +128,7 @@ class Joiner:
             raise JoinError("invalid file content: invalid password")
         return upass
 
-    def _join(self, upass: UserPass, dns_updates=False) -> None:
+    def _join(self, upass: UserPass, dns_updates: bool = False) -> None:
         args = []
         if not dns_updates:
             args.append("--no-dns-updates")
@@ -171,7 +173,9 @@ class Joiner:
 
 
 def join_when_possible(
-    joiner: Joiner, waiter: Waiter, error_handler=None
+    joiner: Joiner,
+    waiter: Waiter,
+    error_handler: typing.Optional[typing.Callable] = None,
 ) -> None:
     while True:
         if joiner.did_join():
