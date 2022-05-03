@@ -97,6 +97,7 @@ def _exec_if_leader(iconfig, update_func):
                 _logger.info("skipping dns update. node not leader")
                 return previous, False
             _logger.info("checking for update. node is leader")
-            return update_func(domain, source, previous)
+            result = update_func(domain, source, previous)
+        return result
 
     return leader_update_func
