@@ -55,9 +55,7 @@ class Parser(typing.Protocol):
 Command = namedtuple("Command", "name cmd_func arg_func cmd_help")
 
 
-def toggle_option(
-    parser: argparse.ArgumentParser, arg: str, dest: str, helpfmt: str
-) -> argparse.ArgumentParser:
+def toggle_option(parser: Parser, arg: str, dest: str, helpfmt: str) -> Parser:
     parser.add_argument(
         arg,
         action="store_true",
@@ -82,7 +80,7 @@ def get_help(cmd: Command) -> str:
     return ""
 
 
-def add_command(subparsers, cmd) -> None:
+def add_command(subparsers: typing.Any, cmd: Command) -> None:
     subparser = subparsers.add_parser(cmd.name, help=get_help(cmd))
     subparser.set_defaults(cfunc=cmd.cmd_func)
     if cmd.arg_func is not None:
@@ -109,7 +107,9 @@ class CommandBuilder:
 
         return _wrapper
 
-    def assemble(self, arg_func=None) -> argparse.ArgumentParser:
+    def assemble(
+        self, arg_func: typing.Callable = None
+    ) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser()
         if arg_func is not None:
             arg_func(parser)
