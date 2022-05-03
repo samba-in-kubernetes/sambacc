@@ -40,7 +40,7 @@ ADDC: typing.Final[str] = "addc"
 FEATURES: typing.Final[str] = "instance_features"
 
 
-def read_config_files(fnames) -> GlobalConfig:
+def read_config_files(fnames: list[str]) -> GlobalConfig:
     """Read the global container config from the given filenames.
     At least one of the files from the fnames list must exist and contain
     a valid config. If none of the file names exist an error will be raised.
@@ -68,7 +68,7 @@ def read_config_files(fnames) -> GlobalConfig:
     return gconfig
 
 
-def check_config_data(data) -> dict:
+def check_config_data(data: dict[str, typing.Any]) -> dict[str, typing.Any]:
     """Return the config data or raise a ValueError if the config
     is invalid or incomplete.
     """
