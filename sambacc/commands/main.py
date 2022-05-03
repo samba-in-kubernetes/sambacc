@@ -33,7 +33,7 @@ from . import initialize  # noqa: F401
 from . import join  # noqa: F401
 from . import run  # noqa: F401
 from . import users  # noqa: F401
-from .cli import commands, Fail
+from .cli import commands, Fail, Parser
 
 DEFAULT_CONFIG = "/etc/samba/container/config.json"
 DEFAULT_JOIN_MARKER = "/var/lib/samba/container-join-marker.json"
@@ -41,7 +41,7 @@ DEFAULT_JOIN_MARKER = "/var/lib/samba/container-join-marker.json"
 default_cfunc = config_cmds.print_config
 
 
-def global_args(parser) -> None:
+def global_args(parser: Parser) -> None:
     parser.add_argument(
         "--config",
         action="append",
@@ -101,7 +101,13 @@ def global_args(parser) -> None:
     )
 
 
-def from_env(ns, var, ename, default=None, vtype=str) -> None:
+def from_env(
+    ns: typing.Any,
+    var: str,
+    ename: str,
+    default: typing.Any = None,
+    vtype: typing.Optional[typing.Callable] = str,
+) -> None:
     value = getattr(ns, var, None)
     if not value:
         value = os.environ.get(ename, "")
@@ -123,7 +129,7 @@ def split_paths(value):
     return out
 
 
-def env_to_cli(cli) -> None:
+def env_to_cli(cli: typing.Any) -> None:
     from_env(
         cli,
         "config",
@@ -165,7 +171,7 @@ class CommandContext:
         return self._iconfig
 
 
-def pre_action(cli) -> None:
+def pre_action(cli: typing.Any) -> None:
     """Handle debugging/diagnostic related options before the target
     action of the command is performed.
     """
@@ -177,7 +183,7 @@ def pre_action(cli) -> None:
         samba_cmds.set_global_prefix([cli.samba_command_prefix])
 
 
-def enable_logging(cli) -> None:
+def enable_logging(cli: typing.Any) -> None:
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
@@ -188,14 +194,14 @@ def enable_logging(cli) -> None:
     logger.addHandler(handler)
 
 
-def action_filter(cli) -> typing.Optional[str]:
+def action_filter(cli: typing.Any) -> typing.Optional[str]:
     for path in cli.skip_if_file or []:
         if os.path.exists(path):
             return f"skip-if-file: {path} exists"
     return None
 
 
-def main(args=None) -> None:
+def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
     cli = commands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
     enable_logging(cli)
