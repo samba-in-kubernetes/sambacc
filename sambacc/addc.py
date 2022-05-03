@@ -83,7 +83,7 @@ def create_group(name: str) -> None:
     subprocess.check_call(cmd)
 
 
-def add_group_members(group_name: str, members: typing.List[str]) -> None:
+def add_group_members(group_name: str, members: list[str]) -> None:
     cmd = _group_add_members_cmd(group_name, members)
     _logger.info("Adding group members: %r", cmd)
     subprocess.check_call(cmd)
@@ -95,7 +95,7 @@ def _provision_cmd(
     admin_password: str,
     dns_backend: typing.Optional[str] = None,
     domain: typing.Optional[str] = None,
-) -> typing.List[str]:
+) -> list[str]:
     if not dns_backend:
         dns_backend = "SAMBA_INTERNAL"
     if not domain:
@@ -120,7 +120,7 @@ def _join_cmd(
     admin_password: str,
     dns_backend: typing.Optional[str] = None,
     domain: typing.Optional[str] = None,
-) -> typing.List[str]:
+) -> list[str]:
     if not dns_backend:
         dns_backend = "SAMBA_INTERNAL"
     if not domain:
@@ -143,7 +143,7 @@ def _user_create_cmd(
     password: str,
     surname: typing.Optional[str],
     given_name: typing.Optional[str],
-) -> typing.List[str]:
+) -> list[str]:
     cmd = samba_cmds.sambatool[
         "user",
         "create",
@@ -157,7 +157,7 @@ def _user_create_cmd(
     return cmd
 
 
-def _group_add_cmd(name: str) -> typing.List[str]:
+def _group_add_cmd(name: str) -> list[str]:
     cmd = samba_cmds.sambatool[
         "group",
         "add",
@@ -166,9 +166,7 @@ def _group_add_cmd(name: str) -> typing.List[str]:
     return cmd
 
 
-def _group_add_members_cmd(
-    group_name: str, members: typing.List[str]
-) -> typing.List[str]:
+def _group_add_members_cmd(group_name: str, members: list[str]) -> list[str]:
     cmd = samba_cmds.sambatool[
         "group",
         "addmembers",
