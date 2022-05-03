@@ -17,6 +17,7 @@
 #
 
 import logging
+import typing
 
 from sambacc import ctdb
 from sambacc import paths
@@ -105,7 +106,9 @@ def setup_step_names():
 
 
 @commands.command(name="init")
-def init_container(ctx: Context, steps=None) -> None:
+def init_container(
+    ctx: Context, steps: typing.Optional[typing.Iterable[str]] = None
+) -> None:
     """Initialize the entire container environment."""
     steps = _default_setup_steps if steps is None else list(steps)
     cmds = setup_steps.dict()
