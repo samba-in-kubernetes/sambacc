@@ -26,6 +26,7 @@ from sambacc import config
 from sambacc import jfile
 from sambacc import samba_cmds
 from sambacc.netcmd_loader import template_config
+from sambacc.typelets import ExcType, ExcValue, ExcTraceback
 
 _logger = logging.getLogger(__name__)
 
@@ -84,7 +85,9 @@ def ensure_ctdb_conf(
         write_ctdb_conf(fh, iconfig.ctdb_config())
 
 
-def write_ctdb_conf(fh: typing.IO, ctdb_params: typing.Dict, enc=str) -> None:
+def write_ctdb_conf(
+    fh: typing.IO, ctdb_params: typing.Dict, enc: typing.Callable = str
+) -> None:
     """Write a ctdb.conf style output."""
 
     def _write_param(fh: typing.IO, name: str, key: str) -> None:
@@ -122,7 +125,7 @@ def ensure_ctdb_nodes(
 
 
 def write_nodes_file(
-    fh: typing.IO, ctdb_nodes: typing.List[str], enc=str
+    fh: typing.IO, ctdb_nodes: typing.List[str], enc: typing.Callable = str
 ) -> None:
     """Write the ctdb nodes file."""
     for node in ctdb_nodes:
@@ -198,7 +201,11 @@ def refresh_node_in_statefile(
 
 
 def _update_statefile(
-    data, identity: str, node: str, pnn: int, in_nodes: bool = False
+    data: dict[str, typing.Any],
+    identity: str,
+    node: str,
+    pnn: int,
+    in_nodes: bool = False,
 ) -> None:
     data.setdefault("nodes", [])
     for entry in data["nodes"]:
@@ -220,7 +227,11 @@ def _update_statefile(
 
 
 def _refresh_statefile(
-    data, identity: str, node: str, pnn: int, in_nodes: bool = False
+    data: dict[str, typing.Any],
+    identity: str,
+    node: str,
+    pnn: int,
+    in_nodes: bool = False,
 ) -> None:
     data.setdefault("nodes", [])
     node_entry = None
@@ -241,11 +252,11 @@ def _refresh_statefile(
     node_entry["state"] = NodeState.CHANGED
 
 
-def _get_state(entry) -> NodeState:
+def _get_state(entry: dict[str, typing.Any]) -> NodeState:
     return NodeState(entry["state"])
 
 
-def _get_state_ok(entry) -> bool:
+def _get_state_ok(entry: dict[str, typing.Any]) -> bool:
     return _get_state(entry) == NodeState.READY
 
 
@@ -264,7 +275,10 @@ def pnn_in_nodes(pnn: int, nodes_json: str, real_path: str) -> bool:
 
 
 def manage_nodes(
-    pnn: int, nodes_json: str, real_path: str, pause_func
+    pnn: int,
+    nodes_json: str,
+    real_path: str,
+    pause_func: typing.Callable,
 ) -> None:
     """Monitor nodes json for updates, reflecting those changes into ctdb."""
     while True:
@@ -298,7 +312,9 @@ def _node_check(pnn: int, nodes_json: str, real_path: str) -> bool:
     return True
 
 
-def _node_update_check(json_data, nodes_json: str, real_path: str):
+def _node_update_check(
+    json_data: dict[str, typing.Any], nodes_json: str, real_path: str
+) -> tuple[list[str], list[typing.Any], list[typing.Any]]:
     desired = json_data.get("nodes", [])
     ctdb_nodes = read_ctdb_nodes(real_path)
     update_nodes = []
@@ -324,15 +340,15 @@ def _node_update_check(json_data, nodes_json: str, real_path: str):
     return ctdb_nodes, update_nodes, need_reload
 
 
-def _node_line(ctdb_nodes, pnn) -> str:
+def _node_line(ctdb_nodes: list[str], pnn: int) -> str:
     try:
         return ctdb_nodes[pnn]
     except IndexError:
         return ""
 
 
-def _entry_to_node(ctdb_nodes, entry) -> str:
-    pnn = entry["pnn"]
+def _entry_to_node(ctdb_nodes: list[str], entry: dict[str, typing.Any]) -> str:
+    pnn: int = entry["pnn"]
     if entry["state"] == NodeState.CHANGED:
         return "#{}".format(ctdb_nodes[pnn].strip("#"))
     return entry["node"]
@@ -483,7 +499,7 @@ def _convert_tdb_file(tdb_path: str, dest_dir: str, pnn: int = 0) -> None:
     subprocess.check_call(list(cmd))
 
 
-def check_nodestatus(cmd: samba_cmds.SambaCommand = samba_cmds.ctdb):
+def check_nodestatus(cmd: samba_cmds.SambaCommand = samba_cmds.ctdb) -> None:
     cmd_ctdb_check = cmd["nodestatus"]
     samba_cmds.execute(cmd_ctdb_check)
 
@@ -525,5 +541,7 @@ class CLILeaderLocator:
         sts._isleader = bool(mypnn) and mypnn == recmaster
         return sts
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self, exc_type: ExcType, exc_val: ExcValue, exc_tb: ExcTraceback
+    ) -> bool:
         pass
