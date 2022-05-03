@@ -17,19 +17,27 @@
 #
 
 import sys
+import typing
 
 import sambacc.join as joinutil
 
-from .cli import commands, Context, toggle_option, best_waiter, Fail
+from .cli import (
+    Context,
+    Fail,
+    Parser,
+    best_waiter,
+    commands,
+    toggle_option,
+)
 
 
-def _print_join_error(err) -> None:
+def _print_join_error(err: typing.Any) -> None:
     print(f"ERROR: {err}", file=sys.stderr)
     for suberr in getattr(err, "errors", []):
         print(f"  - {suberr}", file=sys.stderr)
 
 
-def _add_join_sources(joiner, cli) -> None:
+def _add_join_sources(joiner: joinutil.Joiner, cli: typing.Any) -> None:
     if cli.insecure or getattr(cli, "insecure_auto_join", False):
         upass = joinutil.UserPass(cli.username, cli.password)
         joiner.add_source(joinutil.JoinBy.PASSWORD, upass)
@@ -41,7 +49,7 @@ def _add_join_sources(joiner, cli) -> None:
         joiner.add_source(joinutil.JoinBy.INTERACTIVE, upass)
 
 
-def _join_args(parser) -> None:
+def _join_args(parser: Parser) -> None:
     parser.set_defaults(insecure=False, files=True, interactive=True)
     toggle_option(
         parser,
@@ -88,7 +96,7 @@ def join(ctx: Context) -> None:
         raise Fail("failed to join to a domain")
 
 
-def _must_join_args(parser) -> None:
+def _must_join_args(parser: Parser) -> None:
     parser.set_defaults(insecure=False, files=True, wait=True)
     toggle_option(
         parser,
