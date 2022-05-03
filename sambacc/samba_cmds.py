@@ -22,9 +22,9 @@ import os
 import typing
 
 DebugLevel = typing.Optional[str]
-ArgList = typing.Optional[typing.List[str]]
+ArgList = typing.Optional[list[str]]
 
-_GLOBAL_PREFIX: typing.List[str] = []
+_GLOBAL_PREFIX: list[str] = []
 _GLOBAL_DEBUG: str = ""
 
 
@@ -52,7 +52,7 @@ def _daemon_stdout_opt(daemon: str) -> str:
     return opt
 
 
-def set_global_prefix(lst: typing.List[str]) -> None:
+def set_global_prefix(lst: list[str]) -> None:
     _GLOBAL_PREFIX[:] = lst
 
 
@@ -71,8 +71,8 @@ class CommandArgs:
     """A utility class for building command line commands."""
 
     _name: str
-    args: typing.List[str]
-    cmd_prefix: typing.List[str]
+    args: list[str]
+    cmd_prefix: list[str]
 
     def __init__(self, name: str, args: ArgList = None):
         self._name = name
@@ -82,13 +82,13 @@ class CommandArgs:
     def __getitem__(self, new_value: typing.Any) -> CommandArgs:
         return self.__class__(self._name, args=self.args + _to_args(new_value))
 
-    def raw_args(self) -> typing.List[str]:
+    def raw_args(self) -> list[str]:
         return [self._name] + self.args
 
-    def prefix_args(self) -> typing.List[str]:
+    def prefix_args(self) -> list[str]:
         return list(_GLOBAL_PREFIX) + list(self.cmd_prefix)
 
-    def argv(self) -> typing.List[str]:
+    def argv(self) -> list[str]:
         return self.prefix_args() + self.raw_args()
 
     def __iter__(self) -> typing.Iterator[str]:
@@ -123,14 +123,14 @@ class SambaCommand(CommandArgs):
             debug=self.debug,
         )
 
-    def _debug_args(self, dlvl: str = "--debuglevel={}") -> typing.List[str]:
+    def _debug_args(self, dlvl: str = "--debuglevel={}") -> list[str]:
         if self.debug:
             return [dlvl.format(self.debug)]
         if _GLOBAL_DEBUG:
             return [dlvl.format(_GLOBAL_DEBUG)]
         return []
 
-    def raw_args(self) -> typing.List[str]:
+    def raw_args(self) -> list[str]:
         return [self._name] + self._debug_args() + self.args
 
     def __repr__(self) -> str:
