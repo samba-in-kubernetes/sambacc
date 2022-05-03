@@ -77,7 +77,7 @@ def parse_file(path):
         return parse(fh)
 
 
-def match_target(state: HostState, target_name: str) -> typing.List[HostInfo]:
+def match_target(state: HostState, target_name: str) -> list[HostInfo]:
     return [h for h in state.items if h.target == target_name]
 
 
