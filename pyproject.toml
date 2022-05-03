@@ -17,3 +17,6 @@ version = "{version}"
 [tool.black]
 line-length = 79
 quiet = true
+
+[tool.mypy]
+disallow_incomplete_defs = true
