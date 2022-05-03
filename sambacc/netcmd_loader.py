@@ -28,7 +28,7 @@ class LoaderError(Exception):
 
 
 def template_config(
-    fh: typing.IO, iconfig: config.SambaConfig, enc=str
+    fh: typing.IO, iconfig: config.SambaConfig, enc: typing.Callable = str
 ) -> None:
     fh.write(enc("[global]\n"))
     for gkey, gval in iconfig.global_options():
@@ -47,7 +47,7 @@ class NetCmdLoader:
         cmd = list(self._net_conf[args])
         return cmd, subprocess.Popen(cmd, **kwargs)
 
-    def _check(self, cli, proc) -> None:
+    def _check(self, cli: typing.Any, proc: subprocess.Popen) -> None:
         ret = proc.wait()
         if ret != 0:
             raise LoaderError("failed to run {}".format(cli))
@@ -59,14 +59,14 @@ class NetCmdLoader:
         proc.stdin.close()
         self._check(cli, proc)
 
-    def dump(self, out: typing.IO):
+    def dump(self, out: typing.IO) -> None:
         """Dump the current smb config in an smb.conf format.
         Writes the dump to `out`.
         """
         cli, proc = self._cmd("list", stdout=out)
         self._check(cli, proc)
 
-    def _parse_shares(self, fh) -> typing.Iterable[str]:
+    def _parse_shares(self, fh: typing.IO) -> typing.Iterable[str]:
         out = []
         for line in fh.readlines():
             line = line.strip().decode("utf8")
