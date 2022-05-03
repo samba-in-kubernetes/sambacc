@@ -91,7 +91,7 @@ def _exec_if_leader(iconfig, update_func):
         domain: str,
         source: str,
         previous: typing.Optional[container_dns.HostState] = None,
-    ):
+    ) -> typing.Tuple[typing.Optional[container_dns.HostState], bool]:
         with best_leader_locator(iconfig) as ll:
             if not ll.is_leader():
                 _logger.info("skipping dns update. node not leader")
