@@ -109,7 +109,7 @@ def write_ctdb_conf(
 
 
 def ensure_ctdb_nodes(
-    ctdb_nodes: typing.List[str], real_path: str, canon_path: str = CTDB_NODES
+    ctdb_nodes: list[str], real_path: str, canon_path: str = CTDB_NODES
 ) -> None:
     """Ensure a real nodes file exists, containing the specificed content,
     and has a symlink in the proper place for ctdb.
@@ -125,14 +125,14 @@ def ensure_ctdb_nodes(
 
 
 def write_nodes_file(
-    fh: typing.IO, ctdb_nodes: typing.List[str], enc: typing.Callable = str
+    fh: typing.IO, ctdb_nodes: list[str], enc: typing.Callable = str
 ) -> None:
     """Write the ctdb nodes file."""
     for node in ctdb_nodes:
         fh.write(enc(f"{node}\n"))
 
 
-def read_nodes_file(fh: typing.IO) -> typing.List[str]:
+def read_nodes_file(fh: typing.IO) -> list[str]:
     """Read content from an open ctdb nodes file."""
     entries = []
     for line in fh:
@@ -140,7 +140,7 @@ def read_nodes_file(fh: typing.IO) -> typing.List[str]:
     return entries
 
 
-def read_ctdb_nodes(path: str = CTDB_NODES) -> typing.List[str]:
+def read_ctdb_nodes(path: str = CTDB_NODES) -> list[str]:
     """Read the content of the ctdb nodes file."""
     try:
         with open(path, "r") as fh:
