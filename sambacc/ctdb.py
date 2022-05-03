@@ -86,7 +86,7 @@ def ensure_ctdb_conf(
 
 
 def write_ctdb_conf(
-    fh: typing.IO, ctdb_params: typing.Dict, enc: typing.Callable = str
+    fh: typing.IO, ctdb_params: dict, enc: typing.Callable = str
 ) -> None:
     """Write a ctdb.conf style output."""
 
