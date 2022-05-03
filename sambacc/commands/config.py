@@ -127,7 +127,8 @@ def _exec_if_leader(
                 _logger.info("skipping config update. node not leader")
                 return previous, False
             _logger.info("checking for update. node is leader")
-            return cond_func(current, previous)
+            result = cond_func(current, previous)
+        return result
 
     return _call_if_leader
 
