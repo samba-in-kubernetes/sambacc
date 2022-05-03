@@ -61,7 +61,7 @@ def set_global_debug(level: str) -> None:
     _GLOBAL_DEBUG = level
 
 
-def _to_args(value) -> typing.List[str]:
+def _to_args(value: typing.Any) -> list[str]:
     if isinstance(value, str):
         return [value]
     return [str(v) for v in value]
@@ -79,7 +79,7 @@ class CommandArgs:
         self.args = args or []
         self.cmd_prefix = []
 
-    def __getitem__(self, new_value) -> CommandArgs:
+    def __getitem__(self, new_value: typing.Any) -> CommandArgs:
         return self.__class__(self._name, args=self.args + _to_args(new_value))
 
     def raw_args(self) -> typing.List[str]:
@@ -116,7 +116,7 @@ class SambaCommand(CommandArgs):
         super().__init__(name, args)
         self.debug = debug
 
-    def __getitem__(self, new_value) -> SambaCommand:
+    def __getitem__(self, new_value: typing.Any) -> SambaCommand:
         return self.__class__(
             self._name,
             args=self.args + _to_args(new_value),
