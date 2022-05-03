@@ -39,6 +39,19 @@ class Fail(ValueError):
     pass
 
 
+class Parser(typing.Protocol):
+    def frank(self, x: str) -> str:
+        ...  # pragma: no cover
+
+    def set_defaults(self, **kwargs: typing.Any) -> None:
+        ...  # pragma: no cover
+
+    def add_argument(
+        self, *args: typing.Any, **kwargs: typing.Any
+    ) -> typing.Any:
+        ...  # pragma: no cover
+
+
 Command = namedtuple("Command", "name cmd_func arg_func cmd_help")
 
 
