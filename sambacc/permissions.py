@@ -145,7 +145,14 @@ class InitPosixPermsHandler:
         # yeah, this is really simple compared to all the state management
         # stuff.
         path = self._full_path()
-        os.chmod(path, self._mode, follow_symlinks=False)
+        dfd = os.open(path, os.O_DIRECTORY)
+        try:
+            os.fchmod(dfd, self._mode)
+            os.fsync(dfd)
+        except OSError:
+            os.sync()
+        finally:
+            os.close(dfd)
 
     def _timestamp(self) -> str:
         return datetime.datetime.now().strftime("%s")
