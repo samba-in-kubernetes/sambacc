@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import errno
 import logging
@@ -45,6 +46,19 @@ class PermissionsHandler(typing.Protocol):
     def path(self) -> str:
         """Return the path under consideration."""
         ...  # pragma: no cover
+
+
+@contextlib.contextmanager
+def _opendir(path: str) -> typing.Iterator[int]:
+    dfd: int = os.open(path, os.O_DIRECTORY)
+    try:
+        yield dfd
+        os.fsync(dfd)
+    except OSError:
+        os.sync()
+        raise
+    finally:
+        os.close(dfd)
 
 
 class NoopPermsHandler:
@@ -145,14 +159,8 @@ class InitPosixPermsHandler:
         # yeah, this is really simple compared to all the state management
         # stuff.
         path = self._full_path()
-        dfd = os.open(path, os.O_DIRECTORY)
-        try:
+        with _opendir(path) as dfd:
             os.fchmod(dfd, self._mode)
-            os.fsync(dfd)
-        except OSError:
-            os.sync()
-        finally:
-            os.close(dfd)
 
     def _timestamp(self) -> str:
         return datetime.datetime.now().strftime("%s")
@@ -163,7 +171,8 @@ class InitPosixPermsHandler:
         val = f"{self._prefix}/{ts}"
         path = self._full_path()
         _logger.debug("setting xattr %r=%r: %r", self._xattr, val, self._path)
-        return xattr.set(path, self._xattr, val, nofollow=True)
+        with _opendir(path) as dfd:
+            xattr.set(dfd, self._xattr, val, nofollow=True)
 
 
 class AlwaysPosixPermsHandler(InitPosixPermsHandler):
