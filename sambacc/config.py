@@ -131,7 +131,7 @@ class InstanceConfig:
     def shares(self) -> typing.Iterable[ShareConfig]:
         """Iterate over share configs."""
         for sname in self.iconfig.get("shares", []):
-            yield ShareConfig(self.gconfig, sname)
+            yield ShareConfig(self.gconfig, sname, iconfig=self.iconfig)
 
     def users(self) -> typing.Iterable[UserEntry]:
         all_users = self.gconfig.data.get("users", {}).get("all_entries", {})
@@ -227,9 +227,15 @@ class CTDBSambaConfig:
 
 
 class ShareConfig:
-    def __init__(self, conf, sharename):
+    def __init__(
+        self,
+        conf: GlobalConfig,
+        sharename: str,
+        iconfig: typing.Optional[dict] = None,
+    ) -> None:
         self.gconfig = conf
         self.name = sharename
+        self.iconfig = iconfig or {}
 
     def share_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
         """Iterate over share options."""
@@ -243,6 +249,24 @@ class ShareConfig:
             return share_section["options"]["path"]
         except KeyError:
             return None
+
+    def permissions_config(self) -> PermissionsConfig:
+        """Return a permissions configuration for the share."""
+        # each share can have it's own permissions config,
+        # but if it does not it will default to the instance's
+        # config
+        try:
+            share_perms = self.gconfig.data["shares"][self.name]["permissions"]
+            return PermissionsConfig(share_perms)
+        except KeyError:
+            pass
+        try:
+            instance_perms = self.iconfig["permissions"]
+            return PermissionsConfig(instance_perms)
+        except KeyError:
+            pass
+        # use the internal defaults
+        return PermissionsConfig({})
 
 
 class UserEntry:
@@ -352,6 +376,25 @@ class DomainUserEntry(UserEntry):
 
 class DomainGroupEntry(GroupEntry):
     pass
+
+
+class PermissionsConfig:
+    _method_key: str = "method"
+    _status_xattr_key: str = "status_xattr"
+    _default_method: str = "none"
+    _default_status_xattr: str = "user.share-perms-status"
+
+    def __init__(self, pconf: dict[str, str]) -> None:
+        self._pconf = pconf
+        self.method: str = pconf.get(self._method_key, self._default_method)
+        self.status_xattr: str = pconf.get(
+            self._status_xattr_key, self._default_status_xattr
+        )
+
+    @property
+    def options(self) -> dict[str, str]:
+        filter_keys = {self._method_key, self._status_xattr_key}
+        return {k: v for k, v in self._pconf.items() if k not in filter_keys}
 
 
 def _shares_data(gconfig: GlobalConfig, iconfig: dict) -> list:
