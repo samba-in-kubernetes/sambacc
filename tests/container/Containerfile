@@ -1,4 +1,4 @@
-FROM fedora:34
+FROM fedora:35
 
 RUN yum install \
     -y --setopt=install_weak_deps=False \
@@ -12,6 +12,7 @@ RUN yum install \
     python3-samba \
     python3-wheel \
     python3-pyxattr \
+    python3.9 \
     samba-common-tools \
     && yum clean all \
     && true
