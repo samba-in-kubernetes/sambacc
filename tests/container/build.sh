@@ -67,7 +67,7 @@ export NSS_WRAPPER_GROUP=/etc/group
 # Run tox with sitepackages enabled to allow access to system installed samba
 # modules. The container env already provides us control over the env.
 info "running test suite with tox"
-tox --sitepackages
+tox
 
 info "building python package(s)"
 pip -qq install build
