@@ -19,7 +19,7 @@
 import os
 
 import pytest
-import xattr  # type: ignore
+
 
 import sambacc.permissions
 
@@ -46,6 +46,11 @@ def test_noop_handler():
 
 @pytest.fixture(scope="function")
 def tmp_path_xattrs_ok(tmp_path_factory):
+    try:
+        import xattr  # type: ignore
+    except ImportError:
+        pytest.skip("xattr module not available")
+
     tmpp = tmp_path_factory.mktemp("needs_xattrs")
     try:
         xattr.set(str(tmpp), "user.deleteme", "1")

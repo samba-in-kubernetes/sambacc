@@ -25,7 +25,8 @@ import logging
 import os
 import typing
 
-import xattr  # type: ignore
+from sambacc import _xattr as xattr
+
 
 _logger = logging.getLogger(__name__)
 
