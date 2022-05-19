@@ -6,6 +6,8 @@ python=python3
 url="https://github.com/samba-in-kubernetes/sambacc"
 bdir="/var/tmp/build/sambacc"
 distname="${SAMBACC_DISTNAME}"
+# use SAMBACC_BUILD_TASKS to limit build tasks if needed
+tasks="${SAMBACC_BUILD_TASKS:-task_test_tox task_py_build task_gen_sums}"
 
 info() {
     echo "[[sambacc/build]] $*"
@@ -33,27 +35,73 @@ update() {
     fi
 }
 
-# allow customizing the repo on the cli or environment
-if [ "$2" ]; then
-    url="$2"
-elif [ "${SAMBACC_REPO_URL}" ]; then
-    url="${SAMBACC_REPO_URL}"
-fi
+chk() {
+    for x in $tasks; do
+        case "$1" in
+            "$x")
+                # execute the named task if it is in $tasks
+                "$1"
+                return $?
+            ;;
+        esac
+    done
+    info "skipping task: $1"
+}
 
-mkdir -p /var/tmp/build/ || true
-if checked_out "${bdir}" ; then
-    info "repo already checked out"
-else
-    info "cloning sambacc repo"
-    clone "$url" "${bdir}"
-fi
+setup_fetch() {
+    # allow customizing the repo on the cli or environment
+    if [ "$1" ]; then
+        url="$1"
+    elif [ "${SAMBACC_REPO_URL}" ]; then
+        url="${SAMBACC_REPO_URL}"
+    fi
 
-cd "${bdir}"
+    mkdir -p /var/tmp/build/ || true
+    if checked_out "${bdir}" ; then
+        info "repo already checked out"
+    else
+        info "cloning sambacc repo"
+        clone "$url" "${bdir}"
+    fi
+}
 
-if [ "$1" ]; then
-    # a tag or revision id was specified on the cli
-    update "${bdir}" "$1"
-fi
+setup_update() {
+    if [ "$1" ]; then
+        # a tag or revision id was specified on the cli
+        update "${bdir}" "$1"
+    fi
+}
+
+task_test_tox() {
+    # Run tox with sitepackages enabled to allow access to system installed samba
+    # modules. The container env already provides us control over the env.
+    info "running test suite with tox"
+    tox
+}
+
+task_py_build() {
+    info "building python package(s)"
+    pip -qq install build
+    if [ "$distname" ]; then
+        # building for a given "distribution name" - meaning this could be
+        # consumed externally
+        distdir="/srv/dist/$distname"
+        info "using dist dir: $distdir"
+        mkdir -p "$distdir"
+        $python -m build --outdir "$distdir"
+    else
+        # just run the build as a test to make sure it succeeds
+        $python -m build
+    fi
+}
+
+task_gen_sums() {
+    if [ "$distname" ]; then
+        info "generating checksums"
+        (cd "$distdir" && sha512sum * > "$distdir/sha512sums")
+    fi
+}
+
 
 # Allow the tests to use customized passwd file contents in order
 # to test samba passdb support. It's a bit strange, but should work.
@@ -64,22 +112,11 @@ export WRITABLE_PASSWD=yes
 export NSS_WRAPPER_PASSWD=/etc/passwd
 export NSS_WRAPPER_GROUP=/etc/group
 
-# Run tox with sitepackages enabled to allow access to system installed samba
-# modules. The container env already provides us control over the env.
-info "running test suite with tox"
-tox
 
-info "building python package(s)"
-pip -qq install build
-if [ "$distname" ]; then
-    # building for a given "distribution name" - meaning this could be
-    # consumed externally
-    distdir="/srv/dist/$distname"
-    info "using dist dir: $distdir"
-    mkdir -p "$distdir"
-    $python -m build --outdir "$distdir"
-    (cd "$distdir" && sha512sum * > "$distdir/sha512sums")
-else
-    # just run the build as a test to make sure it succeeds
-    $python -m build
-fi
+setup_fetch "$2"
+cd "${bdir}"
+setup_update "$1"
+
+chk task_test_tox
+chk task_py_build
+chk task_gen_sums
