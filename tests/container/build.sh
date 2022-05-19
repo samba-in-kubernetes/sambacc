@@ -7,7 +7,7 @@ url="https://github.com/samba-in-kubernetes/sambacc"
 bdir="/var/tmp/build/sambacc"
 distname="${SAMBACC_DISTNAME}"
 # use SAMBACC_BUILD_TASKS to limit build tasks if needed
-tasks="${SAMBACC_BUILD_TASKS:-task_test_tox task_py_build task_gen_sums}"
+tasks="${SAMBACC_BUILD_TASKS:-task_test_tox task_py_build task_rpm_build task_gen_sums}"
 
 info() {
     echo "[[sambacc/build]] $*"
@@ -48,6 +48,13 @@ chk() {
     info "skipping task: $1"
 }
 
+get_distdir() {
+    dname="$1"
+    ddir="/srv/dist/$dname"
+    mkdir -p "$ddir" >/dev/null
+    echo "$ddir"
+}
+
 setup_fetch() {
     # allow customizing the repo on the cli or environment
     if [ "$1" ]; then
@@ -85,9 +92,8 @@ task_py_build() {
     if [ "$distname" ]; then
         # building for a given "distribution name" - meaning this could be
         # consumed externally
-        distdir="/srv/dist/$distname"
+        distdir="$(get_distdir "$distname")"
         info "using dist dir: $distdir"
-        mkdir -p "$distdir"
         $python -m build --outdir "$distdir"
     else
         # just run the build as a test to make sure it succeeds
@@ -95,10 +101,42 @@ task_py_build() {
     fi
 }
 
+task_rpm_build() {
+    if ! [ "$distname" ]; then
+        return
+    fi
+    if ! command -v rpmbuild ; then
+        info "rpmbuild not found ... skipping"
+        return
+    fi
+
+    distdir="$(get_distdir "$distname")"
+    info "using dist dir: $distdir"
+    for spkg in "$distdir/sambacc"-*.tar.gz; do
+        info "RPM build for: ${spkg}"
+        ver="$(basename  "${spkg}" | sed -e 's/^sambacc-//' -e 's/.tar.gz$//')"
+        if echo "$ver" | grep -q "+" ; then
+            rversion="$(echo "${ver}" | sed -e 's/\.dev/~/' -e 's/+/./')"
+        else
+            rversion="$ver"
+        fi
+        info "Using rpm-version=${rversion} pkg-version=${ver}"
+        rpmbuild --nocheck -ta \
+            -D "pversion ${ver}" -D"rversion ${rversion}" \
+            -D "_rpmdir ${distdir}/RPMS" \
+            -D "_srcrpmdir ${distdir}/SRPMS" \
+            "$spkg"
+    done
+}
+
 task_gen_sums() {
     if [ "$distname" ]; then
         info "generating checksums"
-        (cd "$distdir" && sha512sum * > "$distdir/sha512sums")
+        distdir="$(get_distdir "$distname")"
+        info "using dist dir: $distdir"
+        (cd "$distdir" && \
+            find . -type f -not -name 'sha*sums' -print0 | \
+            xargs -0 sha512sum  > "$distdir/sha512sums")
     fi
 }
 
@@ -119,4 +157,5 @@ setup_update "$1"
 
 chk task_test_tox
 chk task_py_build
+chk task_rpm_build
 chk task_gen_sums
