@@ -86,6 +86,7 @@ def _prep_provision(ctx: Context) -> None:
         domain=domconfig.short_domain,
         dcname=dcname,
         admin_password=domconfig.admin_password,
+        options=ctx.instance_config.global_options(),
     )
 
 
@@ -102,6 +103,7 @@ def _prep_join(ctx: Context) -> None:
         domain=domconfig.short_domain,
         dcname=dcname,
         admin_password=domconfig.admin_password,
+        options=ctx.instance_config.global_options(),
     )
 
 
