@@ -31,6 +31,7 @@ def provision(
     admin_password: str,
     dns_backend: typing.Optional[str] = None,
     domain: typing.Optional[str] = None,
+    options: typing.Optional[typing.Iterable[tuple[str, str]]] = None,
 ) -> None:
     # this function is a direct translation of a previous shell script
     # as samba-tool is based on python libs, this function could possibly
@@ -43,6 +44,7 @@ def provision(
             admin_password=admin_password,
             dns_backend=dns_backend,
             domain=domain,
+            options=options,
         )
     )
     return
@@ -95,6 +97,7 @@ def _provision_cmd(
     admin_password: str,
     dns_backend: typing.Optional[str] = None,
     domain: typing.Optional[str] = None,
+    options: typing.Optional[typing.Iterable[tuple[str, str]]] = None,
 ) -> typing.List[str]:
     if not dns_backend:
         dns_backend = "SAMBA_INTERNAL"
@@ -110,8 +113,12 @@ def _provision_cmd(
         f"--realm={realm}",
         f"--domain={domain}",
         f"--adminpass={admin_password}",
-    ].argv()
-    return cmd
+    ]
+    for okey, oval in options or []:
+        if okey == "netbios name":
+            continue
+        cmd = cmd[f"--option={okey}={oval}"]
+    return cmd.argv()
 
 
 def _join_cmd(
