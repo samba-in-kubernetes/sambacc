@@ -56,6 +56,7 @@ def join(
     admin_password: str,
     dns_backend: typing.Optional[str] = None,
     domain: typing.Optional[str] = None,
+    options: typing.Optional[typing.Iterable[tuple[str, str]]] = None,
 ) -> None:
     _logger.info(f"Joining AD domain: realm={realm}")
     subprocess.check_call(
@@ -64,6 +65,7 @@ def join(
             dcname,
             admin_password=admin_password,
             dns_backend=dns_backend,
+            options=options,
         )
     )
 
@@ -127,6 +129,7 @@ def _join_cmd(
     admin_password: str,
     dns_backend: typing.Optional[str] = None,
     domain: typing.Optional[str] = None,
+    options: typing.Optional[typing.Iterable[tuple[str, str]]] = None,
 ) -> list[str]:
     if not dns_backend:
         dns_backend = "SAMBA_INTERNAL"
@@ -141,8 +144,12 @@ def _join_cmd(
         f"--option=netbios name={dcname}",
         f"--dns-backend={dns_backend}",
         f"--password={admin_password}",
-    ].argv()
-    return cmd
+    ]
+    for okey, oval in options or []:
+        if okey == "netbios name":
+            continue
+        cmd = cmd[f"--option={okey}={oval}"]
+    return cmd.argv()
 
 
 def _user_create_cmd(
