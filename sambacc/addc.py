@@ -20,6 +20,7 @@ import logging
 import subprocess
 import typing
 
+from sambacc import config
 from sambacc import samba_cmds
 
 _logger = logging.getLogger(__name__)
@@ -37,6 +38,8 @@ def provision(
     # as samba-tool is based on python libs, this function could possibly
     # be converted to import samba's libs and use that.
     _logger.info(f"Provisioning AD domain: realm={realm}")
+    if options is not None:
+        _ADDomainControllerConfig(options).save()
     subprocess.check_call(
         _provision_cmd(
             realm,
@@ -59,6 +62,8 @@ def join(
     options: typing.Optional[typing.Iterable[tuple[str, str]]] = None,
 ) -> None:
     _logger.info(f"Joining AD domain: realm={realm}")
+    if options is not None:
+        _ADDomainControllerConfig(options).save()
     subprocess.check_call(
         _join_cmd(
             realm,
@@ -116,10 +121,6 @@ def _provision_cmd(
         f"--domain={domain}",
         f"--adminpass={admin_password}",
     ]
-    for okey, oval in options or []:
-        if okey == "netbios name":
-            continue
-        cmd = cmd[f"--option={okey}={oval}"]
     return cmd.argv()
 
 
@@ -145,10 +146,6 @@ def _join_cmd(
         f"--dns-backend={dns_backend}",
         f"--password={admin_password}",
     ]
-    for okey, oval in options or []:
-        if okey == "netbios name":
-            continue
-        cmd = cmd[f"--option={okey}={oval}"]
     return cmd.argv()
 
 
@@ -190,3 +187,33 @@ def _group_add_members_cmd(
         ",".join(members),
     ].argv()
     return cmd
+
+
+def filter_smb_conf_options(
+    options: typing.Iterable[tuple[str, str]]
+) -> typing.Iterable[tuple[str, str]]:
+    for okey, oval in options or []:
+        if okey == "netbios name":
+            continue
+        yield (okey, oval)
+
+
+class _ADDomainControllerConfig:
+    default_path = config.SMB_CONF
+
+    def __init__(self, options: typing.Iterable[tuple[str, str]]) -> None:
+        self._options = options
+
+    def global_options(self) -> typing.Iterable[tuple[str, str]]:
+        return filter_smb_conf_options(self._options)
+
+    def shares(self) -> typing.Iterable[config.ShareConfig]:
+        return []
+
+    def save(self, path: typing.Optional[str] = None) -> None:
+        import sambacc.netcmd_loader as ncl
+
+        if not path:
+            path = self.default_path
+        with open(path, "wb") as fh:
+            ncl.template_config(fh, self, enc=lambda s: s.encode("utf8"))
