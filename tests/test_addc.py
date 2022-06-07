@@ -48,6 +48,8 @@ def test_provision(tmp_path, monkeypatch):
     sambacc.addc.provision("FOOBAR.TEST", "quux", "h4ckm3")
     with open(tmp_path / "args.out") as fh:
         result = fh.read()
+    with pytest.raises(OSError):
+        open(tmp_path / "smb.conf")
     assert "--realm=FOOBAR.TEST" in result
     assert "--option=netbios name=quux" in result
     assert "--dns-backend=SAMBA_INTERNAL" in result
@@ -93,6 +95,8 @@ def test_join(tmp_path, monkeypatch):
     sambacc.addc.join("FOOBAR.TEST", "quux", "h4ckm3")
     with open(tmp_path / "args.out") as fh:
         result = fh.read()
+    with pytest.raises(OSError):
+        open(tmp_path / "smb.conf")
     assert "FOOBAR.TEST" in result
     assert "--option=netbios name=quux" in result
     assert "--dns-backend=SAMBA_INTERNAL" in result
