@@ -39,7 +39,8 @@ def provision(
     # be converted to import samba's libs and use that.
     _logger.info(f"Provisioning AD domain: realm={realm}")
     if options is not None:
-        _ADDomainControllerConfig(options).save()
+        wg = realm.split(".")[0]
+        _ADDomainControllerConfig(options, wg).save()
     subprocess.check_call(
         _provision_cmd(
             realm,
@@ -63,7 +64,8 @@ def join(
 ) -> None:
     _logger.info(f"Joining AD domain: realm={realm}")
     if options is not None:
-        _ADDomainControllerConfig(options).save()
+        wg = realm.split(".")[0]
+        _ADDomainControllerConfig(options, wg).save()
     subprocess.check_call(
         _join_cmd(
             realm,
@@ -201,18 +203,30 @@ def filter_smb_conf_options(
 class _ADDomainControllerConfig:
     default_path = config.SMB_CONF
 
-    def __init__(self, options: typing.Iterable[tuple[str, str]]) -> None:
-        self._options = options
+    def __init__(
+        self, options: typing.Iterable[tuple[str, str]], workgroup: str
+    ) -> None:
+        self._options = list(options)
+        self._workgroup = workgroup
 
     def global_options(self) -> typing.Iterable[tuple[str, str]]:
-        return filter_smb_conf_options(self._options)
+        if not self._options:
+            return
+        for value in filter_smb_conf_options(self._options):
+            yield value
+        yield ("server role", "ACTIVE DIRECTORY DOMAIN CONTROLLER")
+        yield ("workgroup", self._workgroup)
 
     def shares(self) -> typing.Iterable[config.ShareConfig]:
+        if not self._options:
+            return []
         return []
 
     def save(self, path: typing.Optional[str] = None) -> None:
         import sambacc.netcmd_loader as ncl
 
+        if not self._options:
+            return
         if not path:
             path = self.default_path
         with open(path, "wb") as fh:
