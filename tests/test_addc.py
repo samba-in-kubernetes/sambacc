@@ -39,6 +39,11 @@ def test_provision(tmp_path, monkeypatch):
     monkeypatch.setattr(
         sambacc.samba_cmds, "_GLOBAL_PREFIX", [_fake_samba_tool(tmp_path)]
     )
+    monkeypatch.setattr(
+        sambacc.addc._ADDomainControllerConfig,
+        "default_path",
+        str(tmp_path / "smb.conf"),
+    )
 
     sambacc.addc.provision("FOOBAR.TEST", "quux", "h4ckm3")
     with open(tmp_path / "args.out") as fh:
@@ -60,13 +65,15 @@ def test_provision(tmp_path, monkeypatch):
     )
     with open(tmp_path / "args.out") as fh:
         result = fh.read()
+    with open(tmp_path / "smb.conf") as fh:
+        conf_data = fh.read()
     assert "--realm=BARFOO.TEST" in result
     assert "--option=netbios name=quux" in result
     assert "--dns-backend=SAMBA_INTERNAL" in result
-    assert "--option=ldap server require strong auth=no" in result
-    assert "--option=dns zone scavenging=yes" in result
-    assert "--option=ldap machine suffix=ou=Machines" in result
-    assert "--option=netbios name=flipper" not in result
+    assert "ldap server require strong auth = no" in conf_data
+    assert "dns zone scavenging = yes" in conf_data
+    assert "ldap machine suffix = ou=Machines" in conf_data
+    assert "flipper" not in conf_data
 
     open(tmp_path / "fail", "w").close()
     with pytest.raises(Exception):
@@ -76,6 +83,11 @@ def test_provision(tmp_path, monkeypatch):
 def test_join(tmp_path, monkeypatch):
     monkeypatch.setattr(
         sambacc.samba_cmds, "_GLOBAL_PREFIX", [_fake_samba_tool(tmp_path)]
+    )
+    monkeypatch.setattr(
+        sambacc.addc._ADDomainControllerConfig,
+        "default_path",
+        str(tmp_path / "smb.conf"),
     )
 
     sambacc.addc.join("FOOBAR.TEST", "quux", "h4ckm3")
@@ -98,15 +110,15 @@ def test_join(tmp_path, monkeypatch):
     )
     with open(tmp_path / "args.out") as fh:
         result = fh.read()
-    with open(tmp_path / "args.out") as fh:
-        result = fh.read()
+    with open(tmp_path / "smb.conf") as fh:
+        conf_data = fh.read()
     assert "BARFOO.TEST" in result
     assert "--option=netbios name=quux" in result
     assert "--dns-backend=SAMBA_INTERNAL" in result
-    assert "--option=ldap server require strong auth=no" in result
-    assert "--option=dns zone scavenging=yes" in result
-    assert "--option=ldap machine suffix=ou=Machines" in result
-    assert "--option=netbios name=flipper" not in result
+    assert "ldap server require strong auth = no" in conf_data
+    assert "dns zone scavenging = yes" in conf_data
+    assert "ldap machine suffix = ou=Machines" in conf_data
+    assert "flipper" not in conf_data
 
 
 def test_create_user(tmp_path, monkeypatch):
