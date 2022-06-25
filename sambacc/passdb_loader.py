@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import typing
+
 from sambacc import config
 
 # Do the samba python bindings not export any useful constants?
@@ -24,7 +26,7 @@ ACB_NORMAL = 0x00000010
 ACB_PWNOEXP = 0x00000200
 
 
-def _samba_modules():
+def _samba_modules() -> tuple[typing.Any, typing.Any]:
     from samba.samba3 import param  # type: ignore
     from samba.samba3 import passdb  # type: ignore
 
@@ -32,7 +34,7 @@ def _samba_modules():
 
 
 class PassDBLoader:
-    def __init__(self, smbconf=None):
+    def __init__(self, smbconf: typing.Any = None) -> None:
         param, passdb = _samba_modules()
         lp = param.get_context()
         if smbconf is None:
