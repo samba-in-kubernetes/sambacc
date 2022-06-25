@@ -43,7 +43,9 @@ def template_config(
 class NetCmdLoader:
     _net_conf = samba_cmds.net["conf"]
 
-    def _cmd(self, *args, **kwargs):
+    def _cmd(
+        self, *args: str, **kwargs: typing.Any
+    ) -> tuple[list[str], typing.Any]:
         cmd = list(self._net_conf[args])
         return cmd, subprocess.Popen(cmd, **kwargs)
 
