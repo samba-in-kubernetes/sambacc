@@ -20,7 +20,7 @@ import time
 import typing
 
 
-def generate_sleeps():
+def generate_sleeps() -> typing.Iterator[int]:
     """Generate sleep times starting with short sleeps and then
     getting longer. This assumes that resources may take a bit of
     time to settle, but eventually reach a steadier state and don't
@@ -44,16 +44,18 @@ def generate_sleeps():
 class Sleeper:
     """It waits only by sleeping. Nothing fancy."""
 
-    def __init__(self, times=None):
+    def __init__(
+        self, times: typing.Optional[typing.Iterator[int]] = None
+    ) -> None:
         if times is None:
             times = generate_sleeps()
         self._times = times
         self._sleep = time.sleep
 
-    def wait(self):
+    def wait(self) -> None:
         self._sleep(next(self._times))
 
-    def acted(self):
+    def acted(self) -> None:
         """Inform the sleeper the caller reacted to a change and
         the sleeps should be reset.
         """
