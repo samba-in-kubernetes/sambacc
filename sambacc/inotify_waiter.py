@@ -69,7 +69,7 @@ class INotify:
     def wait(self) -> None:
         next(self._wait())
 
-    def _get_events(self):
+    def _get_events(self) -> list[typing.Any]:
         timeout = 1000 * self.timeout
         self._print("waiting {}ms for activity...".format(timeout))
         events = self._inotify.read(timeout=timeout)
@@ -85,7 +85,7 @@ class INotify:
             and ((event.mask & _inotify.flags.CLOSE_WRITE) != 0)
         ]
 
-    def _wait(self):
+    def _wait(self) -> typing.Iterator[None]:
         while True:
             for event in self._get_events():
                 if event is None:
