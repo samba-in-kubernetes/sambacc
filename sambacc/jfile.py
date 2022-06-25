@@ -21,12 +21,13 @@
 import fcntl
 import json
 import os
+import typing
 
 OPEN_RO = os.O_RDONLY
 OPEN_RW = os.O_CREAT | os.O_RDWR
 
 
-def open(path, flags, mode=0o644):
+def open(path: str, flags: int, mode: int = 0o644) -> typing.IO:
     """A wrapper around open to open JSON files for read or read/write.
     `flags` must be os.open type flags. Use `OPEN_RO` and `OPEN_RW` for
     convenience.
@@ -34,7 +35,9 @@ def open(path, flags, mode=0o644):
     return os.fdopen(os.open(path, flags, mode), "r+")
 
 
-def load(fh, default=None):
+def load(
+    fh: typing.IO, default: typing.Optional[dict[str, typing.Any]] = None
+) -> typing.Any:
     """Similar to json.load, but returns the `default` value if fh refers to an
     empty file. fh must be seekable."""
     if fh.read(4) == "":
@@ -46,7 +49,7 @@ def load(fh, default=None):
     return data
 
 
-def dump(data, fh):
+def dump(data: typing.Any, fh: typing.IO) -> None:
     """Similar to json.dump, but truncates the file before writing in order
     to avoid appending data to the file. fh must be seekable.
     """
@@ -55,6 +58,6 @@ def dump(data, fh):
     json.dump(data, fh)
 
 
-def flock(fh):
+def flock(fh: typing.IO) -> None:
     """A simple wrapper around flock."""
     fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
