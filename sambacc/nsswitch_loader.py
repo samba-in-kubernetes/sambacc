@@ -22,10 +22,10 @@ from .textfile import TextFileLoader
 
 
 class NameServiceSwitchLoader(TextFileLoader):
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         super().__init__(path)
-        self.lines = []
-        self.idx = {}
+        self.lines: list[str] = []
+        self.idx: dict[str, int] = {}
 
     def loadlines(self, lines: typing.Iterable[str]) -> None:
         """Load in the lines from the text source."""
