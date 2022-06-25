@@ -90,8 +90,8 @@ class SambaConfig(typing.Protocol):
 
 
 class GlobalConfig:
-    def __init__(self, source=None):
-        self.data = {}
+    def __init__(self, source: typing.Optional[typing.IO] = None) -> None:
+        self.data: dict[str, typing.Any] = {}
         if source is not None:
             self.load(source)
 
