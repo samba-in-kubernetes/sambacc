@@ -124,14 +124,14 @@ class InitPosixPermsHandler:
     def _full_path(self) -> str:
         return os.path.join(self._root, self._path.lstrip("/"))
 
-    def has_status(self):
+    def has_status(self) -> bool:
         try:
             self._get_status()
             return True
         except KeyError:
             return False
 
-    def status_ok(self):
+    def status_ok(self) -> bool:
         try:
             sval = self._get_status()
         except KeyError:
@@ -139,7 +139,7 @@ class InitPosixPermsHandler:
         curr_prefix = sval.split("/")[0]
         return curr_prefix == self._prefix
 
-    def update(self):
+    def update(self) -> None:
         if self.status_ok():
             return
         self._set_perms()
@@ -182,6 +182,6 @@ class AlwaysPosixPermsHandler(InitPosixPermsHandler):
     May be useful for testing and debugging.
     """
 
-    def update(self):
+    def update(self) -> None:
         self._set_perms()
         self._set_status()
