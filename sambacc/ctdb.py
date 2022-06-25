@@ -58,7 +58,11 @@ def next_state(state: NodeState) -> NodeState:
 
 
 class NodeNotPresent(KeyError):
-    def __init__(self, identity, pnn=None):
+    def __init__(
+        self,
+        identity: typing.Any,
+        pnn: typing.Optional[typing.Union[str, int]] = None,
+    ) -> None:
         super().__init__(identity)
         self.identity = identity
         self.pnn = pnn
