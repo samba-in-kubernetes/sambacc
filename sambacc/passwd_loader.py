@@ -23,9 +23,9 @@ from sambacc import config
 
 
 class LineFileLoader(TextFileLoader):
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         super().__init__(path)
-        self.lines = []
+        self.lines: list[str] = []
 
     def loadlines(self, lines: typing.Iterable[str]) -> None:
         """Load in the lines from the text source."""
@@ -43,9 +43,9 @@ class LineFileLoader(TextFileLoader):
 
 
 class PasswdFileLoader(LineFileLoader):
-    def __init__(self, path="/etc/passwd"):
+    def __init__(self, path: str = "/etc/passwd") -> None:
         super().__init__(path)
-        self._usernames = set()
+        self._usernames: set[str] = set()
 
     def readfp(self, fp: typing.IO) -> None:
         super().readfp(fp)
@@ -66,9 +66,9 @@ class PasswdFileLoader(LineFileLoader):
 
 
 class GroupFileLoader(LineFileLoader):
-    def __init__(self, path="/etc/group"):
+    def __init__(self, path: str = "/etc/group") -> None:
         super().__init__(path)
-        self._groupnames = set()
+        self._groupnames: set[str] = set()
 
     def readfp(self, fp: typing.IO) -> None:
         super().readfp(fp)
