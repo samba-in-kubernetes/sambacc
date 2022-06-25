@@ -29,12 +29,14 @@ _logger = logging.getLogger(__name__)
 
 
 class JoinError(Exception):
-    def __init__(self, v):
+    def __init__(self, v: typing.Any) -> None:
         super().__init__(v)
-        self.errors = []
+        self.errors: list[typing.Any] = []
 
 
 _PROMPT = object()
+_PT = typing.TypeVar("_PT")
+_PW = typing.Union[str, _PT]
 
 
 class JoinBy(enum.Enum):
@@ -47,9 +49,13 @@ class UserPass:
     """Encapsulate a username/password pair."""
 
     username: str = "Administrator"
-    password: typing.Optional[str] = None
+    password: typing.Optional[_PW] = None
 
-    def __init__(self, username=None, password=None):
+    def __init__(
+        self,
+        username: typing.Optional[str] = None,
+        password: typing.Optional[_PW] = None,
+    ) -> None:
         if username is not None:
             self.username = username
         if password is not None:
@@ -65,8 +71,8 @@ class Joiner:
 
     _net_ads_join = samba_cmds.net["ads", "join"]
 
-    def __init__(self, marker=None):
-        self._sources = []
+    def __init__(self, marker: typing.Optional[str] = None) -> None:
+        self._sources: list[tuple[JoinBy, typing.Any]] = []
         self.marker = marker
 
     def add_source(
