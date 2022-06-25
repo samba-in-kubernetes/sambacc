@@ -201,6 +201,7 @@ def test_watch(tmp_path):
         path,
         update_func=_update,
         pause_func=_sleep,
+        print_func=lambda x: None,
     )
     assert scount > 10
     assert len(reg_data) == 1
@@ -227,6 +228,7 @@ def test_watch(tmp_path):
         path,
         update_func=_update,
         pause_func=_sleep2,
+        print_func=lambda x: None,
     )
     assert scount > 20
     assert len(reg_data) == 3

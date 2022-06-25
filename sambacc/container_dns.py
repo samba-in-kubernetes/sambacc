@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+from __future__ import annotations
+
 import json
 import subprocess
 import typing
@@ -27,18 +29,22 @@ INTERNAL: str = "internal"
 
 
 class HostState:
-    def __init__(self, ref="", items=[]):
-        self.ref = ref
-        self.items = items
+    T = typing.TypeVar("T", bound="HostState")
+
+    def __init__(
+        self, ref: str = "", items: typing.Optional[list[HostInfo]] = None
+    ) -> None:
+        self.ref: str = ref
+        self.items: list[HostInfo] = items or []
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls: typing.Type[T], d: dict[str, typing.Any]) -> T:
         return cls(
             ref=d["ref"],
             items=[HostInfo.from_dict(i) for i in d.get("items", [])],
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: typing.Any) -> bool:
         return (
             self.ref == other.ref
             and len(self.items) == len(other.items)
@@ -47,20 +53,24 @@ class HostState:
 
 
 class HostInfo:
-    def __init__(self, name="", ipv4_addr="", target=""):
+    T = typing.TypeVar("T", bound="HostInfo")
+
+    def __init__(
+        self, name: str = "", ipv4_addr: str = "", target: str = ""
+    ) -> None:
         self.name = name
         self.ipv4_addr = ipv4_addr
         self.target = target
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls: typing.Type[T], d: dict[str, typing.Any]) -> T:
         return cls(
             name=d["name"],
             ipv4_addr=d["ipv4"],
             target=d.get("target", ""),
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: typing.Any) -> bool:
         return (
             self.name == other.name
             and self.ipv4_addr == other.ipv4_addr
@@ -68,11 +78,11 @@ class HostInfo:
         )
 
 
-def parse(fh):
+def parse(fh: typing.IO) -> HostState:
     return HostState.from_dict(json.load(fh))
 
 
-def parse_file(path):
+def parse_file(path: str) -> HostState:
     with open(path) as fh:
         return parse(fh)
 
@@ -115,13 +125,20 @@ def parse_and_update(
 
 
 # TODO: replace this with the common version added to simple_waiter
-def watch(domain, source, update_func, pause_func, print_func=None):
+def watch(
+    domain: str,
+    source: str,
+    update_func: typing.Callable,
+    pause_func: typing.Callable,
+    print_func: typing.Optional[typing.Callable],
+) -> None:
     previous = None
     while True:
         try:
             previous, updated = update_func(domain, source, previous)
         except FileNotFoundError:
-            print_func(f"Source file [{source}] not found")
+            if print_func:
+                print_func(f"Source file [{source}] not found")
             updated = False
             previous = None
         if updated and print_func:
