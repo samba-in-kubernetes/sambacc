@@ -1,6 +1,8 @@
-FROM registry.fedoraproject.org/fedora:36
+FROM quay.io/centos/centos:stream9
 
-RUN yum install \
+RUN yum install -y epel-release
+
+RUN yum --enablerepo=crb install \
     -y --setopt=install_weak_deps=False \
     git \
     mercurial \
@@ -16,6 +18,7 @@ RUN yum install \
     python3.9 \
     samba-common-tools \
     rpm-build \
+    pyproject-rpm-macros \
     'python3dist(flake8)' \
     'python3dist(inotify-simple)' \
     'python3dist(mypy)' \
