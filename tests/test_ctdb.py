@@ -527,13 +527,15 @@ def test_cli_leader_locator(tmpdir, monkeypatch, caplog):
     caplog.set_level(logging.INFO)
     fake_ctdb = tmpdir / "fake_ctdb.sh"
     monkeypatch.setattr(sambacc.samba_cmds, "_GLOBAL_PREFIX", [fake_ctdb])
+    monkeypatch.setenv("SAMBA_SPECIFICS", "ctdb_leader_admin_command")
+    ldr_admin_cmd = sambacc.samba_cmds.ctdb_leader_admin_cmd()
 
     def _fake_ctdb_script(pnn, recmaster):
         with open(fake_ctdb, "w") as fh:
             fh.write("#!/bin/sh\n")
             fh.write("case $2 in\n")
             fh.write(f"pnn) {pnn};;\n")
-            fh.write(f"recmaster) {recmaster};;\n")
+            fh.write(f"{ldr_admin_cmd}) {recmaster};;\n")
             fh.write("esac\n")
             fh.write("exit 5\n")
         os.chmod(fake_ctdb, 0o700)
@@ -551,18 +553,18 @@ def test_cli_leader_locator(tmpdir, monkeypatch, caplog):
     with ctdb.CLILeaderLocator() as status:
         assert not status.is_leader()
     assert "pnn" in caplog.records[-1].getMessage()
-    assert "recmaster" not in caplog.records[-1].getMessage()
+    assert "['" + ldr_admin_cmd + "']" not in caplog.records[-1].getMessage()
     _fake_ctdb_script(pnn="echo 1; exit 0", recmaster="exit 1")
     with ctdb.CLILeaderLocator() as status:
         assert not status.is_leader()
     assert "pnn" not in caplog.records[-1].getMessage()
-    assert "recmaster" in caplog.records[-1].getMessage()
+    assert "['" + ldr_admin_cmd + "']" in caplog.records[-1].getMessage()
 
     os.unlink(fake_ctdb)
     with ctdb.CLILeaderLocator() as status:
         assert not status.is_leader()
     assert "pnn" in caplog.records[-2].getMessage()
-    assert "recmaster" in caplog.records[-1].getMessage()
+    assert "['" + ldr_admin_cmd + "']" in caplog.records[-1].getMessage()
 
 
 def test_check_nodestatus(tmp_path):
