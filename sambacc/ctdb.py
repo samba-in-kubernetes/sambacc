@@ -527,8 +527,9 @@ class CLILeaderLocator:
             _logger.error(f"command {pnn_cmd!r} failed: {err!r}")
         except FileNotFoundError:
             _logger.error(f"ctdb command ({pnn_cmd!r}) not found")
-        # recmaster = <ctdb recmaster>
-        recmaster_cmd = samba_cmds.ctdb["recmaster"]
+        # recmaster = <ctdb recmaster|leader>
+        admin_cmd = samba_cmds.ctdb_leader_admin_cmd()
+        recmaster_cmd = samba_cmds.ctdb[admin_cmd]
         try:
             out = subprocess.check_output(list(recmaster_cmd))
             recmaster = out.decode("utf8").strip()
