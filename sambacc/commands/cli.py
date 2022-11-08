@@ -108,7 +108,7 @@ class CommandBuilder:
         return _wrapper
 
     def assemble(
-        self, arg_func: typing.Callable = None
+        self, arg_func: typing.Optional[typing.Callable] = None
     ) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser()
         if arg_func is not None:
