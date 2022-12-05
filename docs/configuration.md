@@ -1,0 +1,280 @@
+
+# JSON Configuration Format
+
+Much of the behavior of sambacc is driven by the JSON based
+configuration file. The following is a high level example of the JSON
+structure and a description of these sections.
+
+```json
+{
+    "samba-container-config": "v0",
+    "configs": {
+        "config1": {
+            "instance_name": "SAMBA",
+            "instance_features": [],
+            "shares": [
+                "testshare"
+            ],
+            "globals": [
+                "default"
+            ]
+        },
+        "config2": {
+            "instance_name": "MYDC1",
+            "instance_features": [
+                "addc"
+            ],
+            "domain_settings": "testdom"
+        }
+    },
+    "shares": {
+        "share": {
+            "options": {
+                "path": "/share",
+                "valid users": "sambauser, otheruser"
+            }
+        },
+        "share2": {
+            "options": {
+                "path": "/srv/data",
+                "valid users": "sambauser, otheruser"
+            },
+            "permissions": {
+                "method": "initialize-share-perms",
+                "status_xattr": "user.share-perms-status",
+                "mode": "0755"
+            }
+        }
+    },
+    "globals": {
+        "default": {
+            "options": {
+                "security": "user",
+                "server min protocol": "SMB2",
+                "load printers": "no",
+                "printing": "bsd",
+                "printcap name": "/dev/null",
+                "disable spoolss": "yes",
+                "guest ok": "no"
+            }
+        }
+    },
+    "users": {
+        "all_entries": [
+            {
+                "name": "sambauser",
+                "password": "samba"
+            },
+            {
+                "name": "bob",
+                "uid": 2000,
+                "gid": 2000,
+                "password": "notSoSafe"
+            },
+            {
+                "name": "alice",
+                "uid": 2001,
+                "gid": 2001,
+                "nt_hash": "B784E584D34839235F6D88A5382C3821"
+            }
+        ]
+    },
+    "groups": {
+        "all_entries": [
+            {
+                "name": "bob",
+                "gid": 2000
+            },
+            {
+                "name": "alice",
+                "gid": 2001
+            }
+        ]
+    },
+    "domain_settings": {
+        "testdom": {
+            "realm": "DIMENSIONX.FOO.TEST",
+            "short_domain": "DIMENSIONX",
+            "admin_password": "Passw0rd"
+        }
+    },
+    "domain_groups": {
+        "testdom": [
+            {
+                "name": "friends"
+            },
+            {
+                "name": "developers"
+            }
+        ]
+    },
+    "domain_users": {
+        "testdom": [
+            {
+                "name": "jfoo",
+                "password": "testing0nly.",
+                "given_name": "Joe",
+                "surname": "Foo",
+                "member_of": [
+                    "friends",
+                    "developers"
+                ]
+            },
+            {
+                "name": "qbert",
+                "password": "404knot-found",
+                "given_name": "Quentin",
+                "surname": "Bert",
+                "member_of": [
+                    "friends"
+                ]
+            }
+        ]
+    }
+}
+```
+<!-- fellow vimmers:
+    pipe above section `'<,'>!python -m json.tool` to keep neat -->
+
+## The samba-container-config key
+
+Every valid sambacc JSON configuration file contains the key
+`samba-container-config` with a value in the form of a string vN were
+N is the numeric version number. Currently, only "v1" exists.
+This key-value combination allows us to support backwards-incompatible
+configuration file format changes in the future.
+
+## Configs Section
+
+The `configs` section is a mapping of configuration names to top-level
+configurations. A useable configuration file must have at least one
+configuration, but more than one is supported.
+
+Each configuration section is as follows:
+* `instance_name` - A name for the configuration instance. Used for Samba's
+  server (netbios) name.
+* `instance_features` - Optional list. Feature names that alter the high
+  level behavior of sambacc. Valid feature flags are: `CTDB`, `ADDC`.
+* `shares` - List. The names of one or more share config sections to include
+  as part of the sambacc configuration.
+* `globals` - List. The names of one or more global config sections to
+  include as part of the sambacc configuration.
+* `domain_settings` - Only used with `ADDC` feature. Name of the AD DC
+  domain configuration.
+
+The subsections under `configs` can be used to uniquely identify one server
+"instance". Because those server instances may repeat the shares and samba
+globals are defined in their own sections and then included in an
+instance by referring to them in the `shares` and `globals` section
+of these subsections.
+
+
+## Shares Section
+
+The `shares` section is a mapping of share names to a share-configuration block.
+It is assumed that a configuration will have at least one share.
+
+Each share configuration section is as follows:
+* `options` - Mapping. The keys and values contained within are processed by
+  sambacc and become part of the smb.conf (or functional equivalent)
+  when running a Samba server.
+* `permissions` - Permissions configuration section:
+  * `method` - Permissions method. Known methods are:
+    * `none` - Perform no permissions management
+    * `initialize-share-perms` - Set share permissions only once. Track status in xattr.
+    * `always-share-perms` - Always set share permissions.
+  * `status_xattr` - Name of xattr to store status.
+  * Remaining key-value pairs are method specific. Unknown keys are ignored.
+  * `mode` - String that converts to octal. Unix permissions to set (`initialize-share-perms`, `always-share-perms`).
+
+
+## Globals Section
+
+The `globals` section is a mapping of named global configs to a
+globals-configuration block. It is assumed that a configuration will have
+at least one globals section.
+
+Each globals configuration section is as follows:
+* `options` - Mapping. The keys and values contained within are processed by
+  sambacc and become part of the global values in smb.conf (or functional
+  equivalent) when running a Samba server.
+
+If a configuration section names more than one globals section. All of the
+options within will be merged together to produce a single list of Samba
+configuration globals.
+
+
+## Users Section
+
+The `users` section defines local users for a non-domain-member server
+instance.
+
+The `users` section supports one key, `all_entries`, which is a list of
+user entries. Each user entry is as follows:
+* `name` - The user's name.
+* `password` - Optional. A plain-text password.
+* `nt_hash` - Optional. An NT-Hashed password.
+* `uid` - Optional integer. Specify the exact Unix UID the user should have.
+* `gid` - Optional integer. Specify the exact Unix GID the user should have.
+
+One of either `password` or `nt_hash` must be specified.
+
+> **Warning**
+> Do not consider `nt_hash`ed passwords as secure as the algorithm used to
+> generate these hashes is weak (unsalted MD4). Use it only as a method to
+> obscure the original password from casual viewers.
+
+The NT-Hashed password can be generated by the following python snippet:
+> hashlib.new('md4', password.encode('utf-16-le')).hexdigest().upper()
+
+This may fail on some systems if the md4 hash has been disabled. Enabling
+the hash is left as an exercise for the reader.
+
+
+## Groups Section
+
+The `groups` section defines local groups for a non-domain-member server
+instance.
+
+The `groups` section supports one key, `all_entries`, which is a list of
+group entries. Each group entry is as follows:
+* `name` - The user's name.
+* `gid` - Optional integer. Specify the exact Unix GID the group should have.
+
+
+## Domain Settings Section
+
+The `domain_settings` sections defines configuration for AD DC
+instances. The `domain_settings` section contains a mapping of domain
+settings names to a domain-settings configuration block.
+
+Each domain configuration section is as follows:
+* `realm` - Name of the domain in kerberos realm form.
+* `short_domain` - Optional. The short (nt-style) name of the domain.
+* `admin_password` - The default password for the administrator user.
+
+
+## Domain Groups Section
+
+The `domain_groups` section defines initial groups that will be
+automatically added to a newly provisioned domain. This section
+is a mapping of the domain settings name to a list of domain group
+entries.
+
+A domain group entry is as follows:
+* `name` - The name of the domain group.
+
+
+## Domain Users Section
+The `domain_users` section defines initial users that will be
+automatically added to a newly provisioned domain. This section
+is a mapping of the domain settings name to a list of domain user
+entries.
+
+A domain user entry is as follows:
+* `name` - The name of the user.
+* `surname` - A surname for the user.
+* `given_name` - A given name for the user.
+* `password` - A plain-text password.
+* `member_of` - Optional. List of group names. The user will be added to the listed
+  groups.
