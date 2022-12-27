@@ -116,6 +116,7 @@ def _exec_if_leader(
     cond_func: typing.Callable[..., typing.Tuple[config.InstanceConfig, bool]],
 ) -> typing.Callable[..., typing.Tuple[config.InstanceConfig, bool]]:
     """Run the cond func only on "nodes" that are the cluster leader."""
+
     # CTDB status and leader detection is not changeable at runtime.
     # we do not need to account for it changing in the updated config file(s)
     @functools.wraps(cond_func)
