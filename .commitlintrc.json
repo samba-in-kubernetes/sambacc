@@ -1,0 +1,32 @@
+{
+  "extends": [
+    "@commitlint/config-conventional"
+  ],
+  "rules": {
+    "type-enum": [
+      2,
+      "always",
+      [
+        "sambacc",
+        "commands",
+        "tests",
+        "container",
+        "tox",
+        "setup.py",
+        "examples",
+        "tox.ini",
+        "project.toml",
+	"readme",
+	"workflows"
+	]
+    ],
+    "body-leading-blank": [
+      2,
+      "always"
+    ],
+    "footer-leading-blank": [
+      2,
+      "always"
+    ]
+  }
+}
