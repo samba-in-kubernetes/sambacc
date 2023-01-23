@@ -35,7 +35,7 @@ pull_request_rules:
       - "-draft"
       # Contributors should set the 'do-not-merge' label if they don't want
       # the PR to be (auto)merged for some reason.
-      - "label!=do-no-merge"
+      - "label!=do-not-merge"
       # A reviewer should set a label starting with 'review-in-progress' (and
       # suffixed by their username) in order to indicate a detailed review has
       # been started and not completed. This will hold the PR until the
