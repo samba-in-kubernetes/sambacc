@@ -79,6 +79,59 @@ setup_update() {
     fi
 }
 
+task_sys_deps() {
+    info "installing system packages"
+    OS_VER=$(source /etc/os-release && echo "${ID}-${VERSION_ID}")
+    case "${OS_VER}" in
+        centos*)
+            info "detected centos (stream): ${OS_VER}"
+            use_centos=true
+        ;;
+        fedora*)
+            info "detected fedora: ${OS_VER}"
+            use_centos=
+        ;;
+        *)
+            info "unknown platform: ${OS_VER}"
+            return 1
+        ;;
+    esac
+
+    yum_args=("--setopt=install_weak_deps=False")
+    pkgs=(\
+        git \
+        mercurial \
+        python-pip \
+        python-pip-wheel \
+        python-setuptools \
+        python-setuptools-wheel \
+        python-tox \
+        python3-samba \
+        python3-wheel \
+        python3-pyxattr \
+        python3-devel \
+        python3.9 \
+        samba-common-tools \
+        rpm-build \
+        'python3dist(flake8)' \
+        'python3dist(inotify-simple)' \
+        'python3dist(mypy)' \
+        'python3dist(pytest)' \
+        'python3dist(pytest-cov)' \
+        'python3dist(setuptools-scm)' \
+        'python3dist(tox-current-env)' \
+        'python3dist(wheel)' \
+    )
+
+    if [ "$use_centos" ]; then
+        yum install -y epel-release
+        yum_args=(--enablerepo=crb)
+        pkgs+=(pyproject-rpm-macros)
+    fi
+    yum "${yum_args[@]}" install -y "${pkgs[@]}"
+    yum clean all
+}
+
 task_test_tox() {
     # Run tox with sitepackages enabled to allow access to system installed samba
     # modules. The container env already provides us control over the env.
@@ -150,7 +203,23 @@ export WRITABLE_PASSWD=yes
 export NSS_WRAPPER_PASSWD=/etc/passwd
 export NSS_WRAPPER_GROUP=/etc/group
 
+# when called with --install as the first argument, go into a special mode
+# typically used to just install the container's dependency packages
+if [[ "$1" = "--install" ]]; then
+    task_sys_deps
+    exit $?
+fi
 
+# if critical packages (currently just git) are missing we assume that
+# we need to automatically enable the task_sys_deps step.
+# this step is not enabled by default due to the overhead that updating
+# the dnf repos creates on the overall build time.
+if ! command -v git &>/dev/null ; then
+    tasks="$tasks task_sys_deps"
+fi
+
+
+chk task_sys_deps
 setup_fetch "$2"
 cd "${bdir}"
 setup_update "$1"
