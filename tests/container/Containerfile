@@ -1,30 +1,14 @@
-FROM registry.fedoraproject.org/fedora:36
+ARG SAMBACC_BASE_IMAGE='registry.fedoraproject.org/fedora:36'
+FROM $SAMBACC_BASE_IMAGE
 
-RUN yum install \
-    -y --setopt=install_weak_deps=False \
-    git \
-    mercurial \
-    python-pip \
-    python-pip-wheel \
-    python-setuptools \
-    python-setuptools-wheel \
-    python-tox \
-    python3-samba \
-    python3-wheel \
-    python3-pyxattr \
-    python3-devel \
-    python3.9 \
-    samba-common-tools \
-    rpm-build \
-    'python3dist(flake8)' \
-    'python3dist(inotify-simple)' \
-    'python3dist(mypy)' \
-    'python3dist(pytest)' \
-    'python3dist(pytest-cov)' \
-    'python3dist(setuptools-scm)' \
-    'python3dist(tox-current-env)' \
-    'python3dist(wheel)' \
-    && yum clean all \
-    && true
+
 COPY build.sh /usr/local/bin/build.sh
+
+# Set SAMBACC_MINIMAL to yes to build a container that only contains the
+# build.sh script on top of the base image. When called, build.sh will
+# automatically install the dependency packages. Installing packages on every
+# run can be slow, especially if you are hacking on the code or tests, so we
+# install those dependencies proactively by default.
+ARG SAMBACC_MINIMAL=no
+RUN if [ "$SAMBACC_MINIMAL" != "yes" ]; then /usr/local/bin/build.sh --install ; fi
 ENTRYPOINT ["/usr/local/bin/build.sh"]
