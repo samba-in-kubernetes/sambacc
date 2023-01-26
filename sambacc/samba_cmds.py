@@ -44,7 +44,7 @@ def get_samba_specifics() -> typing.Set[str]:
 
 def _daemon_stdout_opt(daemon: str) -> str:
     if daemon == "smbd":
-        opt = "--log-stdout"
+        opt = "--debug-stdout"
     else:
         opt = "--stdout"
     opt_lst = get_samba_specifics()
