@@ -140,7 +140,7 @@ structure and a description of these sections.
 
 Every valid sambacc JSON configuration file contains the key
 `samba-container-config` with a value in the form of a string vN were
-N is the numeric version number. Currently, only "v1" exists.
+N is the numeric version number. Currently, only "v0" exists.
 This key-value combination allows us to support backwards-incompatible
 configuration file format changes in the future.
 
