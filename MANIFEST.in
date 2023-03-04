@@ -1,2 +1,3 @@
 # Include example files
 recursive-include examples *
+recursive-include sambacc/schema *.json *.yaml
