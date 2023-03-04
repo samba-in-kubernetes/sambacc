@@ -32,6 +32,11 @@ _open = open
 PasswdEntryTuple = typing.Tuple[str, str, str, str, str, str, str]
 GroupEntryTuple = typing.Tuple[str, str, str, str]
 
+# JSONData is not really a completely valid representation of json in
+# the type system, but it's good enough for now. Using it can help
+# clarify what works with json and what works with real python dicts.
+JSONData = dict[str, typing.Any]
+
 # the standard location for samba's smb.conf
 SMB_CONF = "/etc/samba/smb.conf"
 
@@ -68,7 +73,7 @@ def read_config_files(fnames: list[str]) -> GlobalConfig:
     return gconfig
 
 
-def _check_config_data(data: dict[str, typing.Any]) -> dict[str, typing.Any]:
+def _check_config_data(data: JSONData) -> JSONData:
     """Return the config data or raise a ValueError if the config
     is invalid or incomplete.
     """
@@ -91,7 +96,7 @@ class SambaConfig(typing.Protocol):
 
 class GlobalConfig:
     def __init__(self, source: typing.Optional[typing.IO] = None) -> None:
-        self.data: dict[str, typing.Any] = {}
+        self.data: JSONData = {}
         if source is not None:
             self.load(source)
 
