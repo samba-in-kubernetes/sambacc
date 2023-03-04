@@ -1,0 +1,296 @@
+---
+# EDIT THIS FILE
+# When you are done editing this YAML representation, convert it into
+# a matching <name>.json file in the same directory. That file exists
+# for jsonschema implmenations that can't read directly from YAML.
+#
+# After edting this file, generated files need to be updated.
+# Run: python -m sambacc.schema.tool --update
+#
+$schema:  "http://json-schema.org/draft-07/schema#"
+$id: "mailto:phlogistonjohn+sambacc-v0@asynchrono.us"
+title: "sambacc configuration"
+description: |
+  The configuration for the sambacc tool. sambacc configures Samba and the container
+  environment to fit Samba's unique needs. This configuration can hold configuration
+  for more than one server "instance". The "configs" section contains one or more
+  configuration with a name that can be selected at runtime. Share definitions
+  and samba global configuration blocks can be mixed and matched.
+type: "object"
+$defs:
+  # indirections from the configuration to named sections
+  # under globals, shares, etc.
+  section_choices:
+    description: |
+      Selects sub-sections from elsewhere in the configuration.
+    type: array
+    items:
+      type: string
+  # feature flags are a known set of values
+  feature_flags:
+    description: |
+      Feature flags are used to enable specific, wide-ranging, features of
+      sambacc. For example, it is used to enable clustered mode with ctdb.
+    type: array
+    items:
+      enum:
+        - addc
+        - ctdb
+  # options that are passed directly into smb.conf
+  samba_options:
+    description: |
+      A mapping of values that will be passed into the smb.conf (or equivalent)
+      to directly configure Samba.
+    type: object
+    additionalProperties:
+      type: string
+  # permissions backend configurations
+  # each backend may have it's own set of additional properties
+  permissions_config:
+    description: |
+      Settings that enable and manage sambacc's permissions management support.
+    type: object
+    properties:
+      method:
+        description: Backend method for controlling permissions on shares
+        type: string
+      status_xattr:
+        description: xattr name used to store permissions state
+        type: string
+    additionalProperties:
+      type: string
+  # file server user entries
+  user_entry:
+    description: |
+      A user that will be instantiated in the local contianer environment to
+      in order to provide access to smb shares.
+    type: object
+    properties:
+      name:
+        description: The user's name
+        type: string
+      uid:
+        description: The Unix UID the user should have
+        type: integer
+      gid:
+        description: The Unix GID the user should have
+        type: integer
+      nt_hash:
+        description: An NT-Hashed password
+        type: string
+      password:
+        description: A plain-text password
+        type: string
+    required:
+      - name
+    additionalProperties: false
+  # file server group entries
+  group_entry:
+    description: |
+      A group that will be instantiated in the local contianer environment to
+      in order to provide access to smb shares.
+    type: object
+    properties:
+      name:
+        description: The group name
+        type: string
+      gid:
+        description: The Unix GID the group should have
+        type: integer
+    required:
+      - name
+    additionalProperties: false
+  # domain controller user entries
+  domain_user_entry:
+    description: |
+      A user that will be created in the specified AD domain. These
+      users are populated in the directory after the domain is provisioned.
+    type: object
+    properties:
+      name:
+        description: The user's name
+        type: string
+      surname:
+        description: A surname for the user
+        type: string
+      given_name:
+        description: A given name for the user
+        type: string
+      uid:
+        type: integer
+      gid:
+        type: integer
+      nt_hash:
+        type: string
+      password:
+        description: A plain-text password
+        type: string
+      member_of:
+        description: A list of group names that the user should belong to
+        type: array
+        items:
+          type: string
+    required:
+      - name
+    additionalProperties: false
+  # domain controller group entries
+  domain_group_entry:
+    description: |
+      A group that will be created in the specified AD domain. These
+      groups are populated in the directory after the domain is provisioned.
+    type: object
+    properties:
+      name:
+        description: The group name
+        type: string
+      gid:
+        type: integer
+    required:
+      - name
+    additionalProperties: false
+properties:
+  samba-container-config:
+    type: "string"
+    title: "Cofiguration Format Version"
+    description: |
+      A short version string that assists in allowing the configuration
+      format to (some day) support incompatible version changes.
+      (It is unique to the configuration and is not the version of sambacc)
+  # top-level configuration section. each subsection is an "instance" -
+  # a single server or a group of servers acting as one unit.
+  # You can store multiple instance configurations in a single config and
+  # use the sambacc --identity/SAMBA_CONTAINER_ID to select between them.
+  configs:
+    title: "Container Configurations"
+    description: |
+      A mapping of named configurations (instances) to top-level configuration
+      blocks. A useable configuration file must have at least one configuration,
+      but more than one is supported.
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        shares:
+          $ref: "#/$defs/section_choices"
+        globals:
+          $ref: "#/$defs/section_choices"
+        instance_features:
+          $ref: "#/$defs/feature_flags"
+        permissions:
+          $ref: "#/$defs/permissions_config"
+        instance_name:
+          description: |
+            A name that will be set for the server instance.
+          type: string
+        domain_settings:
+          description: |
+            The name of the domain settings. Only used with 'ADDC' feature flag.
+          type: string
+      additionalProperties: false
+  # share defintions.
+  shares:
+    description: |
+      A mapping of share name to share specific configuration. A share can
+      have "options" that are passed to Samba. Shares can have an optional
+      "permissions" section for managing permissions/acls in sambacc.
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        options:
+          $ref: "#/$defs/samba_options"
+        permissions:
+          $ref: "#/$defs/permissions_config"
+      additionalProperties: false
+  # globals defintions.
+  globals:
+    description: |
+      A mapping of samba global configuation blocks. The global section names
+      are not passed to Samba. All sections selected by a configuration are
+      merged together before passing to Samba.
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        options:
+          $ref: "#/$defs/samba_options"
+      additionalProperties: false
+  # domain_settings configures an AD DC based instance
+  domain_settings:
+    description: |
+      A mapping of AD DC domain configuration keys to domain configurations.
+      These parameters are used when provisioning an AD DC instance.
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        realm:
+          type: string
+        short_domain:
+          type: string
+        admin_password:
+          type: string
+      required:
+        - realm
+      additionalProperties: false
+  # users to be set up in the container environment prior to starting
+  # a samba fileserver
+  users:
+    description: |
+      Users to add to the container environment in order to provide
+      Share access-control wihout becoming a domain member server.
+    type: object
+    properties:
+      all_entries:
+        type: array
+        items:
+          $ref: "#/$defs/user_entry"
+  # groups to be set up in the container environment prior to starting
+  # a samba fileserver
+  groups:
+    description: |
+      Groups to add to the container environment in order to provide
+      Share access-control wihout becoming a domain member server.
+    type: object
+    properties:
+      all_entries:
+        type: array
+        items:
+          $ref: "#/$defs/group_entry"
+  # domain_users are users that will be initialized for a new AD DC instance
+  domain_users:
+    description: |
+      The domain_users section defines initial users that will be automatically
+      added to a newly provisioned domain. This section is a mapping of the
+      domain settings name to a list of domain user entries.
+    type: object
+    additionalProperties:
+      type: array
+      items:
+        $ref: "#/$defs/domain_user_entry"
+  # domain_groups are groups that will be initialized for a new AD DC instance
+  domain_groups:
+    description: |
+      The domain_groups section defines initial groups that will be
+      automatically added to a newly provisioned domain. This section is
+      a mapping of the domain settings name to a list of domain group entries.
+    type: object
+    additionalProperties:
+      type: array
+      items:
+        $ref: "#/$defs/domain_group_entry"
+  # ctdb customization settings
+  # generally for developers/expert users only. these ctdb specific overrides
+  # live outside the smb.conf and have their own section
+  ctdb:
+    type: object
+    additionalProperties:
+      type: string
+additionalProperties: false
+required:
+  - samba-container-config
+# we use the following patternProperties to allow any key starting
+# with underscores so that the writer of the config can add extra
+# metadata or comments freely.
+patternProperties:
+  "^_": true
