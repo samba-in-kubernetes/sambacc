@@ -529,7 +529,7 @@ def test_ad_dc_invalid():
         list(i1.domain_groups())
 
 
-def test_ad_dc_bad_memeber_of():
+def test_ad_dc_bad_member_of():
     jdata = """
 {
   "samba-container-config": "v0",
