@@ -64,11 +64,11 @@ def read_config_files(fnames: list[str]) -> GlobalConfig:
         # we read nothing! don't proceed
         raise ValueError(f"None of the config file paths exist: {fnames}")
     # Verify that we loaded something
-    check_config_data(gconfig.data)
+    _check_config_data(gconfig.data)
     return gconfig
 
 
-def check_config_data(data: dict[str, typing.Any]) -> dict[str, typing.Any]:
+def _check_config_data(data: dict[str, typing.Any]) -> dict[str, typing.Any]:
     """Return the config data or raise a ValueError if the config
     is invalid or incomplete.
     """
@@ -96,7 +96,7 @@ class GlobalConfig:
             self.load(source)
 
     def load(self, source: typing.IO) -> None:
-        data = check_config_data(json.load(source))
+        data = _check_config_data(json.load(source))
         self.data.update(data)
 
     def get(self, ident: str) -> InstanceConfig:
