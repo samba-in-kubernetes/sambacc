@@ -530,42 +530,36 @@ def test_ad_dc_invalid():
 
 
 def test_ad_dc_bad_member_of():
-    jdata = """
-{
-  "samba-container-config": "v0",
-  "configs": {
-    "demo": {
-      "instance_features": ["addc"],
-      "domain_settings": "sink",
-      "instance_name": "dc1"
+    jdata = {
+        "samba-container-config": "v0",
+        "configs": {
+            "demo": {
+                "instance_features": ["addc"],
+                "domain_settings": "sink",
+                "instance_name": "dc1",
+            }
+        },
+        "domain_settings": {
+            "sink": {
+                "realm": "DOMAIN1.SINK.TEST",
+                "short_domain": "DOMAIN1",
+                "admin_password": "Passw0rd",
+            }
+        },
+        "domain_groups": {"sink": [{"name": "friends"}]},
+        "domain_users": {
+            "sink": [
+                {
+                    "name": "ckent",
+                    "password": "1115Rose.",
+                    "given_name": "Clark",
+                    "surname": "Kent",
+                    "member_of": "friends",
+                }
+            ]
+        },
     }
-  },
-  "domain_settings": {
-    "sink": {
-      "realm": "DOMAIN1.SINK.TEST",
-      "short_domain": "DOMAIN1",
-      "admin_password": "Passw0rd"
-    }
-  },
-  "domain_groups": {
-    "sink": [
-      {"name": "friends"}
-    ]
-  },
-  "domain_users": {
-    "sink": [
-      {
-        "name": "ckent",
-        "password": "1115Rose.",
-        "given_name": "Clark",
-        "surname": "Kent",
-        "member_of": "friends"
-      }
-    ]
-  }
-}
-    """
-    c1 = sambacc.config.GlobalConfig(io.StringIO(jdata))
+    c1 = sambacc.config.GlobalConfig(initial_data=jdata)
     i1 = c1.get("demo")
     assert i1.with_addc
 
