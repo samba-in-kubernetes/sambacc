@@ -95,8 +95,13 @@ class SambaConfig(typing.Protocol):
 
 
 class GlobalConfig:
-    def __init__(self, source: typing.Optional[typing.IO] = None) -> None:
-        self.data: JSONData = {}
+    def __init__(
+        self,
+        source: typing.Optional[typing.IO] = None,
+        *,
+        initial_data: typing.Optional[JSONData] = None,
+    ) -> None:
+        self.data: JSONData = {} if initial_data is None else initial_data
         if source is not None:
             self.load(source)
 
