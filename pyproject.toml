@@ -28,3 +28,7 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = "sambacc.commands.*"
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "sambacc.schema.*"
+disallow_untyped_defs = false
