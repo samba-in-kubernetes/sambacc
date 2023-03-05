@@ -44,8 +44,58 @@ CTDB: typing.Final[str] = "ctdb"
 ADDC: typing.Final[str] = "addc"
 FEATURES: typing.Final[str] = "instance_features"
 
+# cache for json schema data
+_JSON_SCHEMA: dict[str, typing.Any] = {}
 
-def read_config_files(fnames: list[str]) -> GlobalConfig:
+
+class ValidationUnsupported(Exception):
+    pass
+
+
+def _schema_validate(data: dict[str, typing.Any], version: str) -> None:
+    try:
+        import jsonschema
+    except ImportError:
+        raise ValidationUnsupported()
+
+    global _JSON_SCHEMA
+    if version == "v0" and version not in _JSON_SCHEMA:
+        try:
+            import sambacc.schema.conf_v0_schema
+
+            _JSON_SCHEMA[version] = sambacc.schema.conf_v0_schema.SCHEMA
+        except ImportError:
+            raise ValidationUnsupported()
+    jsonschema.validate(instance=data, schema=_JSON_SCHEMA[version])
+
+
+def _check_config_version(data: JSONData) -> str:
+    """Return the config data or raise a ValueError if the config
+    is invalid or incomplete.
+    """
+    # short-cut to validate that this is something we want to consume
+    version = data.get("samba-container-config")
+    if version is None:
+        raise ValueError("Invalid config: no samba-container-config key")
+    elif version not in _VALID_VERSIONS:
+        raise ValueError(f"Invalid config: unknown version {version}")
+    return version
+
+
+def _check_config_valid(
+    data: JSONData, version: str, required: typing.Optional[bool] = None
+) -> None:
+    if required or required is None:
+        try:
+            _schema_validate(data, version)
+        except ValidationUnsupported:
+            if required:
+                raise
+
+
+def read_config_files(
+    fnames: list[str], *, require_validation: typing.Optional[bool] = None
+) -> GlobalConfig:
     """Read the global container config from the given filenames.
     At least one of the files from the fnames list must exist and contain
     a valid config. If none of the file names exist an error will be raised.
@@ -60,7 +110,7 @@ def read_config_files(fnames: list[str]) -> GlobalConfig:
     for fname in fnames:
         try:
             with _open(fname) as fh:
-                gconfig.load(fh)
+                gconfig.load(fh, require_validation=require_validation)
             readfiles.add(fname)
         except OSError as err:
             if getattr(err, "errno", 0) != errno.ENOENT:
@@ -68,22 +118,7 @@ def read_config_files(fnames: list[str]) -> GlobalConfig:
     if not readfiles:
         # we read nothing! don't proceed
         raise ValueError(f"None of the config file paths exist: {fnames}")
-    # Verify that we loaded something
-    _check_config_data(gconfig.data)
     return gconfig
-
-
-def _check_config_data(data: JSONData) -> JSONData:
-    """Return the config data or raise a ValueError if the config
-    is invalid or incomplete.
-    """
-    # short-cut to validate that this is something we want to consume
-    version = data.get("samba-container-config")
-    if version is None:
-        raise ValueError("Invalid config: no samba-container-config key")
-    elif version not in _VALID_VERSIONS:
-        raise ValueError(f"Invalid config: unknown version {version}")
-    return data
 
 
 class SambaConfig(typing.Protocol):
@@ -105,8 +140,15 @@ class GlobalConfig:
         if source is not None:
             self.load(source)
 
-    def load(self, source: typing.IO) -> None:
-        data = _check_config_data(json.load(source))
+    def load(
+        self,
+        source: typing.IO,
+        require_validation: typing.Optional[bool] = None,
+    ) -> None:
+        data = json.load(source)
+        _check_config_valid(
+            data, _check_config_version(data), require_validation
+        )
         self.data.update(data)
 
     def get(self, ident: str) -> InstanceConfig:
