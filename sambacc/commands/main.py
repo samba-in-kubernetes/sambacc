@@ -99,6 +99,11 @@ def global_args(parser: Parser) -> None:
         action="append",
         help=("Perform no action if the specified path exists."),
     )
+    parser.add_argument(
+        "--validate-config",
+        choices=("auto", "required", "true", "false"),
+        help=("Perform schema based validation of configuration."),
+    )
 
 
 def from_env(
@@ -147,6 +152,7 @@ def env_to_cli(cli: typing.Any) -> None:
     from_env(cli, "username", "JOIN_USERNAME")
     from_env(cli, "password", "INSECURE_JOIN_PASSWORD")
     from_env(cli, "samba_debug_level", "SAMBA_DEBUG_LEVEL")
+    from_env(cli, "validate_config", "SAMBACC_VALIDATE_CONFIG")
 
 
 class CommandContext:
@@ -165,10 +171,18 @@ class CommandContext:
     def instance_config(self) -> config.InstanceConfig:
         if self._iconfig is None:
             cfgs = self.cli.config or []
-            self._iconfig = config.read_config_files(cfgs).get(
-                self.cli.identity
-            )
+            self._iconfig = config.read_config_files(
+                cfgs, require_validation=self.require_validation
+            ).get(self.cli.identity)
         return self._iconfig
+
+    @property
+    def require_validation(self) -> typing.Optional[bool]:
+        if self.cli.validate_config in ("required", "true"):
+            return True
+        if self.cli.validate_config == "false":
+            return False
+        return None
 
 
 def pre_action(cli: typing.Any) -> None:
