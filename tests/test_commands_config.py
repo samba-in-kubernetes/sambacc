@@ -94,6 +94,7 @@ class FakeContext:
         self.instance_config = instance_config
         for k, v in opts.items():
             setattr(self.cli, k, v)
+        self.require_validation = False
 
     @classmethod
     def defaults(cls, cfg_path, watch=False):
