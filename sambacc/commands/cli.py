@@ -141,6 +141,10 @@ class Context(typing.Protocol):
     def instance_config(self) -> config.InstanceConfig:
         ...  # pragma: no cover
 
+    @property
+    def require_validation(self) -> typing.Optional[bool]:
+        ...  # pragma: no cover
+
 
 def best_waiter(
     filename: typing.Optional[str] = None,
