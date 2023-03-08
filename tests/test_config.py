@@ -754,3 +754,161 @@ def test_permissions_config_options():
     assert len(opts) == 2
     assert "mode" in opts
     assert "friendship" in opts
+
+
+@pytest.mark.parametrize(
+    "json_str,ok",
+    [
+        pytest.param("{}", False, id="empty-json"),
+        pytest.param('{"samba-container-config":"v0"}', True, id="minimal"),
+        pytest.param(
+            """
+{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar": {
+            "shares": [
+                "foobar"
+            ]
+        }
+    },
+    "shares": {
+        "foobar": {
+            "options": {
+                "a": "b"
+            }
+        }
+    }
+}
+        """,
+            True,
+            id="one-share",
+        ),
+        pytest.param(
+            """
+{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar": {
+            "shares": [
+                "foobar"
+            ]
+        }
+    },
+    "shares": {
+        "foobar": {
+            "options": {
+                "a": "b"
+            }
+        }
+    },
+    "chairs": {"maple": true}
+}
+        """,
+            False,
+            id="invalid-section",
+        ),
+        pytest.param(
+            """
+{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar": {
+            "shares": [
+                "foobar"
+            ]
+        }
+    },
+    "shares": {
+        "foobar": {
+            "options": {
+                "a": "b"
+            }
+        }
+    },
+    "_chairs": {"maple": true}
+}
+        """,
+            True,
+            id="underscore-prefix",
+        ),
+        pytest.param(
+            """
+{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar": {
+            "lazlo": "quux",
+            "shares": [
+                "foobar"
+            ]
+        }
+    },
+    "shares": {
+        "foobar": {
+            "options": {
+                "a": "b"
+            }
+        }
+    }
+}
+        """,
+            False,
+            id="bad-config-param",
+        ),
+        pytest.param(
+            """
+{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar": {
+            "shares": "foobar"
+        }
+    },
+    "shares": {
+        "foobar": {
+            "options": {
+                "a": "b"
+            }
+        }
+    }
+}
+        """,
+            False,
+            id="bad-config-type",
+        ),
+        pytest.param(
+            """
+{
+    "samba-container-config": "v0",
+    "configs": {
+        "foobar": {
+            "shares": [
+                "foobar"
+            ]
+        }
+    },
+    "shares": {
+        "foobar": {
+            "blooper": true,
+            "options": {
+                "a": "b"
+            }
+        }
+    }
+}
+        """,
+            False,
+            id="bad-share-prop",
+        ),
+    ],
+)
+def test_jsonschema_validation(json_str, ok):
+    jsonschema = pytest.importorskip("jsonschema")
+
+    cfg = sambacc.config.GlobalConfig()
+    if ok:
+        cfg.load(io.StringIO(json_str), require_validation=True)
+    else:
+        with pytest.raises((ValueError, jsonschema.ValidationError)):
+            cfg.load(io.StringIO(json_str), require_validation=True)
