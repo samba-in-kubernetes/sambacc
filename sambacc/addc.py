@@ -110,6 +110,7 @@ def _provision_cmd(
         f"--realm={realm}",
         f"--domain={domain}",
         f"--adminpass={admin_password}",
+        "--adprep-level=SKIP",
     ].argv()
     return cmd
 
