@@ -448,7 +448,7 @@ def test_read_config_files_realerr(tmpdir):
 
 
 def test_tesd_config_files_realerr_rootok(monkeypatch):
-    def err_open(p):
+    def err_open(*args):
         raise OSError("test!")
 
     monkeypatch.setattr(sambacc.config, "_open", err_open)
@@ -912,3 +912,169 @@ def test_jsonschema_validation(json_str, ok):
     else:
         with pytest.raises((ValueError, jsonschema.ValidationError)):
             cfg.load(io.StringIO(json_str), require_validation=True)
+
+
+@pytest.mark.parametrize(
+    "toml_str,ok",
+    [
+        pytest.param("", False, id="empty"),
+        pytest.param("#####FOO", False, id="just-a-comment"),
+        pytest.param(
+            """
+samba-container-config = "v0"
+""",
+            True,
+            id="minimal",
+        ),
+        pytest.param(
+            """
+samba-container-config = "v0"
+
+# Define configurations
+[configs.foobar]
+shares = ["foobar"]
+
+# Define share options
+[shares.foobar.options]
+a = "b"
+""",
+            True,
+            id="one-share",
+        ),
+    ],
+)
+def test_toml_configs_no_validation(toml_str, ok):
+    pytest.importorskip("tomllib")
+
+    cfg = sambacc.config.GlobalConfig()
+    fh = io.BytesIO(toml_str.encode("utf8"))
+    if ok:
+        cfg.load(
+            fh,
+            require_validation=False,
+            config_format=sambacc.config.ConfigFormat.TOML,
+        )
+    else:
+        with pytest.raises(ValueError):
+            cfg.load(
+                fh,
+                require_validation=False,
+                config_format=sambacc.config.ConfigFormat.TOML,
+            )
+
+
+@pytest.mark.parametrize(
+    "toml_str,ok",
+    [
+        pytest.param("", False, id="empty"),
+        pytest.param("#####FOO", False, id="just-a-comment"),
+        pytest.param(
+            """
+samba-container-config = "v0"
+""",
+            True,
+            id="minimal",
+        ),
+        pytest.param(
+            """
+samba-container-config = "v0"
+
+# Define configurations
+[configs.foobar]
+shares = ["foobar"]
+
+# Define share options
+[shares.foobar.options]
+a = "b"
+""",
+            True,
+            id="one-share",
+        ),
+        pytest.param(
+            """
+samba-container-config = "v0"
+
+# Define configurations
+[configs.foobar]
+shares = ["foobar"]
+instance_features = "Kibbe"
+
+# Define share options
+[shares.foobar.options]
+a = "b"
+""",
+            False,
+            id="bad-instance_features",
+        ),
+        pytest.param(
+            """
+samba-container-config = "v0"
+
+# Define configurations
+[configs.foobar]
+shares = ["foobar"]
+instance_features = ["ctdb"]
+
+# Define share options
+[shares.foobar.options]
+a = "b"
+""",
+            True,
+            id="ok-instance_features",
+        ),
+        pytest.param(
+            """
+samba-container-config = "v0"
+
+[configs.demo]
+shares = ["share"]
+globals = ["default"]
+instance_features = ["ctdb"]
+instance_name = "SAMBA"
+
+[shares.share.options]
+"path" = "/share"
+"read only" = "no"
+"valid users" = "sambauser, otheruser"
+
+[globals.default.options]
+"security" = "user"
+"server min protocol" = "SMB2"
+"load printers" = "no"
+"printing" = "bsd"
+"printcap name" = "/dev/null"
+"disable spoolss" = "yes"
+"guest ok" = "no"
+
+[[users.all_entries]]
+name = "sambauser"
+password = "samba"
+
+[[users.all_entries]]
+name = "otheruser"
+password = "insecure321"
+""",
+            True,
+            id="complex",
+        ),
+    ],
+)
+def test_toml_configs_validation(toml_str, ok):
+    pytest.importorskip("tomllib")
+    jsonschema = pytest.importorskip("jsonschema")
+
+    cfg = sambacc.config.GlobalConfig()
+    fh = io.BytesIO(toml_str.encode("utf8"))
+    if ok:
+        cfg.load(
+            fh,
+            require_validation=True,
+            config_format=sambacc.config.ConfigFormat.TOML,
+        )
+    else:
+        with pytest.raises((ValueError, jsonschema.ValidationError)):
+            cfg.load(
+                fh,
+                require_validation=True,
+                config_format=sambacc.config.ConfigFormat.TOML,
+            )
