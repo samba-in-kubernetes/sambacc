@@ -19,8 +19,10 @@
 from __future__ import annotations
 
 import binascii
+import enum
 import errno
 import json
+import sys
 import typing
 
 _VALID_VERSIONS = ["v0"]
@@ -48,12 +50,42 @@ FEATURES: typing.Final[str] = "instance_features"
 _JSON_SCHEMA: dict[str, typing.Any] = {}
 
 
+class ConfigFormat(enum.Enum):
+    JSON = "json"
+    TOML = "toml"
+
+
 class ValidationUnsupported(Exception):
     pass
 
 
 class _FakeRefResolutionError(Exception):
     pass
+
+
+class ConfigFormatUnsupported(Exception):
+    pass
+
+
+if sys.version_info >= (3, 11):
+
+    def _load_toml(source: typing.IO) -> JSONData:
+        try:
+            import tomllib
+        except ImportError:
+            raise ConfigFormatUnsupported(ConfigFormat.TOML)
+        return tomllib.load(source)
+
+else:
+
+    def _load_toml(source: typing.IO) -> JSONData:
+        raise ConfigFormatUnsupported(ConfigFormat.TOML)
+
+
+def _detect_format(fname: str) -> ConfigFormat:
+    if fname.endswith(".toml"):
+        return ConfigFormat.TOML
+    return ConfigFormat.JSON
 
 
 def _schema_validate(data: dict[str, typing.Any], version: str) -> None:
@@ -119,9 +151,14 @@ def read_config_files(
     gconfig = GlobalConfig()
     readfiles = set()
     for fname in fnames:
+        config_format = _detect_format(str(fname))
         try:
-            with _open(fname) as fh:
-                gconfig.load(fh, require_validation=require_validation)
+            with _open(fname, "rb") as fh:
+                gconfig.load(
+                    fh,
+                    require_validation=require_validation,
+                    config_format=config_format,
+                )
             readfiles.add(fname)
         except OSError as err:
             if getattr(err, "errno", 0) != errno.ENOENT:
@@ -154,9 +191,15 @@ class GlobalConfig:
     def load(
         self,
         source: typing.IO,
+        *,
         require_validation: typing.Optional[bool] = None,
+        config_format: typing.Optional[ConfigFormat] = None,
     ) -> None:
-        data = json.load(source)
+        config_format = config_format or ConfigFormat.JSON
+        if config_format == ConfigFormat.TOML:
+            data = _load_toml(source)
+        else:
+            data = json.load(source)
         _check_config_valid(
             data, _check_config_version(data), require_validation
         )
