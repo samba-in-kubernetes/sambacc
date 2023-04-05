@@ -53,6 +53,7 @@ _JSON_SCHEMA: dict[str, typing.Any] = {}
 class ConfigFormat(enum.Enum):
     JSON = "json"
     TOML = "toml"
+    YAML = "yaml"
 
 
 class ValidationUnsupported(Exception):
@@ -82,9 +83,19 @@ else:
         raise ConfigFormatUnsupported(ConfigFormat.TOML)
 
 
+def _load_yaml(source: typing.IO) -> JSONData:
+    try:
+        import yaml
+    except ImportError:
+        raise ConfigFormatUnsupported(ConfigFormat.YAML)
+    return yaml.safe_load(source) or {}
+
+
 def _detect_format(fname: str) -> ConfigFormat:
     if fname.endswith(".toml"):
         return ConfigFormat.TOML
+    if fname.endswith((".yaml", ".yml")):
+        return ConfigFormat.YAML
     return ConfigFormat.JSON
 
 
@@ -198,6 +209,8 @@ class GlobalConfig:
         config_format = config_format or ConfigFormat.JSON
         if config_format == ConfigFormat.TOML:
             data = _load_toml(source)
+        elif config_format == ConfigFormat.YAML:
+            data = _load_yaml(source)
         else:
             data = json.load(source)
         _check_config_valid(
