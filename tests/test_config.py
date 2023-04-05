@@ -1078,3 +1078,177 @@ def test_toml_configs_validation(toml_str, ok):
                 require_validation=True,
                 config_format=sambacc.config.ConfigFormat.TOML,
             )
+
+
+@pytest.mark.parametrize(
+    "yaml_str,ok",
+    [
+        pytest.param("", False, id="empty"),
+        pytest.param("#####FOO", False, id="just-a-comment"),
+        pytest.param(
+            """
+samba-container-config: "v0"
+""",
+            True,
+            id="minimal",
+        ),
+        pytest.param(
+            """
+samba-container-config: "v0"
+# Define configurations
+configs:
+  foobar:
+    shares:
+      - foobar
+shares:
+  foobar:
+    options:
+      a: b
+""",
+            True,
+            id="one-share",
+        ),
+    ],
+)
+def test_yaml_configs_no_validation(yaml_str, ok):
+    pytest.importorskip("yaml")
+
+    cfg = sambacc.config.GlobalConfig()
+    fh = io.BytesIO(yaml_str.encode("utf8"))
+    if ok:
+        cfg.load(
+            fh,
+            require_validation=False,
+            config_format=sambacc.config.ConfigFormat.YAML,
+        )
+    else:
+        with pytest.raises(ValueError):
+            cfg.load(
+                fh,
+                require_validation=False,
+                config_format=sambacc.config.ConfigFormat.YAML,
+            )
+
+
+@pytest.mark.parametrize(
+    "yaml_str,ok",
+    [
+        pytest.param("", False, id="empty"),
+        pytest.param("#####FOO", False, id="just-a-comment"),
+        pytest.param(
+            """
+samba-container-config: v0
+""",
+            True,
+            id="minimal",
+        ),
+        pytest.param(
+            """
+samba-container-config: v0
+# Define configurations
+configs:
+  foobar:
+    shares:
+      - foobar
+# Define shares
+shares:
+  foobar:
+    options:
+      a: b
+""",
+            True,
+            id="one-share",
+        ),
+        pytest.param(
+            """
+samba-container-config: v0
+configs:
+  foobar:
+    instance_features: baroof
+    shares:
+      - foobar
+shares:
+  foobar:
+    options:
+      a: b
+""",
+            False,
+            id="bad-instance_features",
+        ),
+        pytest.param(
+            """
+samba-container-config: v0
+configs:
+  foobar:
+    instance_features:
+      - ctdb
+    shares:
+      - foobar
+shares:
+  foobar:
+    options:
+      a: b
+""",
+            True,
+            id="ok-instance_features",
+        ),
+        pytest.param(
+            """
+samba-container-config: "v0"
+# Configure our demo instance
+configs:
+  demo:
+    shares: ["share"]
+    globals: ["default"]
+    instance_features: ["ctdb"]
+    instance_name: "SAMBA"
+# Configure the share
+shares:
+  share:
+    options:
+      "path": "/share"
+      "read only": "no"
+      "valid users": "sambauser, otheruser"
+# Configure globals
+globals:
+  default:
+    options:
+      "security": "user"
+      "server min protocol": "SMB2"
+      "load printers": "no"
+      "printing": "bsd"
+      "printcap name": "/dev/null"
+      "disable spoolss": "yes"
+      "guest ok": "no"
+# Configure users
+users:
+  all_entries:
+    - {"name": "sambauser", "password": "samba"}
+    - {"name": "otheruser", "password": "insecure321"}
+    - name: cooluser
+      password: snarf
+""",
+            True,
+            id="complex",
+        ),
+    ],
+)
+def test_yaml_configs_validation(yaml_str, ok):
+    pytest.importorskip("yaml")
+    jsonschema = pytest.importorskip("jsonschema")
+
+    cfg = sambacc.config.GlobalConfig()
+    fh = io.BytesIO(yaml_str.encode("utf8"))
+    if ok:
+        cfg.load(
+            fh,
+            require_validation=True,
+            config_format=sambacc.config.ConfigFormat.YAML,
+        )
+    else:
+        with pytest.raises((ValueError, jsonschema.ValidationError)):
+            cfg.load(
+                fh,
+                require_validation=True,
+                config_format=sambacc.config.ConfigFormat.YAML,
+            )
