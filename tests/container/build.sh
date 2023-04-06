@@ -151,6 +151,12 @@ task_py_build() {
     # only
     distdir="$(get_distdir "$distname")"
     info "using dist dir: $distdir"
+
+    # setuptools_scm calls into git, newer git versions have stricter ownership
+    # rules that can break our builds when mounted into a container. Tell our
+    # in-container git, that it's all ok and the monsters aren't real.
+    # This config will vanish once the container exits anyway.
+    git config --global --add safe.directory "${bdir}"
     $python -m build --outdir "$distdir"
 }
 
