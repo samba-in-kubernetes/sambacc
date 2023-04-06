@@ -54,7 +54,7 @@ class ValidationUnsupported(Exception):
 
 def _schema_validate(data: dict[str, typing.Any], version: str) -> None:
     try:
-        import jsonschema
+        import jsonschema  # type: ignore[import]
     except ImportError:
         raise ValidationUnsupported()
 
