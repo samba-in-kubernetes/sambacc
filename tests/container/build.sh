@@ -50,7 +50,11 @@ chk() {
 
 get_distdir() {
     dname="$1"
-    ddir="/srv/dist/$dname"
+    if [ "${dname}" ]; then
+        ddir="/srv/dist/$dname"
+    else
+        ddir="/var/tmp/scratch_dist"
+    fi
     mkdir -p "$ddir" >/dev/null
     echo "$ddir"
 }
@@ -142,22 +146,15 @@ task_test_tox() {
 task_py_build() {
     info "building python package(s)"
     pip -qq install build
-    if [ "$distname" ]; then
-        # building for a given "distribution name" - meaning this could be
-        # consumed externally
-        distdir="$(get_distdir "$distname")"
-        info "using dist dir: $distdir"
-        $python -m build --outdir "$distdir"
-    else
-        # just run the build as a test to make sure it succeeds
-        $python -m build
-    fi
+    # if distname is set, then we are building for external consumption
+    # if distname is not set then we're building for internal consumption
+    # only
+    distdir="$(get_distdir "$distname")"
+    info "using dist dir: $distdir"
+    $python -m build --outdir "$distdir"
 }
 
 task_rpm_build() {
-    if ! [ "$distname" ]; then
-        return
-    fi
     if ! command -v rpmbuild ; then
         info "rpmbuild not found ... skipping"
         return
@@ -193,6 +190,12 @@ task_gen_sums() {
     fi
 }
 
+cleanup() {
+    if [ -z "${distname}" ]; then
+        info "cleaning scratch dist dir"
+        rm -rf "$(get_distdir "$distname")"
+    fi
+}
 
 # Allow the tests to use customized passwd file contents in order
 # to test samba passdb support. It's a bit strange, but should work.
@@ -218,6 +221,7 @@ if ! command -v git &>/dev/null ; then
     tasks="$tasks task_sys_deps"
 fi
 
+trap cleanup EXIT
 
 chk task_sys_deps
 setup_fetch "$2"
