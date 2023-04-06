@@ -43,7 +43,7 @@ Requires: python3-pyxattr
 %autosetup -n %{bname}-%{pversion}
 
 %generate_buildrequires
-%pyproject_buildrequires -e py3
+%pyproject_buildrequires -e py3-sys
 
 
 %build
@@ -56,7 +56,7 @@ Requires: python3-pyxattr
 
 
 %check
-%tox -e py3
+%tox -e py3-sys
 
 
 %files -n python3-%{bname} -f %{pyproject_files}
