@@ -67,3 +67,4 @@ Requires: python3-pyxattr
 
 
 %changelog
+%autochangelog
