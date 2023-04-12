@@ -20,6 +20,26 @@ jobs:
       run: docker build  -t sambacc:ci  tests/container/ -f tests/container/Containerfile
     - name: Run test container
       run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci
+  test-centos-stream9:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Build test container
+      run: docker build --build-arg=SAMBACC_BASE_IMAGE=quay.io/centos/centos:stream9 -t sambacc:ci-cs9 tests/container/ -f tests/container/Containerfile
+    - name: Run test container
+      run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci-cs9
+  test-fedora37:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Build test container
+      run: docker build --build-arg=SAMBACC_BASE_IMAGE=registry.fedoraproject.org/fedora:37 -t sambacc:ci-fc37 tests/container/ -f tests/container/Containerfile
+    - name: Run test container
+      run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci-fc37
 
   push:
     runs-on: ubuntu-latest
