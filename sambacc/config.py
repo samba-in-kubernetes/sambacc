@@ -52,11 +52,19 @@ class ValidationUnsupported(Exception):
     pass
 
 
+class _FakeRefResolutionError(Exception):
+    pass
+
+
 def _schema_validate(data: dict[str, typing.Any], version: str) -> None:
     try:
         import jsonschema  # type: ignore[import]
     except ImportError:
         raise ValidationUnsupported()
+    try:
+        _refreserror = getattr(jsonschema, "RefResolutionError")
+    except AttributeError:
+        _refreserror = _FakeRefResolutionError
 
     global _JSON_SCHEMA
     if version == "v0" and version not in _JSON_SCHEMA:
@@ -66,7 +74,10 @@ def _schema_validate(data: dict[str, typing.Any], version: str) -> None:
             _JSON_SCHEMA[version] = sambacc.schema.conf_v0_schema.SCHEMA
         except ImportError:
             raise ValidationUnsupported()
-    jsonschema.validate(instance=data, schema=_JSON_SCHEMA[version])
+    try:
+        jsonschema.validate(instance=data, schema=_JSON_SCHEMA[version])
+    except _refreserror:
+        raise ValidationUnsupported()
 
 
 def _check_config_version(data: JSONData) -> str:
