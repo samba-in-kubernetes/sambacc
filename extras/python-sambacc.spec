@@ -66,5 +66,8 @@ Requires: python3-pyxattr
 %{_datadir}/%{bname}/examples/
 
 
+%pyproject_extras_subpkg -n python3-%{bname} validation
+
+
 %changelog
 %autochangelog
