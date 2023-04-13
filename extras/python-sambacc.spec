@@ -20,6 +20,11 @@ Source:         %{bname}-%{pversion}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  python3-devel
+# we need python3-samba as a build dependency in order to run
+# the test suite
+BuildRequires:  python3-samba
+# ditto for the net binary
+BuildRequires: /usr/bin/net
 
 %global _description %{expand:
 A Python library and set of CLI tools intended to act as a bridge between a container
