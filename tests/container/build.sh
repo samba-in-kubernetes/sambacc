@@ -177,12 +177,19 @@ task_rpm_build() {
             rversion="$ver"
         fi
         info "Using rpm-version=${rversion} pkg-version=${ver}"
-        rpmbuild --nocheck -ta \
-            -D "pversion ${ver}" \
-            -D "rversion ${rversion}" \
+        tdir="$(mktemp -d)"
+        (
+            echo "%define pversion ${ver}"
+            echo "%define rversion ${rversion}"
+            tar -xf "$spkg" -O \
+                "sambacc-${ver}/extras/python-sambacc.spec"
+        ) > "${tdir}/python-sambacc.spec"
+        rpmbuild -ba \
             -D "_rpmdir ${distdir}/RPMS" \
             -D "_srcrpmdir ${distdir}/SRPMS" \
-            "$spkg"
+            -D "_sourcedir $(dirname "${spkg}")" \
+            "${tdir}/python-sambacc.spec"
+        rm -rf "${tdir}"
     done
 }
 
