@@ -178,7 +178,8 @@ task_rpm_build() {
         fi
         info "Using rpm-version=${rversion} pkg-version=${ver}"
         rpmbuild --nocheck -ta \
-            -D "pversion ${ver}" -D"rversion ${rversion}" \
+            -D "pversion ${ver}" \
+            -D "rversion ${rversion}" \
             -D "_rpmdir ${distdir}/RPMS" \
             -D "_srcrpmdir ${distdir}/SRPMS" \
             "$spkg"
