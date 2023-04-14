@@ -4,10 +4,11 @@ set -e
 
 python=python3
 url="https://github.com/samba-in-kubernetes/sambacc"
-bdir="/var/tmp/build/sambacc"
+bdir="${SAMBACC_BUILD_DIR:-/var/tmp/build/sambacc}"
 distname="${SAMBACC_DISTNAME}"
 # use SAMBACC_BUILD_TASKS to limit build tasks if needed
 tasks="${SAMBACC_BUILD_TASKS:-task_test_tox task_py_build task_rpm_build task_gen_sums}"
+dist_prefix="${SAMBACC_DIST_PREFIX:-/srv/dist}"
 
 info() {
     echo "[[sambacc/build]] $*"
@@ -51,7 +52,7 @@ chk() {
 get_distdir() {
     dname="$1"
     if [ "${dname}" ]; then
-        ddir="/srv/dist/$dname"
+        ddir="${dist_prefix}/$dname"
     else
         ddir="/var/tmp/scratch_dist"
     fi
@@ -167,7 +168,11 @@ task_rpm_build() {
     fi
 
     distdir="$(get_distdir "$distname")"
-    info "using dist dir: $distdir"
+    local rpmbuild_stage="-ba"
+    if [ "${SAMBACC_SRPM_ONLY}" ]; then
+        rpmbuild_stage="-bs"
+    fi
+    info "using dist dir: $distdir; using stage: ${rpmbuild_stage}"
     for spkg in "$distdir/sambacc"-*.tar.gz; do
         info "RPM build for: ${spkg}"
         ver="$(basename  "${spkg}" | sed -e 's/^sambacc-//' -e 's/.tar.gz$//')"
@@ -184,7 +189,7 @@ task_rpm_build() {
             tar -xf "$spkg" -O \
                 "sambacc-${ver}/extras/python-sambacc.spec"
         ) > "${tdir}/python-sambacc.spec"
-        rpmbuild -ba \
+        rpmbuild "${rpmbuild_stage}" \
             -D "_rpmdir ${distdir}/RPMS" \
             -D "_srcrpmdir ${distdir}/SRPMS" \
             -D "_sourcedir $(dirname "${spkg}")" \
