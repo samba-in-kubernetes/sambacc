@@ -9,6 +9,7 @@ distname="${SAMBACC_DISTNAME}"
 # use SAMBACC_BUILD_TASKS to limit build tasks if needed
 tasks="${SAMBACC_BUILD_TASKS:-task_test_tox task_py_build task_rpm_build task_gen_sums}"
 dist_prefix="${SAMBACC_DIST_PREFIX:-/srv/dist}"
+dnf_cmd=dnf
 
 info() {
     echo "[[sambacc/build]] $*"
@@ -129,12 +130,12 @@ task_sys_deps() {
     )
 
     if [ "$use_centos" ]; then
-        yum install -y epel-release
+        "${dnf_cmd}" install -y epel-release
         yum_args=(--enablerepo=crb)
         pkgs+=(pyproject-rpm-macros)
     fi
-    yum "${yum_args[@]}" install -y "${pkgs[@]}"
-    yum clean all
+    "${dnf_cmd}" "${yum_args[@]}" install -y "${pkgs[@]}"
+    "${dnf_cmd}" clean all
 }
 
 task_test_tox() {
@@ -215,6 +216,10 @@ cleanup() {
         rm -rf "$(get_distdir "$distname")"
     fi
 }
+
+if ! command -v "${dnf_cmd}" >/dev/null ; then
+    dnf_cmd=yum
+fi
 
 # Allow the tests to use customized passwd file contents in order
 # to test samba passdb support. It's a bit strange, but should work.
