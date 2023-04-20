@@ -37,7 +37,7 @@ supporting components.
 
 %package -n python3-%{bname}
 Summary: %{summary}
-# Distro requires that are technially optional for the lib
+# Distro requires that are technically optional for the lib
 Requires: python3-samba
 Requires: python3-pyxattr
 
