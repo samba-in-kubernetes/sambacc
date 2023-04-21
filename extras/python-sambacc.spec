@@ -40,6 +40,11 @@ Summary: %{summary}
 # Distro requires that are technically optional for the lib
 Requires: python3-samba
 Requires: python3-pyxattr
+%if 0%{?fedora} >= 37
+Recommends: %{name}+toml
+Recommends: %{name}+validation
+Recommends: %{name}+yaml
+%endif
 
 %description -n python3-%{bname}  %_description
 
