@@ -756,6 +756,23 @@ def test_permissions_config_options():
     assert "friendship" in opts
 
 
+def _can_import_toml():
+    """Return true if one valid toml module can be imported.
+    Work around importorskip only supporting one module name.
+    """
+    try:
+        __import__("tomllib")
+        return True
+    except ImportError:
+        pass
+    try:
+        __import__("tomli")
+        return True
+    except ImportError:
+        pass
+    return False
+
+
 @pytest.mark.parametrize(
     "json_str,ok",
     [
@@ -943,9 +960,8 @@ a = "b"
         ),
     ],
 )
+@pytest.mark.skipif(not _can_import_toml(), reason="no toml module")
 def test_toml_configs_no_validation(toml_str, ok):
-    pytest.importorskip("tomllib")
-
     cfg = sambacc.config.GlobalConfig()
     fh = io.BytesIO(toml_str.encode("utf8"))
     if ok:
@@ -1059,8 +1075,8 @@ password = "insecure321"
         ),
     ],
 )
+@pytest.mark.skipif(not _can_import_toml(), reason="no toml module")
 def test_toml_configs_validation(toml_str, ok):
-    pytest.importorskip("tomllib")
     jsonschema = pytest.importorskip("jsonschema")
 
     cfg = sambacc.config.GlobalConfig()
