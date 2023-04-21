@@ -80,7 +80,13 @@ if sys.version_info >= (3, 11):
 else:
 
     def _load_toml(source: typing.IO) -> JSONData:
-        raise ConfigFormatUnsupported(ConfigFormat.TOML)
+        try:
+            import tomli
+        except ImportError:
+            raise ConfigFormatUnsupported(ConfigFormat.TOML)
+        if typing.TYPE_CHECKING:
+            assert isinstance(source, typing.BinaryIO)
+        return tomli.load(source)
 
 
 def _load_yaml(source: typing.IO) -> JSONData:
