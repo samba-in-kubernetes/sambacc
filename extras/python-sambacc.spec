@@ -72,6 +72,8 @@ Requires: python3-pyxattr
 
 
 %pyproject_extras_subpkg -n python3-%{bname} validation
+%pyproject_extras_subpkg -n python3-%{bname} toml
+%pyproject_extras_subpkg -n python3-%{bname} yaml
 
 
 %changelog
