@@ -1,9 +1,14 @@
 
 # JSON Configuration Format
 
-Much of the behavior of sambacc is driven by the JSON based
-configuration file. The following is a high level example of the JSON
+Much of the behavior of sambacc is driven by the
+configuration files. The following is a high level example of the JSON
 structure and a description of these sections.
+
+If sambacc is installed with the `yaml` extra it can support [YAML](#yaml)
+based configuration files. If sambacc is installed with the `toml` extra it can
+support [TOML](#toml) based configuration files. The JSON support is the
+default and is always present.
 
 ```json
 {
@@ -278,3 +283,98 @@ A domain user entry is as follows:
 * `password` - A plain-text password.
 * `member_of` - Optional. List of group names. The user will be added to the listed
   groups.
+
+
+# YAML
+
+The [YAML](https://yaml.org/) format may be used to configure sambacc when
+PyYAML library is available. The YAML configuration is effectively converted to
+JSON internally when processed. All of the documentation applying to the JSON
+based configuration applies but in a somewhat easier to write format. The
+filename must end with `.yaml` or `.yml` for sambacc to parse the file as YAML.
+
+An example of a YAML based configuration file:
+```yaml
+samba-container-config: v0
+# Define top-level configurations
+configs:
+  try2:
+    globals: ["default"]
+    shares:
+      - "example"
+      - "Other Name"
+# Define Global Options
+globals:
+  default:
+    options:
+      load printers: "no"
+      printing: "bsd"
+      printcap name: "/dev/null"
+      disable spoolss: "yes"
+      guest ok: "no"
+      security: "user"
+      server min protocol: "SMB2"
+# Define Shares
+shares:
+  example:
+    options:
+      path: /srv/a
+      read only: "no"
+  Other Name:
+    options:
+      path: /srv/b
+      read only: "no"
+# Define users
+users:
+  all_entries:
+    - {"name": "sambauser", "password": "samba"}
+    - {"name": "otheruser", "password": "insecure321"}
+```
+
+# TOML
+
+The [TOML](https://toml.io/en/) format may be used to configure sambacc when
+used on Python 3.11 or later or when the tomli library is available. The TOML
+format may seem similar to the INI-style format used by Samba.  The TOML
+configuration is effectively converted to JSON internally when processed. All
+of the documentation applying to the JSON based configuration applies but in a
+somewhat easier to read and write format. The filename must end with `.toml` for
+sambacc to parse the file as TOML.
+
+An example of a TOML based configuration file:
+```toml
+samba-container-config = "v0"
+
+# Define top level configurations
+[configs.try1]
+globals = ["default"]
+shares = ["example", "Other Name"]
+
+# Define shares
+[shares.example.options]
+path = "/srv/a"
+"read only" = "no"
+
+[shares."Other Name".options]
+path = "/srv/b"
+"read only" = "no"
+
+# Define global options
+[globals.default.options]
+"load printers" = "no"
+printing = "bsd"
+"printcap name" = "/dev/null"
+"disable spoolss" = "yes"
+"guest ok" = "no"
+security = "user"
+"server min protocol" = "SMB2"
+
+# Define users
+[[users.all_entries]]
+name = "sambauser"
+password = "samba"
+
+[[users.all_entries]]
+name = "otheruser"
+password = "insecure321"
+```
