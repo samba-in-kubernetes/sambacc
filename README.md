@@ -2,27 +2,28 @@
 
 ## About
 
-The sambacc is an young project that aims to consolidate and coordinate
-configuration of [Samba](http://samba.org), and related components, when
-running in a container. The configuration of one or many instances can be
-provided to the tool by way of a JSON file which then handles the low level
-details of actually configuring smbd and other elements in the container
+The sambacc project aims to consolidate and coordinate configuration of
+[Samba](http://samba.org), and related components, when running in a
+container. The configuration of one or many server instances can be
+managed by the tool with the use of configuration files.  These
+configuration files act as a superset of the well-known smb.conf, to
+configure Samba, as well as other low level details of the container
 environment.
 
 
 ## Rationale
 
-Samba is a powerful and unique tool for implementing the SMB protocol and a
-software stack to support it on unix-like systems. However, it's potentially
-challenging to set up and manage many instances of Samba by-hand, especially
-when running under a container orchestration system.
+Samba is a powerful and unique tool for implementing the SMB protocol and
+a software stack to support it on unix-like systems. However, it's
+potentially challenging to set up and manage many instances of Samba
+by-hand, especially when running under a container orchestration system.
 
-The idea behind sambacc is mainly to automate all of the low level steps of
-setting up smbd, users, groups, and other supporting components. The tool is
-also designed to consume one "site-wide" configuration file that can be
-maintained across many container instances. sambacc is written in Python as
-samba provides Python bindings for some of the aspects of samba we need to
-control.
+The idea behind sambacc is to automate much of the low level steps needed
+to set up samba daemons, users, groups, and other supporting
+components. The tool is also designed to consume configuration files that
+can be used across many container instances. sambacc is written in Python
+as samba provides Python bindings for some of the aspects of samba we need
+to control.
 
 The sambacc library and samba-container CLI command are used by the
 [samba-container project](https://github.com/samba-in-kubernetes/samba-container/)
@@ -74,8 +75,8 @@ samba-dc-container --help
 ## Features
 
 * Abstracts away some of the nitty-gritty details about what Samba expects
-  in it's environment
-* Imports specific smb.conf settings from "site wide" JSON configuration.
+  in its environment
+* Imports specific smb.conf settings from "site wide" configuration files.
 * Imports users and groups
 * Starts smbd with container friendly settings
 * Starts winbindd with container friendly settings
@@ -91,10 +92,25 @@ A lot. Various things that are missing include:
 * Better integration (as opposed to unit) testing
 * Better use of APIs versus executing CLI commands
 
+Contributions and feedback would be very much appreciated.
+
 
 ## Install
 
-Currently the only method of install is from source control.
+The sambacc library, samba-container command, and samba-dc-container are
+written assuming the software is being run within an OCI container environment.
+While there's nothing stopping you from trying to install it on something else
+the value of doing that will be rather limited.
+
+The (samba-container
+project)[https://github.com/samba-in-kubernetes/samba-container] includes
+sambacc and samba packages. If you are looking to use sambacc and not
+contribute to it, that's probably what you want.
+
+Builds of sambacc are continuously produced within our (COPR repository)[https://copr.fedorainfracloud.org/coprs/phlogistonjohn/sambacc/].
+These builds are then consumed by the container image builds.
+
+Otherwise, the only method of install is from source control.
 
 * Clone the repo: `git clone https://github.com/samba-in-kubernetes/sambacc`
 * `cd sambacc`
@@ -110,20 +126,33 @@ wheels. Then you can distribute and install from the wheel if you need to.
 To run the entire unit test suite locally install `tox` and run `tox` in
 the repo root.
 
-Because of the library and tooling that interacts with samba has some system level dependencies, not all test can be run locally.
+Because of the library and tooling that interacts with samba has some
+system level dependencies, not all tests can be run locally in
+isolated (virtualenv) environments.
+
 
 #### Containerized testing
 
-In addition to running the unit tests locally, I've created a container image
-for testing and building sambacc. It lives at ./tests/container. This is
-canonical way to run the test suite and is what is used by the CI tests. When
-run this way certain system packages can be installed, etc. to support
-running a wider range of test cases.
+A more robust and isolated testing environment is provided in
+the form of the sambacc container image.
 
-To produce builds using the container, mount a directory into the container at
-"/srv/dist" and set the environment variable `SAMBACC_DISTNAME` to a term of
-your choice (example: "latest"). This will then save the builds in a dir of
-that name in your output dir. Example:
+The container file and other sources are available at ./tests/container in
+the sambacc repo. This is the canonical way to run the test suite and is
+what is used by the CI tests. When run this way certain system packages
+can be installed, etc. to support running a wider range of test cases.
+
+By default the container image is configured to check out sambacc master
+branch and execute the tests and build python source distributions,
+wheels, and RPM packages. You can test your local git checkout using the
+image by mounting it at /var/tmp/build/sambacc (example: `podman run -v
+$PWD:/var/tmp/build/sambacc sambacc:ci`).
+
+To access the packages that are built using the container, mount a
+directory into the container at "/srv/dist" and set the environment
+variable `SAMBACC_DISTNAME` to a term of your choice (example: "latest").
+This will then save the builds in a directory of that name in your output
+directory.
+Example:
 ```
 $ mkdir -p $HOME/tmp/sambacc
 $ podman run --rm \
@@ -135,6 +164,10 @@ $ ls $HOME/tmp/sambacc/latest
 sambacc-0.1.dev225+g10059ff-py3-none-any.whl  sha512sums
 sambacc-0.1.dev225+g10059ff.tar.gz
 ```
+
+You can combine the source directory mount and distribution directory
+mount in one command to produce builds for your own local development work
+if needed.
 
 ## License
 
