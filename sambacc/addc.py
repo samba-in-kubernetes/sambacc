@@ -93,6 +93,14 @@ def add_group_members(group_name: str, members: list[str]) -> None:
     subprocess.check_call(cmd)
 
 
+def _filter_opts(
+    options: typing.Optional[typing.Iterable[tuple[str, str]]]
+) -> list[tuple[str, str]]:
+    _skip_keys = ["netbios name"]
+    options = options or []
+    return [(k, v) for (k, v) in options if k not in _skip_keys]
+
+
 def _provision_cmd(
     realm: str,
     dcname: str,
@@ -116,10 +124,9 @@ def _provision_cmd(
         f"--domain={domain}",
         f"--adminpass={admin_password}",
     ]
-    for okey, oval in options or []:
-        if okey == "netbios name":
-            continue
-        cmd = cmd[f"--option={okey}={oval}"]
+    cmd = cmd[
+        [f"--option={okey}={oval}" for okey, oval in _filter_opts(options)]
+    ]
     return cmd.argv()
 
 
@@ -145,10 +152,9 @@ def _join_cmd(
         f"--dns-backend={dns_backend}",
         f"--password={admin_password}",
     ]
-    for okey, oval in options or []:
-        if okey == "netbios name":
-            continue
-        cmd = cmd[f"--option={okey}={oval}"]
+    cmd = cmd[
+        [f"--option={okey}={oval}" for okey, oval in _filter_opts(options)]
+    ]
     return cmd.argv()
 
 
