@@ -19,9 +19,12 @@
 import logging
 import os
 import shutil
+import typing
 
 from sambacc import addc
 from sambacc import samba_cmds
+from sambacc import smbconf_api
+from sambacc import smbconf_samba
 
 from .cli import best_waiter, CommandBuilder, Context, Fail
 
@@ -88,6 +91,7 @@ def _prep_provision(ctx: Context) -> None:
         admin_password=domconfig.admin_password,
         options=ctx.instance_config.global_options(),
     )
+    _merge_config(_provisioned, ctx.instance_config.global_options())
 
 
 def _prep_join(ctx: Context) -> None:
@@ -105,6 +109,27 @@ def _prep_join(ctx: Context) -> None:
         admin_password=domconfig.admin_password,
         options=ctx.instance_config.global_options(),
     )
+    _merge_config(_provisioned, ctx.instance_config.global_options())
+
+
+def _merge_config(
+    smb_conf_path: str,
+    options: typing.Optional[typing.Iterable[tuple[str, str]]] = None,
+) -> None:
+    if not options:
+        return
+    txt_conf = smbconf_samba.SMBConf.from_file(smb_conf_path)
+    tmp_conf = smbconf_api.SimpleConfigStore()
+    tmp_conf.import_smbconf(txt_conf)
+    global_section = dict(tmp_conf["global"])
+    global_section.update(options)
+    tmp_conf["global"] = list(global_section.items())
+    try:
+        os.rename(smb_conf_path, f"{smb_conf_path}.orig")
+    except OSError:
+        pass
+    with open(smb_conf_path, "w") as fh:
+        smbconf_api.write_store_as_smb_conf(fh, tmp_conf)
 
 
 def _prep_wait_on_domain(ctx: Context) -> None:
