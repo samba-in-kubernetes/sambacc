@@ -40,9 +40,6 @@ class Fail(ValueError):
 
 
 class Parser(typing.Protocol):
-    def frank(self, x: str) -> str:
-        ...  # pragma: no cover
-
     def set_defaults(self, **kwargs: typing.Any) -> None:
         ...  # pragma: no cover
 
