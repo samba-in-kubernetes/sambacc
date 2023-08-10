@@ -237,7 +237,11 @@ class InstanceConfig:
     def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
         """Iterate over global options."""
         # Pull in all global sections that apply
-        gnames = self.iconfig["globals"]
+        try:
+            gnames = self.iconfig["globals"]
+        except KeyError:
+            # no globals section in the instance means no global options
+            return
         for gname in gnames:
             global_section = self.gconfig.data["globals"][gname]
             for k, v in global_section.get("options", {}).items():
