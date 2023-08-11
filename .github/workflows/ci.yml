@@ -25,34 +25,24 @@ jobs:
       run: tox -e gitlint
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test_distro: ["fedora-37", "fedora-38", "centos-stream9"]
+        include:
+          - test_distro: "fedora-37"
+            base_image: "registry.fedoraproject.org/fedora:37"
+          - test_distro: "fedora-38"
+            base_image: "registry.fedoraproject.org/fedora:38"
+          - test_distro: "centos-stream9"
+            base_image: "quay.io/centos/centos:stream9"
     steps:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     - name: Build test container
-      run: docker build  -t sambacc:ci  tests/container/ -f tests/container/Containerfile
+      run: docker build -t sambacc:ci-${{ matrix.test_distro }} --build-arg=SAMBACC_BASE_IMAGE=${{ matrix.base_image }}  tests/container/ -f tests/container/Containerfile
     - name: Run test container
-      run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci
-  test-centos-stream9:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Build test container
-      run: docker build --build-arg=SAMBACC_BASE_IMAGE=quay.io/centos/centos:stream9 -t sambacc:ci-cs9 tests/container/ -f tests/container/Containerfile
-    - name: Run test container
-      run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci-cs9
-  test-fedora37:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Build test container
-      run: docker build --build-arg=SAMBACC_BASE_IMAGE=registry.fedoraproject.org/fedora:37 -t sambacc:ci-fc37 tests/container/ -f tests/container/Containerfile
-    - name: Run test container
-      run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci-fc37
+      run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci-${{ matrix.test_distro }}
 
   push:
     needs: [test]
