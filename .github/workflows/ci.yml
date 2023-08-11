@@ -1,11 +1,11 @@
-
+---
 name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
   schedule:
     - cron: 1 1 * * *
 
@@ -14,15 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        ref: ${{ github.event.pull_request.head.sha }}
-    - uses: actions/setup-python@v4
-    - name: Install tox
-      run: python -m pip install tox
-    - name: Run gitlint
-      run: tox -e gitlint
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v4
+      - name: Install tox
+        run: python -m pip install tox
+      - name: Run gitlint
+        run: tox -e gitlint
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -36,23 +36,23 @@ jobs:
           - test_distro: "centos-stream9"
             base_image: "quay.io/centos/centos:stream9"
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Build test container
-      run: docker build -t sambacc:ci-${{ matrix.test_distro }} --build-arg=SAMBACC_BASE_IMAGE=${{ matrix.base_image }}  tests/container/ -f tests/container/Containerfile
-    - name: Run test container
-      run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci-${{ matrix.test_distro }}
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Build test container
+        run: docker build -t sambacc:ci-${{ matrix.test_distro }} --build-arg=SAMBACC_BASE_IMAGE=${{ matrix.base_image }}  tests/container/ -f tests/container/Containerfile
+      - name: Run test container
+        run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci-${{ matrix.test_distro }}
 
   push:
     needs: [test]
     runs-on: ubuntu-latest
     if: (github.event_name == 'push' || github.event_name == 'schedule') && github.repository == 'samba-in-kubernetes/sambacc'
     steps:
-    - uses: actions/checkout@v3
-    - name: log in to quay.io
-      run: docker login -u "${{ secrets.QUAY_USER }}" -p "${{ secrets.QUAY_PASS }}" quay.io
-    - name: build container image
-      run: docker build -t quay.io/samba.org/sambacc:latest tests/container -f tests/container/Containerfile
-    - name: publish container image
-      run: docker push quay.io/samba.org/sambacc:latest
+      - uses: actions/checkout@v3
+      - name: log in to quay.io
+        run: docker login -u "${{ secrets.QUAY_USER }}" -p "${{ secrets.QUAY_PASS }}" quay.io
+      - name: build container image
+        run: docker build -t quay.io/samba.org/sambacc:latest tests/container -f tests/container/Containerfile
+      - name: publish container image
+        run: docker push quay.io/samba.org/sambacc:latest
