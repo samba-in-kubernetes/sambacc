@@ -102,12 +102,12 @@ written assuming the software is being run within an OCI container environment.
 While there's nothing stopping you from trying to install it on something else
 the value of doing that will be rather limited.
 
-The (samba-container
-project)[https://github.com/samba-in-kubernetes/samba-container] includes
+The [samba-container
+project](https://github.com/samba-in-kubernetes/samba-container) includes
 sambacc and samba packages. If you are looking to use sambacc and not
 contribute to it, that's probably what you want.
 
-Builds of sambacc are continuously produced within our (COPR repository)[https://copr.fedorainfracloud.org/coprs/phlogistonjohn/sambacc/].
+Builds of sambacc are continuously produced within our [COPR repository](https://copr.fedorainfracloud.org/coprs/phlogistonjohn/sambacc/).
 These builds are then consumed by the container image builds.
 
 Otherwise, the only method of install is from source control.
