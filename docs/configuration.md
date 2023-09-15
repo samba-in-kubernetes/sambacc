@@ -156,16 +156,18 @@ configurations. A useable configuration file must have at least one
 configuration, but more than one is supported.
 
 Each configuration section is as follows:
-* `instance_name` - A name for the configuration instance. Used for Samba's
-  server (netbios) name.
-* `instance_features` - Optional list. Feature names that alter the high
-  level behavior of sambacc. Valid feature flags are: `CTDB`, `ADDC`.
-* `shares` - List. The names of one or more share config sections to include
-  as part of the sambacc configuration.
-* `globals` - List. The names of one or more global config sections to
-  include as part of the sambacc configuration.
-* `domain_settings` - Only used with `ADDC` feature. Name of the AD DC
-  domain configuration.
+* `instance_name` - String. A name for the configuration instance. Used for
+  Samba's server (netbios) name. Valid for all configurations.
+* `instance_features` - List of strings. Feature flags that alter the
+  high level behavior of sambacc. Valid feature flags are: `CTDB`, `ADDC`.
+* `shares` - List of strings. The names of one or more share config sections to
+  include as part of the sambacc configuration. Valid only for file-server
+  configurations (not supported for AD DC).
+* `globals` - List of strings. The names of one or more global config sections
+  to include as part of the sambacc configuration. Valid for all
+  configurations.
+* `domain_settings` - String. Name of the AD DC domain configuration. Required
+  for AD DC configurations, invalid for all others.
 
 The subsections under `configs` can be used to uniquely identify one server
 "instance". Because those server instances may repeat the shares and samba
