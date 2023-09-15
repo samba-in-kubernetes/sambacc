@@ -25,6 +25,8 @@ import json
 import sys
 import typing
 
+from .opener import Opener
+
 _VALID_VERSIONS = ["v0"]
 
 # alias open to _open to support test assertions when running
@@ -153,8 +155,16 @@ def _check_config_valid(
                 raise
 
 
+class _FileOpener:
+    def open(self, path: str) -> typing.IO:
+        return _open(path, "rb")
+
+
 def read_config_files(
-    fnames: list[str], *, require_validation: typing.Optional[bool] = None
+    fnames: list[str],
+    *,
+    require_validation: typing.Optional[bool] = None,
+    opener: typing.Optional[Opener] = None,
 ) -> GlobalConfig:
     """Read the global container config from the given filenames.
     At least one of the files from the fnames list must exist and contain
@@ -165,12 +175,13 @@ def read_config_files(
     # users will be split from the main config (for security reasons) but
     # it would be nicer to have a good merge algorithm handle everything
     # smarter at some point.
+    opener = opener or _FileOpener()
     gconfig = GlobalConfig()
     readfiles = set()
     for fname in fnames:
         config_format = _detect_format(str(fname))
         try:
-            with _open(fname, "rb") as fh:
+            with opener.open(fname) as fh:
                 gconfig.load(
                     fh,
                     require_validation=require_validation,
