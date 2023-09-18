@@ -44,6 +44,7 @@ Requires: python3-pyxattr
 Recommends: %{name}+toml
 Recommends: %{name}+validation
 Recommends: %{name}+yaml
+Recommends: %{name}+rados
 %endif
 
 %description -n python3-%{bname}  %_description
@@ -79,6 +80,7 @@ Recommends: %{name}+yaml
 %pyproject_extras_subpkg -n python3-%{bname} validation
 %pyproject_extras_subpkg -n python3-%{bname} toml
 %pyproject_extras_subpkg -n python3-%{bname} yaml
+%pyproject_extras_subpkg -n python3-%{bname} rados
 
 
 %changelog
