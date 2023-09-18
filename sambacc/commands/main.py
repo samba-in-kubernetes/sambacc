@@ -17,13 +17,17 @@
 #
 
 import argparse
+import json
 import logging
 import os
 import time
 import typing
 
 from sambacc import config
+from sambacc import opener
+from sambacc import rados_opener
 from sambacc import samba_cmds
+from sambacc import url_opener
 
 from . import check  # noqa: F401
 from . import config as config_cmds
@@ -111,25 +115,39 @@ def from_env(
     var: str,
     ename: str,
     default: typing.Any = None,
-    vtype: typing.Optional[typing.Callable] = str,
+    convert_env: typing.Optional[typing.Callable] = None,
+    convert_value: typing.Optional[typing.Callable] = str,
 ) -> None:
     value = getattr(ns, var, None)
     if not value:
         value = os.environ.get(ename, "")
-    if vtype is not None:
-        value = vtype(value)
+        if convert_env is not None:
+            value = convert_env(value)
+    if convert_value is not None:
+        value = convert_value(value)
     if value:
         setattr(ns, var, value)
 
 
-def split_paths(value):
-    if not value:
-        return value
-    if not isinstance(value, list):
-        value = [value]
+def split_entries(value):
     out = []
-    for v in value:
-        for part in v.split(":"):
+    if not isinstance(value, str):
+        raise ValueError(value)
+    if not value:
+        return out
+    # in order to cleanly allow passing uris as config "paths" we can't
+    # simply split on colons. Avoid coming up with a hokey custom scheme
+    # and enter "JSON-mode" if the env var starts and ends with brackets
+    # hinting it contains a JSON list.
+    v = value.rstrip(None)  # permit trailing whitespace (trailing only!)
+    if v[0] == "[" and v[-1] == "]":
+        for item in json.loads(v):
+            if not isinstance(item, str):
+                raise ValueError("Variable JSON must be a list of strings")
+            out.append(item)
+    else:
+        # backwards compatibilty mode with `PATH` like syntax
+        for part in value.split(":"):
             out.append(part)
     return out
 
@@ -139,14 +157,16 @@ def env_to_cli(cli: typing.Any) -> None:
         cli,
         "config",
         "SAMBACC_CONFIG",
-        vtype=split_paths,
+        convert_env=split_entries,
+        convert_value=None,
         default=DEFAULT_CONFIG,
     )
     from_env(
         cli,
         "join_files",
         "SAMBACC_JOIN_FILES",
-        vtype=split_paths,
+        convert_env=split_entries,
+        convert_value=None,
     )
     from_env(cli, "identity", "SAMBA_CONTAINER_ID")
     from_env(cli, "username", "JOIN_USERNAME")
@@ -171,8 +191,11 @@ class CommandContext:
     def instance_config(self) -> config.InstanceConfig:
         if self._iconfig is None:
             cfgs = self.cli.config or []
+            _opener = opener.FallbackOpener([url_opener.URLOpener()])
             self._iconfig = config.read_config_files(
-                cfgs, require_validation=self.require_validation
+                cfgs,
+                require_validation=self.require_validation,
+                opener=_opener,
             ).get(self.cli.identity)
         return self._iconfig
 
@@ -195,6 +218,10 @@ def pre_action(cli: typing.Any) -> None:
         samba_cmds.set_global_debug(cli.samba_debug_level)
     if cli.samba_command_prefix:
         samba_cmds.set_global_prefix([cli.samba_command_prefix])
+
+    # should there be an option to force {en,dis}able openers?
+    # Right now we just always try to enable rados when possible.
+    rados_opener.enable_rados_url_opener(url_opener.URLOpener)
 
 
 def enable_logging(cli: typing.Any) -> None:
