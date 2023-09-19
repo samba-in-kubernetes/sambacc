@@ -66,11 +66,11 @@ class Waiter(typing.Protocol):
     """Waiter protocol - interfaces common to all waiters."""
 
     def wait(self) -> None:
-        ...
+        ...  # pragma: no cover
 
     def acted(self) -> None:
         """Inform that waiter that changes were made."""
-        ...
+        ...  # pragma: no cover
 
 
 def watch(
