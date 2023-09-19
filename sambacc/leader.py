@@ -25,7 +25,7 @@ class LeaderStatus(typing.Protocol):
     """Fetches information about the current cluster leader."""
 
     def is_leader(self) -> bool:
-        ...
+        ...  # pragma: no cover
 
 
 class LeaderLocator(typing.Protocol):
@@ -35,9 +35,9 @@ class LeaderLocator(typing.Protocol):
     """
 
     def __enter__(self) -> LeaderStatus:
-        ...
+        ...  # pragma: no cover
 
     def __exit__(
         self, exc_type: ExcType, exc_val: ExcValue, exc_tb: ExcTraceback
     ) -> bool:
-        ...
+        ...  # pragma: no cover
