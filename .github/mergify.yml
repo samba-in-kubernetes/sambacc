@@ -14,7 +14,10 @@ defaults:
 queue_rules:
   - name: default
     conditions:
-      - check-success=test
+      - check-success=check-commits
+      - check-success=test (fedora-37)
+      - check-success=test (fedora-38)
+      - check-success=test (centos-stream9)
       - check-success=dpulls
 
 
@@ -30,7 +33,10 @@ pull_request_rules:
   # Perform automatic merge on conditions
   - name: Automatic merge on approval
     conditions:
-      - check-success=test
+      - check-success=check-commits
+      - check-success=test (fedora-37)
+      - check-success=test (fedora-38)
+      - check-success=test (centos-stream9)
       - check-success=dpulls
       - "-draft"
       # Contributors should set the 'do-not-merge' label if they don't want
