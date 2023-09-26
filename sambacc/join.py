@@ -169,6 +169,9 @@ class Joiner:
             raise JoinError("invalid file content: invalid password")
         return upass
 
+    def _interactive_input(self) -> typing.Optional[typing.IO]:
+        return None
+
     def _join(self, upass: UserPass, dns_updates: bool = False) -> None:
         args = []
         if not dns_updates:
@@ -177,7 +180,7 @@ class Joiner:
 
         if upass.password is _PROMPT:
             cmd = list(self._net_ads_join[args])
-            proc = subprocess.Popen(cmd)
+            proc = subprocess.Popen(cmd, stdin=self._interactive_input())
         else:
             cmd = list(self._net_ads_join[args])
             proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
