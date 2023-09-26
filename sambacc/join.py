@@ -17,11 +17,13 @@
 #
 
 import enum
+import errno
 import json
 import logging
 import subprocess
 import typing
 
+from .opener import Opener, FileOpener
 from sambacc import samba_cmds
 from sambacc.simple_waiter import Waiter
 
@@ -62,6 +64,12 @@ class UserPass:
             self.password = password
 
 
+class _JoinSource(typing.NamedTuple):
+    method: JoinBy
+    upass: typing.Optional[UserPass]
+    path: str
+
+
 class Joiner:
     """Utility class for joining to AD domain.
 
@@ -71,9 +79,16 @@ class Joiner:
 
     _net_ads_join = samba_cmds.net["ads", "join"]
 
-    def __init__(self, marker: typing.Optional[str] = None) -> None:
-        self._sources: list[tuple[JoinBy, typing.Any]] = []
+    def __init__(
+        self,
+        marker: typing.Optional[str] = None,
+        *,
+        opener: typing.Optional[Opener] = None,
+    ) -> None:
+        self._source_paths: list[str] = []
+        self._sources: list[_JoinSource] = []
         self.marker = marker
+        self._opener = opener or FileOpener()
 
     def add_source(
         self,
@@ -83,27 +98,43 @@ class Joiner:
         if method in {JoinBy.PASSWORD, JoinBy.INTERACTIVE}:
             if not isinstance(value, UserPass):
                 raise ValueError("expected UserPass value")
+            if method == JoinBy.PASSWORD:
+                self.add_pw_source(value)
+            else:
+                self.add_interactive_source(value)
         elif method in {JoinBy.FILE}:
             if not isinstance(value, str):
                 raise ValueError("expected str value")
+            self.add_file_source(value)
         else:
             raise ValueError(f"invalid method: {method}")
-        self._sources.append((method, value))
+
+    def add_file_source(self, path_or_uri: str) -> None:
+        self._sources.append(_JoinSource(JoinBy.FILE, None, path_or_uri))
+
+    def add_pw_source(self, value: UserPass) -> None:
+        self._sources.append(_JoinSource(JoinBy.PASSWORD, value, ""))
+
+    def add_interactive_source(self, value: UserPass) -> None:
+        self._sources.append(_JoinSource(JoinBy.INTERACTIVE, value, ""))
 
     def join(self, dns_updates: bool = False) -> None:
         if not self._sources:
             raise JoinError("no sources for join data")
         errors = []
-        for method, value in self._sources:
+        for src in self._sources:
             try:
-                if method is JoinBy.PASSWORD:
-                    upass = value
-                elif method is JoinBy.FILE:
-                    upass = self._read_from(value)
-                elif method is JoinBy.INTERACTIVE:
-                    upass = UserPass(value.username, _PROMPT)
+                if src.method is JoinBy.PASSWORD:
+                    assert src.upass
+                    upass = src.upass
+                elif src.method is JoinBy.FILE:
+                    assert src.path
+                    upass = self._read_from(src.path)
+                elif src.method is JoinBy.INTERACTIVE:
+                    assert src.upass
+                    upass = UserPass(src.upass.username, _PROMPT)
                 else:
-                    raise ValueError(f"invalid method: {method}")
+                    raise ValueError(f"invalid method: {src.method}")
                 self._join(upass, dns_updates=dns_updates)
                 self._set_marker()
                 return
@@ -118,10 +149,14 @@ class Joiner:
 
     def _read_from(self, path: str) -> UserPass:
         try:
-            with open(path) as fh:
+            with self._opener.open(path) as fh:
                 data = json.load(fh)
         except FileNotFoundError:
             raise JoinError(f"source file not found: {path}")
+        except OSError as err:
+            if getattr(err, "errno", 0) != errno.ENOENT:
+                raise
+            raise JoinError(f"resource not found: {path}")
         upass = UserPass()
         try:
             upass.username = data["username"]
