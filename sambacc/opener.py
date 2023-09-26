@@ -43,7 +43,7 @@ class FallbackOpener:
         open_fn: typing.Optional[typing.Callable[..., typing.IO]] = None,
     ) -> None:
         self._openers = openers
-        self._open_fn = open_fn or open
+        self._open_fn = open_fn or FileOpener.open
 
     def open(self, path_or_uri: str) -> typing.IO:
         for opener in self._openers:
@@ -55,3 +55,11 @@ class FallbackOpener:
 
     def _open(self, path: str) -> typing.IO:
         return self._open_fn(path)
+
+
+class FileOpener:
+    """Minimal opener that only supports opening local files."""
+
+    @staticmethod
+    def open(path: str) -> typing.IO:
+        return open(path, "rb")

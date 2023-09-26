@@ -25,7 +25,7 @@ import json
 import sys
 import typing
 
-from .opener import Opener
+from .opener import Opener, FileOpener
 
 _VALID_VERSIONS = ["v0"]
 
@@ -155,11 +155,6 @@ def _check_config_valid(
                 raise
 
 
-class _FileOpener:
-    def open(self, path: str) -> typing.IO:
-        return _open(path, "rb")
-
-
 def read_config_files(
     fnames: list[str],
     *,
@@ -175,7 +170,7 @@ def read_config_files(
     # users will be split from the main config (for security reasons) but
     # it would be nicer to have a good merge algorithm handle everything
     # smarter at some point.
-    opener = opener or _FileOpener()
+    opener = opener or FileOpener()
     gconfig = GlobalConfig()
     readfiles = set()
     for fname in fnames:

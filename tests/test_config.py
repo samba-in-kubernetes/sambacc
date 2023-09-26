@@ -22,6 +22,7 @@ import pytest
 import unittest
 
 import sambacc.config
+import sambacc.opener
 
 config1 = """
 {
@@ -451,7 +452,7 @@ def test_tesd_config_files_realerr_rootok(monkeypatch):
     def err_open(*args):
         raise OSError("test!")
 
-    monkeypatch.setattr(sambacc.config, "_open", err_open)
+    monkeypatch.setattr(sambacc.opener.FileOpener, "open", err_open)
     fname = "/etc/foobar"
     with pytest.raises(OSError):
         sambacc.config.read_config_files([fname])
