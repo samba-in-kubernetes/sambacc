@@ -45,8 +45,14 @@ def testjoiner(tmp_path):
         _net_ads_join = samba_cmds.SambaCommand(fake_net_script)["ads", "join"]
         path = tmp_path
         logpath = data_path / "log"
+        _nullfh = None
 
-    return TestJoiner()
+        def _interactive_input(self):
+            return self._nullfh
+
+    with open(os.devnull, "rb") as dnull:
+        TestJoiner._null = dnull
+        yield TestJoiner()
 
 
 def test_no_sources(testjoiner):
