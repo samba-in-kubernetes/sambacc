@@ -87,7 +87,7 @@ def join(ctx: Context) -> None:
     testing/non-production purposes.
     """
     # maybe in the future we'll have more secure methods
-    joiner = joinutil.Joiner(ctx.cli.join_marker)
+    joiner = joinutil.Joiner(ctx.cli.join_marker, opener=ctx.opener)
     _add_join_sources(joiner, ctx.cli)
     try:
         joiner.join()
@@ -130,7 +130,7 @@ def must_join(ctx: Context) -> None:
     """If possible, perform an unattended domain join. Otherwise,
     exit or block until a join has been perfmed by another process.
     """
-    joiner = joinutil.Joiner(ctx.cli.join_marker)
+    joiner = joinutil.Joiner(ctx.cli.join_marker, opener=ctx.opener)
     if joiner.did_join():
         print("already joined")
         return
