@@ -23,6 +23,7 @@ import typing
 
 from sambacc import config
 from sambacc import leader
+from sambacc import opener
 from sambacc import permissions
 from sambacc import simple_waiter
 
@@ -140,6 +141,10 @@ class Context(typing.Protocol):
 
     @property
     def require_validation(self) -> typing.Optional[bool]:
+        ...  # pragma: no cover
+
+    @property
+    def opener(self) -> opener.Opener:
         ...  # pragma: no cover
 
 
