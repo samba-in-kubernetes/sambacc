@@ -182,6 +182,7 @@ class CommandContext:
         self._cli = cli_args
         self._iconfig: typing.Optional[config.InstanceConfig] = None
         self.expects_ctdb = False
+        self._opener: typing.Optional[opener.Opener] = None
 
     @property
     def cli(self) -> argparse.Namespace:
@@ -191,11 +192,10 @@ class CommandContext:
     def instance_config(self) -> config.InstanceConfig:
         if self._iconfig is None:
             cfgs = self.cli.config or []
-            _opener = opener.FallbackOpener([url_opener.URLOpener()])
             self._iconfig = config.read_config_files(
                 cfgs,
                 require_validation=self.require_validation,
-                opener=_opener,
+                opener=self.opener,
             ).get(self.cli.identity)
         return self._iconfig
 
@@ -206,6 +206,12 @@ class CommandContext:
         if self.cli.validate_config == "false":
             return False
         return None
+
+    @property
+    def opener(self) -> opener.Opener:
+        if self._opener is None:
+            self._opener = opener.FallbackOpener([url_opener.URLOpener()])
+        return self._opener
 
 
 def pre_action(cli: typing.Any) -> None:
