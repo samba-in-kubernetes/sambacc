@@ -74,9 +74,10 @@ publish the release.
 
 ## PyPI
 
-There is a sambacc repository on PyPI. This exists mainly to reserve the
-sambacc name, however we desire to keep it up to date too.
-You will need to have a PyPI account and access to the sambacc repo.
+There is a [sambacc repository on PyPI](https://pypi.org/project/sambacc/).
+This exists mainly to reserve the sambacc name, however we desire to keep it up
+to date too.  You will need to have a PyPI account and access to the sambacc
+repo.
 
 Log into PyPI web UI. (Re)Generate a pypi login token for sambacc.
 Ensure `twine` is installed:
