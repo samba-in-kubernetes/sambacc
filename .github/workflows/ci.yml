@@ -27,10 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        test_distro: ["fedora-37", "fedora-38", "centos-stream9"]
+        test_distro: ["fedora-39", "fedora-38", "centos-stream9"]
         include:
-          - test_distro: "fedora-37"
-            base_image: "registry.fedoraproject.org/fedora:37"
+          - test_distro: "fedora-39"
+            base_image: "registry.fedoraproject.org/fedora:39"
           - test_distro: "fedora-38"
             base_image: "registry.fedoraproject.org/fedora:38"
           - test_distro: "centos-stream9"
