@@ -21,6 +21,7 @@ import functools
 import os
 
 import sambacc.config
+import sambacc.opener
 import sambacc.paths
 
 import sambacc.commands.config
@@ -112,6 +113,10 @@ class FakeContext:
             sambacc.config.read_config_files(config).get(identity),
         )
         return ctx
+
+    @property
+    def opener(self) -> sambacc.opener.Opener:
+        return sambacc.opener.FileOpener()
 
 
 class FakeWaiter:

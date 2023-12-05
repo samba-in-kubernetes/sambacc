@@ -73,7 +73,9 @@ def _update_config_args(parser: argparse.ArgumentParser) -> None:
 def _read_config(ctx: Context) -> config.InstanceConfig:
     cfgs = ctx.cli.config or []
     return config.read_config_files(
-        cfgs, require_validation=ctx.require_validation
+        cfgs,
+        require_validation=ctx.require_validation,
+        opener=ctx.opener,
     ).get(ctx.cli.identity)
 
 
