@@ -1,4 +1,4 @@
-ARG SAMBACC_BASE_IMAGE='registry.fedoraproject.org/fedora:37'
+ARG SAMBACC_BASE_IMAGE='registry.fedoraproject.org/fedora:39'
 FROM $SAMBACC_BASE_IMAGE
 
 
