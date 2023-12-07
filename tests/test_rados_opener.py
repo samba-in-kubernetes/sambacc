@@ -156,3 +156,29 @@ def test_rados_response_not_implemented():
         rr.write(b"zzzzz")
     with pytest.raises(NotImplementedError):
         rr.writelines([b"zzzzz"])
+
+
+def test_rados_handler_config_key():
+    class RH(sambacc.rados_opener._RADOSHandler):
+        _rados_api = unittest.mock.MagicMock()
+
+    mc = RH._rados_api.Rados.return_value.__enter__.return_value.mon_command
+    mc.return_value = (0, b"rubber baby buggy bumpers", "")
+
+    rh = RH()
+    rq = urllib.request.Request("rados:mon-config-key:aa/bb/cc")
+    rr = rh.rados_open(rq)
+    assert isinstance(rr, io.BytesIO)
+    assert rr.read() == b"rubber baby buggy bumpers"
+    assert mc.called
+    assert "aa/bb/cc" in mc.call_args[0][0]
+
+    mc.reset_mock()
+    mc.return_value = (2, b"", "no passing")
+    rh = RH()
+    rq = urllib.request.Request("rados:mon-config-key:xx/yy/zz")
+    with pytest.raises(OSError) as pe:
+        rh.rados_open(rq)
+    assert getattr(pe.value, "errno", None) == 2
+    assert mc.called
+    assert "xx/yy/zz" in mc.call_args[0][0]

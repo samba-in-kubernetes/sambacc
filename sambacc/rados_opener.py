@@ -18,6 +18,8 @@
 
 from __future__ import annotations
 
+import io
+import json
 import typing
 import urllib.request
 
@@ -39,6 +41,10 @@ class _RADOSHandler(urllib.request.BaseHandler):
     def rados_open(self, req: urllib.request.Request) -> typing.IO:
         if self._rados_api is None:
             raise RADOSUnsupported()
+        if req.selector.startswith("mon-config-key:"):
+            return _get_mon_config_key(
+                self._rados_api, req.selector.split(":", 1)[1]
+            )
         sel = req.selector.lstrip("/")
         if req.host:
             pool = req.host
@@ -169,6 +175,25 @@ class _RADOSResponse(typing.IO):
 
     def writelines(self, ls: typing.Iterable[typing.Any]) -> None:
         raise NotImplementedError()
+
+
+def _get_mon_config_key(rados_api: _RADOSModule, key: str) -> io.BytesIO:
+    mcmd = json.dumps(
+        {
+            "prefix": "config-key get",
+            "key": str(key),
+        }
+    )
+    with rados_api.Rados(conffile=rados_api.Rados.DEFAULT_CONF_FILES) as rc:
+        ret, out, err = rc.mon_command(mcmd, b"")
+        if ret == 0:
+            # We need to return a file like object. Since we are handed just
+            # bytes from this api, use BytesIO to adapt it to something valid.
+            return io.BytesIO(out)
+        # ensure ceph didn't send us a negative errno
+        ret = ret if ret > 0 else -ret
+        msg = f"failed to get mon config key: {key!r}: {err}"
+        raise OSError(ret, msg)
 
 
 def enable_rados_url_opener(cls: typing.Type[url_opener.URLOpener]) -> None:
