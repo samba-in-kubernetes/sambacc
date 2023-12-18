@@ -45,6 +45,54 @@ def test_enable_rados_url_opener_fail(monkeypatch):
     assert not cls_mock._handlers.append.called
 
 
+def test_enable_rados_url_opener_with_args(monkeypatch):
+    mock = unittest.mock.MagicMock()
+    monkeypatch.setitem(sys.modules, "rados", mock)
+
+    cls_mock = unittest.mock.MagicMock()
+    cls_mock._handlers = []
+    sambacc.rados_opener.enable_rados_url_opener(cls_mock, client_name="user1")
+    assert len(cls_mock._handlers) == 1
+    assert isinstance(
+        cls_mock._handlers[0]._interface, sambacc.rados_opener._RADOSInterface
+    )
+    assert cls_mock._handlers[0]._interface.api is mock
+    assert cls_mock._handlers[0]._interface.client_name == "user1"
+    assert not cls_mock._handlers[0]._interface.full_name
+    ri = cls_mock._handlers[0]._interface
+    ri.Rados()
+    assert ri.api.Rados.call_args[1]["rados_id"] == "user1"
+    assert ri.api.Rados.call_args[1]["name"] == ""
+    assert (
+        ri.api.Rados.call_args[1]["conffile"] == mock.Rados.DEFAULT_CONF_FILES
+    )
+
+
+def test_enable_rados_url_opener_with_args2(monkeypatch):
+    mock = unittest.mock.MagicMock()
+    monkeypatch.setitem(sys.modules, "rados", mock)
+
+    cls_mock = unittest.mock.MagicMock()
+    cls_mock._handlers = []
+    sambacc.rados_opener.enable_rados_url_opener(
+        cls_mock, client_name="client.user1", full_name=True
+    )
+    assert len(cls_mock._handlers) == 1
+    assert isinstance(
+        cls_mock._handlers[0]._interface, sambacc.rados_opener._RADOSInterface
+    )
+    assert cls_mock._handlers[0]._interface.api is mock
+    assert cls_mock._handlers[0]._interface.client_name == "client.user1"
+    assert cls_mock._handlers[0]._interface.full_name
+    ri = cls_mock._handlers[0]._interface
+    ri.Rados()
+    assert ri.api.Rados.call_args[1]["rados_id"] == ""
+    assert ri.api.Rados.call_args[1]["name"] == "client.user1"
+    assert (
+        ri.api.Rados.call_args[1]["conffile"] == mock.Rados.DEFAULT_CONF_FILES
+    )
+
+
 def test_rados_handler_parse():
     class RH(sambacc.rados_opener._RADOSHandler):
         _rados_api = unittest.mock.MagicMock()
@@ -67,7 +115,7 @@ def test_rados_handler_norados():
     # Generally, this shouldn't happen because the rados handler shouldn't
     # be added to the URLOpener if rados module was unavailable.
     class RH(sambacc.rados_opener._RADOSHandler):
-        _rados_api = None
+        _interface = None
 
     rh = RH()
     rq = urllib.request.Request("rados://foo/bar/baz")
@@ -160,9 +208,9 @@ def test_rados_response_not_implemented():
 
 def test_rados_handler_config_key():
     class RH(sambacc.rados_opener._RADOSHandler):
-        _rados_api = unittest.mock.MagicMock()
+        _interface = unittest.mock.MagicMock()
 
-    mc = RH._rados_api.Rados.return_value.__enter__.return_value.mon_command
+    mc = RH._interface.Rados.return_value.__enter__.return_value.mon_command
     mc.return_value = (0, b"rubber baby buggy bumpers", "")
 
     rh = RH()
