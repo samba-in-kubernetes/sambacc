@@ -118,6 +118,11 @@ def global_args(parser: Parser) -> None:
             " Pass `?` for more details)."
         ),
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug level logging of sambacc.",
+    )
 
 
 def _ceph_id(
@@ -293,13 +298,14 @@ def pre_action(cli: typing.Any) -> None:
 
 
 def enable_logging(cli: typing.Any) -> None:
+    level = logging.DEBUG if cli.debug else logging.INFO
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
     handler = logging.StreamHandler()
     handler.setFormatter(
         logging.Formatter("{asctime}: {levelname}: {message}", style="{")
     )
-    handler.setLevel(logging.INFO)
+    handler.setLevel(level)
     logger.addHandler(handler)
 
 
