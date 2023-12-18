@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import typing
 import urllib.request
 
@@ -30,6 +31,8 @@ _RADOSModule = typing.Any
 _RADOSObject = typing.Any
 
 _CHUNK_SIZE = 4 * 1024
+
+_logger = logging.getLogger(__name__)
 
 
 class RADOSUnsupported(Exception):
@@ -47,6 +50,7 @@ class _RADOSInterface:
             name = self.client_name
         else:
             rados_id = self.client_name
+        _logger.debug("Creating RADOS connection")
         return self.api.Rados(
             name=name,
             rados_id=rados_id,
@@ -232,8 +236,13 @@ def enable_rados_url_opener(
     try:
         import rados  # type: ignore[import]
     except ImportError:
+        _logger.debug("Failed to import ceph 'rados' module")
         return
 
+    _logger.debug(
+        "Enabling ceph rados support with"
+        f" client_name={client_name!r}, full_name={full_name}"
+    )
     rados_interface = _RADOSInterface()
     rados_interface.api = rados
     rados_interface.client_name = client_name
