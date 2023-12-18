@@ -27,6 +27,7 @@ from . import url_opener
 from .typelets import ExcType, ExcValue, ExcTraceback
 
 _RADOSModule = typing.Any
+_RADOSObject = typing.Any
 
 _CHUNK_SIZE = 4 * 1024
 
@@ -35,15 +36,33 @@ class RADOSUnsupported(Exception):
     pass
 
 
+class _RADOSInterface:
+    api: _RADOSModule
+    client_name: str
+    full_name: bool
+
+    def Rados(self) -> _RADOSObject:
+        name = rados_id = ""
+        if self.full_name:
+            name = self.client_name
+        else:
+            rados_id = self.client_name
+        return self.api.Rados(
+            name=name,
+            rados_id=rados_id,
+            conffile=self.api.Rados.DEFAULT_CONF_FILES,
+        )
+
+
 class _RADOSHandler(urllib.request.BaseHandler):
-    _rados_api: typing.Optional[_RADOSModule] = None
+    _interface: typing.Optional[_RADOSInterface] = None
 
     def rados_open(self, req: urllib.request.Request) -> typing.IO:
-        if self._rados_api is None:
+        if self._interface is None:
             raise RADOSUnsupported()
         if req.selector.startswith("mon-config-key:"):
             return _get_mon_config_key(
-                self._rados_api, req.selector.split(":", 1)[1]
+                self._interface, req.selector.split(":", 1)[1]
             )
         sel = req.selector.lstrip("/")
         if req.host:
@@ -51,7 +70,7 @@ class _RADOSHandler(urllib.request.BaseHandler):
             ns, key = sel.split("/", 1)
         else:
             pool, ns, key = sel.split("/", 2)
-        return _RADOSResponse(self._rados_api, pool, ns, key)
+        return _RADOSResponse(self._interface, pool, ns, key)
 
 
 # it's quite annoying to have a read-only typing.IO we're forced to
@@ -59,19 +78,18 @@ class _RADOSHandler(urllib.request.BaseHandler):
 # readers/writers is much nicer for this.
 class _RADOSResponse(typing.IO):
     def __init__(
-        self, rados_api: _RADOSModule, pool: str, ns: str, key: str
+        self, interface: _RADOSInterface, pool: str, ns: str, key: str
     ) -> None:
         self._pool = pool
         self._ns = ns
         self._key = key
 
-        self._open(rados_api)
+        self._open(interface)
         self._test()
 
-    def _open(self, rados_api: _RADOSModule) -> None:
+    def _open(self, interface: _RADOSInterface) -> None:
         # TODO: connection caching
-        self._conn = rados_api.Rados()
-        self._conn.conf_read_file()
+        self._conn = interface.Rados()
         self._conn.connect()
         self._connected = True
         self._ioctx = self._conn.open_ioctx(self._pool)
@@ -177,14 +195,14 @@ class _RADOSResponse(typing.IO):
         raise NotImplementedError()
 
 
-def _get_mon_config_key(rados_api: _RADOSModule, key: str) -> io.BytesIO:
+def _get_mon_config_key(interface: _RADOSInterface, key: str) -> io.BytesIO:
     mcmd = json.dumps(
         {
             "prefix": "config-key get",
             "key": str(key),
         }
     )
-    with rados_api.Rados(conffile=rados_api.Rados.DEFAULT_CONF_FILES) as rc:
+    with interface.Rados() as rc:
         ret, out, err = rc.mon_command(mcmd, b"")
         if ret == 0:
             # We need to return a file like object. Since we are handed just
@@ -196,7 +214,12 @@ def _get_mon_config_key(rados_api: _RADOSModule, key: str) -> io.BytesIO:
         raise OSError(ret, msg)
 
 
-def enable_rados_url_opener(cls: typing.Type[url_opener.URLOpener]) -> None:
+def enable_rados_url_opener(
+    cls: typing.Type[url_opener.URLOpener],
+    *,
+    client_name: str = "",
+    full_name: bool = False,
+) -> None:
     """Extend the URLOpener type to support pseudo-URLs for rados
     object storage. If rados libraries are not found the function
     does nothing.
@@ -211,5 +234,10 @@ def enable_rados_url_opener(cls: typing.Type[url_opener.URLOpener]) -> None:
     except ImportError:
         return
 
-    _RADOSHandler._rados_api = rados
+    rados_interface = _RADOSInterface()
+    rados_interface.api = rados
+    rados_interface.client_name = client_name
+    rados_interface.full_name = full_name
+
+    _RADOSHandler._interface = rados_interface
     cls._handlers.append(_RADOSHandler)
