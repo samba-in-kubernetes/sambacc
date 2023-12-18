@@ -108,6 +108,63 @@ def global_args(parser: Parser) -> None:
         choices=("auto", "required", "true", "false"),
         help=("Perform schema based validation of configuration."),
     )
+    parser.add_argument(
+        "--ceph-id",
+        type=_ceph_id,
+        help=(
+            "Specify a user/client ID to ceph libraries"
+            "(can also be set in the environment by SAMBACC_CEPH_ID."
+            " Ignored if Ceph RADOS libraries are not present or unused."
+            " Pass `?` for more details)."
+        ),
+    )
+
+
+def _ceph_id(
+    value: typing.Union[str, dict[str, typing.Any]]
+) -> dict[str, typing.Any]:
+    if not isinstance(value, str):
+        return value
+    if value == "?":
+        # A hack to avoid putting tons of ceph specific info in the normal
+        # help output. There's probably a better way to do this but it
+        # gets the job done for now.
+        raise argparse.ArgumentTypeError(
+            "requested help:"
+            " Specify names in the form"
+            " --ceph-id=[key=value][,key=value][,...]."
+            ' Valid keys include "name" to set the exact name and "rados_id"'
+            ' to specify a name that lacks the "client." prefix (that will'
+            "automatically get added)."
+            " Alternatively, specify just the name to allow the system to"
+            " guess if the name is prefixed already or not."
+        )
+    result: dict[str, typing.Any] = {}
+    # complex mode
+    if "=" in value:
+        for part in value.split(","):
+            if "=" not in part:
+                raise argparse.ArgumentTypeError(
+                    f"unexpected value for ceph-id: {value!r}"
+                )
+            key, val = part.split("=", 1)
+            if key == "name":
+                result["client_name"] = val
+                result["full_name"] = True
+            elif key == "rados_id":
+                result["client_name"] = val
+                result["full_name"] = False
+            else:
+                b = f"unexpected key {key!r} in value for ceph-id: {value!r}"
+                raise argparse.ArgumentTypeError(b)
+    else:
+        # this shorthand is meant mainly for lazy humans (me) when running test
+        # images manually. The key-value form above is meant for automation.
+        result["client_name"] = value
+        # assume that if the name starts with client. it's the full name and
+        # avoid having the ceph library double up an create client.client.x.
+        result["full_name"] = value.startswith("client.")
+    return result
 
 
 def from_env(
@@ -173,6 +230,7 @@ def env_to_cli(cli: typing.Any) -> None:
     from_env(cli, "password", "INSECURE_JOIN_PASSWORD")
     from_env(cli, "samba_debug_level", "SAMBA_DEBUG_LEVEL")
     from_env(cli, "validate_config", "SAMBACC_VALIDATE_CONFIG")
+    from_env(cli, "ceph_id", "SAMBACC_CEPH_ID", convert_value=_ceph_id)
 
 
 class CommandContext:
@@ -227,7 +285,11 @@ def pre_action(cli: typing.Any) -> None:
 
     # should there be an option to force {en,dis}able openers?
     # Right now we just always try to enable rados when possible.
-    rados_opener.enable_rados_url_opener(url_opener.URLOpener)
+    rados_opener.enable_rados_url_opener(
+        url_opener.URLOpener,
+        client_name=cli.ceph_id.get("client_name", ""),
+        full_name=cli.ceph_id.get("full_name", False),
+    )
 
 
 def enable_logging(cli: typing.Any) -> None:
