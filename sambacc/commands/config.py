@@ -66,7 +66,7 @@ def _update_config_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--watch",
         action="store_true",
-        help=("If set, watch the source for changes and update config."),
+        help="If set, watch the source for changes and update config.",
     )
 
 

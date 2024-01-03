@@ -101,12 +101,12 @@ def global_args(parser: Parser) -> None:
     parser.add_argument(
         "--skip-if-file",
         action="append",
-        help=("Perform no action if the specified path exists."),
+        help="Perform no action if the specified path exists.",
     )
     parser.add_argument(
         "--validate-config",
         choices=("auto", "required", "true", "false"),
-        help=("Perform schema based validation of configuration."),
+        help="Perform schema based validation of configuration.",
     )
     parser.add_argument(
         "--ceph-id",
