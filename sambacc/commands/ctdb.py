@@ -57,19 +57,19 @@ def _ctdb_migrate_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--dest-dir",
         default=ctdb.DB_DIR,
-        help=("Specify where CTDB database files will be written."),
+        help="Specify where CTDB database files will be written.",
     )
 
 
 def _ctdb_general_node_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--hostname",
-        help=("Specify the host name for the CTDB node"),
+        help="Specify the host name for the CTDB node",
     )
     parser.add_argument(
         "--node-number",
         type=int,
-        help=("Expected node number"),
+        help="Expected node number",
     )
     # This is a choice with a single acceptable param, rather than an on/off
     # bool, # in the case that other container orchs have a similar but not
@@ -84,7 +84,7 @@ def _ctdb_general_node_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--persistent-path",
-        help=("Path to a persistent path for storing nodes file"),
+        help="Path to a persistent path for storing nodes file",
     )
 
 
@@ -92,7 +92,7 @@ def _ctdb_set_node_args(parser: argparse.ArgumentParser) -> None:
     _ctdb_general_node_args(parser)
     parser.add_argument(
         "--ip",
-        help=("Specify node by IP"),
+        help="Specify node by IP",
     )
 
 

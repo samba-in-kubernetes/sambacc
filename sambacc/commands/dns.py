@@ -32,18 +32,18 @@ def _dns_register_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--watch",
         action="store_true",
-        help=("If set, watch the source for changes and update DNS."),
+        help="If set, watch the source for changes and update DNS.",
     )
     parser.add_argument(
         "--domain",
         default="",
-        help=("Manually specify parent domain for DNS entries."),
+        help="Manually specify parent domain for DNS entries.",
     )
     parser.add_argument(
         "--target",
         default=container_dns.EXTERNAL,
         choices=[container_dns.EXTERNAL, container_dns.INTERNAL],
-        help=("Register IPs that fulfill the given access target."),
+        help="Register IPs that fulfill the given access target.",
     )
     parser.add_argument("source", help="Path to source JSON file.")
 
