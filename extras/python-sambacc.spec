@@ -40,11 +40,15 @@ Summary: %{summary}
 # Distro requires that are technically optional for the lib
 Requires: python3-samba
 Requires: python3-pyxattr
-%if 0%{?fedora} >= 37
+%if 0%{?fedora} >= 37 || 0%{?rhel} >= 9
+# Enable extras other than validation as the dependency needed
+# is too old on centos/rhel 9.
 Recommends: %{name}+toml
-Recommends: %{name}+validation
 Recommends: %{name}+yaml
 Recommends: %{name}+rados
+%endif
+%if 0%{?fedora} >= 37
+Recommends: %{name}+validation
 %endif
 
 %description -n python3-%{bname}  %_description
