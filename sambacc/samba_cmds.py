@@ -140,7 +140,7 @@ class SambaCommand(CommandArgs):
         return []
 
     def raw_args(self) -> list[str]:
-        return [self._name] + self._debug_args() + self.args
+        return [self._name] + self.args + self._debug_args()
 
     def __repr__(self) -> str:
         return "SambaCommand({!r}, {!r}, {!r})".format(
