@@ -125,6 +125,9 @@ $defs:
       password:
         description: A plain-text password
         type: string
+      ou:
+        description: A organizational unit that the user should belong to
+        type: string
       member_of:
         description: A list of group names that the user should belong to
         type: array
@@ -145,6 +148,22 @@ $defs:
         type: string
       gid:
         type: integer
+      ou:
+        description: A organizational unit that the user should belong to
+        type: string
+    required:
+      - name
+    additionalProperties: false
+  # domain controller organizational unit entries
+  organizational_unit_entry:
+    description: |
+      A organizational unit that will be created in the specified AD domain. These
+      groups are populated in the directory after the domain is provisioned.
+    type: object
+    properties:
+      name:
+        description: The organizational unit name
+        type: string
     required:
       - name
     additionalProperties: false
@@ -279,6 +298,17 @@ properties:
       type: array
       items:
         $ref: "#/$defs/domain_group_entry"
+  # organizational_unit are organizational unit that will be initialized for a new AD DC instance
+  organizational_units:
+    description: |
+      The organizational_unit section defines initial organizational unit that will be
+      automatically added to a newly provisioned domain. This section is
+      a mapping of the domain settings name to a list of domain group entries.
+    type: object
+    additionalProperties:
+      type: array
+      items:
+        $ref: "#/$defs/organizational_unit_entry"
   # ctdb customization settings
   # generally for developers/expert users only. these ctdb specific overrides
   # live outside the smb.conf and have their own section

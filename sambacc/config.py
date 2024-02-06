@@ -337,6 +337,16 @@ class InstanceConfig:
         for n, entry in enumerate(dgroups):
             yield DomainGroupEntry(self, entry, n)
 
+    def organizational_units(self) -> typing.Iterable[OrganizationalUnitEntry]:
+        if not self.with_addc:
+            raise ValueError("ad dc not supported by configuration")
+        ds_name: str = self.iconfig["domain_settings"]
+        o_units = self.gconfig.data.get("organizational_units", {}).get(
+            ds_name, []
+        )
+        for n, entry in enumerate(o_units):
+            yield OrganizationalUnitEntry(self, entry, n)
+
     def __eq__(self, other: typing.Any) -> bool:
         if isinstance(other, InstanceConfig) and self.iconfig == other.iconfig:
             self_shares = _shares_data(self.gconfig, self.iconfig)
@@ -476,6 +486,7 @@ class GroupEntry:
         self.groupname = grec["name"]
         self.entry_num = num
         self._gid = grec.get("gid")
+        self.ou = grec.get("ou")
         if self._gid is not None:
             if not isinstance(self._gid, int):
                 raise ValueError("invalid gid value")
@@ -505,12 +516,20 @@ class DomainUserEntry(UserEntry):
         self.surname = urec.get("surname")
         self.given_name = urec.get("given_name")
         self.member_of = urec.get("member_of", [])
+        self.ou = urec.get("ou")
         if not isinstance(self.member_of, list):
             raise ValueError("member_of should contain a list of group names")
 
 
 class DomainGroupEntry(GroupEntry):
     pass
+
+
+class OrganizationalUnitEntry:
+    def __init__(self, iconf: InstanceConfig, urec: dict, num: int):
+        self.iconfig = iconf
+        self.ou_name = urec["name"]
+        self.entry_num = num
 
 
 class PermissionsConfig:

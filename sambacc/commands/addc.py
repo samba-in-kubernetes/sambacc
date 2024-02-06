@@ -155,8 +155,11 @@ def _prep_populate(ctx: Context) -> None:
         return
     _logger.info("Populating domain with default entries")
 
+    for ou in ctx.instance_config.organizational_units():
+        addc.create_ou(ou.ou_name)
+
     for dgroup in ctx.instance_config.domain_groups():
-        addc.create_group(dgroup.groupname)
+        addc.create_group(dgroup.groupname, dgroup.ou)
 
     for duser in ctx.instance_config.domain_users():
         addc.create_user(
@@ -164,6 +167,7 @@ def _prep_populate(ctx: Context) -> None:
             password=duser.plaintext_passwd,
             surname=duser.surname,
             given_name=duser.given_name,
+            ou=duser.ou,
         )
         # TODO: probably should improve this to avoid extra calls / loops
         for gname in duser.member_of:
