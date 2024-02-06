@@ -172,7 +172,7 @@ def winbindd_foreground() -> SambaCommand:
 
 
 def samba_dc_foreground() -> SambaCommand:
-    return samba_dc["--foreground"]
+    return samba_dc["--foreground", _daemon_stdout_opt("samba")]
 
 
 ctdbd = SambaCommand("/usr/sbin/ctdbd")
