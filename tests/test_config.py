@@ -18,8 +18,9 @@
 
 import io
 import os
-import pytest
 import unittest
+
+import pytest
 
 import sambacc.config
 import sambacc.opener
@@ -165,7 +166,6 @@ config3 = """
 }
 """
 
-
 ctdb_config1 = """
 {
   "samba-container-config": "v0",
@@ -249,6 +249,60 @@ addc_config1 = """
         "given_name": "Clark",
         "surname": "Kent",
         "member_of": ["friends"]
+      }
+    ]
+  }
+}
+"""
+
+addc_config2 = """
+{
+  "samba-container-config": "v0",
+  "configs": {
+    "demo": {
+      "instance_features": ["addc"],
+      "domain_settings": "sink",
+      "instance_name": "dc1"
+    }
+  },
+  "domain_settings": {
+    "sink": {
+      "realm": "DOMAIN1.SINK.TEST",
+      "short_domain": "DOMAIN1",
+      "admin_password": "Passw0rd"
+    }
+  },
+  "organizational_units": {
+    "sink": [
+      {"name": "friends"}
+    ]
+  },
+  "domain_groups": {
+    "sink": [
+      {
+        "name": "friends",
+        "ou": "friends"
+      },
+      {"name": "gothamites"}
+    ]
+  },
+  "domain_users": {
+    "sink": [
+      {
+        "name": "bwayne",
+        "password": "1115Rose.",
+        "given_name": "Bruce",
+        "surname": "Wayne",
+        "member_of": ["friends", "gothamites"],
+        "ou": "friends"
+      },
+      {
+        "name": "ckent",
+        "password": "1115Rose.",
+        "given_name": "Clark",
+        "surname": "Kent",
+        "member_of": ["friends"],
+        "ou": "friends"
       }
     ]
   }
@@ -515,6 +569,24 @@ def test_ad_dc_config_demo():
     assert dusers[0].username == "bwayne"
 
 
+def test_ad_dc_ou_config_demo():
+    c1 = sambacc.config.GlobalConfig(io.StringIO(addc_config2))
+    i1 = c1.get("demo")
+    assert i1.with_addc
+
+    domou = sorted(i1.organizational_units(), key=lambda v: v.ou_name)
+    assert len(domou) == 1
+    assert domou[0].ou_name == "friends"
+
+    dgroups = sorted(i1.domain_groups(), key=lambda v: v.groupname)
+    assert len(dgroups) == 2
+    assert dgroups[0].ou == "friends"
+
+    dusers = sorted(i1.domain_users(), key=lambda v: v.username)
+    assert len(dusers) == 2
+    assert dusers[0].ou == "friends"
+
+
 def test_ad_dc_invalid():
     c1 = sambacc.config.GlobalConfig(io.StringIO(config1))
     i1 = c1.get("foobar")
@@ -529,47 +601,8 @@ def test_ad_dc_invalid():
     with pytest.raises(ValueError):
         list(i1.domain_groups())
 
-
-def test_ad_dc_bad_member_of():
-    jdata = {
-        "samba-container-config": "v0",
-        "configs": {
-            "demo": {
-                "instance_features": ["addc"],
-                "domain_settings": "sink",
-                "instance_name": "dc1",
-            }
-        },
-        "domain_settings": {
-            "sink": {
-                "realm": "DOMAIN1.SINK.TEST",
-                "short_domain": "DOMAIN1",
-                "admin_password": "Passw0rd",
-            }
-        },
-        "domain_groups": {"sink": [{"name": "friends"}]},
-        "domain_users": {
-            "sink": [
-                {
-                    "name": "ckent",
-                    "password": "1115Rose.",
-                    "given_name": "Clark",
-                    "surname": "Kent",
-                    "member_of": "friends",
-                }
-            ]
-        },
-    }
-    c1 = sambacc.config.GlobalConfig(initial_data=jdata)
-    i1 = c1.get("demo")
-    assert i1.with_addc
-
-    dgroups = sorted(i1.domain_groups(), key=lambda v: v.groupname)
-    assert len(dgroups) == 1
-    assert dgroups[0].groupname == "friends"
-
     with pytest.raises(ValueError):
-        list(i1.domain_users())
+        list(i1.organizational_units())
 
 
 def test_share_config_no_path():

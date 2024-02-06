@@ -20,7 +20,6 @@ import os
 
 import pytest
 
-
 import sambacc.addc
 
 
@@ -120,6 +119,17 @@ def test_create_user(tmp_path, monkeypatch):
     assert "user create fflintstone" in result
     assert "--surname=Flintstone" in result
     assert "--given-name=Fred" in result
+
+
+def test_create_ou(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        sambacc.samba_cmds, "_GLOBAL_PREFIX", [_fake_samba_tool(tmp_path)]
+    )
+
+    sambacc.addc.create_ou("quarry_workers")
+    with open(tmp_path / "args.out") as fh:
+        result = fh.read()
+    assert "ou add OU=quarry_workers" in result
 
 
 def test_create_group(tmp_path, monkeypatch):
