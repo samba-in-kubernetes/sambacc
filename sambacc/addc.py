@@ -75,15 +75,22 @@ def create_user(
     password: str,
     surname: typing.Optional[str],
     given_name: typing.Optional[str],
+    ou: typing.Optional[str] = None,
 ) -> None:
-    cmd = _user_create_cmd(name, password, surname, given_name)
+    cmd = _user_create_cmd(name, password, surname, given_name, ou)
     _logger.info("Creating user: %r", name)
     subprocess.check_call(cmd)
 
 
-def create_group(name: str) -> None:
-    cmd = _group_add_cmd(name)
+def create_group(name: str, ou: typing.Optional[str] = None) -> None:
+    cmd = _group_add_cmd(name, ou)
     _logger.info("Creating group: %r", name)
+    subprocess.check_call(cmd)
+
+
+def create_ou(name: str) -> None:
+    cmd = _ou_add_cmd(name)
+    _logger.info("Creating organizational unit: %r", name)
     subprocess.check_call(cmd)
 
 
@@ -163,6 +170,7 @@ def _user_create_cmd(
     password: str,
     surname: typing.Optional[str],
     given_name: typing.Optional[str],
+    ou: typing.Optional[str],
 ) -> list[str]:
     cmd = samba_cmds.sambatool[
         "user",
@@ -174,14 +182,27 @@ def _user_create_cmd(
         cmd.append(f"--surname={surname}")
     if given_name:
         cmd.append(f"--given-name={given_name}")
+    if ou:
+        cmd.append(f"--userou=OU={ou}")
     return cmd
 
 
-def _group_add_cmd(name: str) -> list[str]:
+def _group_add_cmd(name: str, ou: typing.Optional[str]) -> list[str]:
     cmd = samba_cmds.sambatool[
         "group",
         "add",
         name,
+    ].argv()
+    if ou:
+        cmd.append(f"--groupou=OU={ou}")
+    return cmd
+
+
+def _ou_add_cmd(name: str) -> list[str]:
+    cmd = samba_cmds.sambatool[
+        "ou",
+        "add",
+        f"OU={name}",
     ].argv()
     return cmd
 

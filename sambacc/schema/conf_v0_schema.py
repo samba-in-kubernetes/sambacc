@@ -65,7 +65,7 @@ SCHEMA = {
         },
         "user_entry": {
             "description": (
-                "A user that will be instantiated in the local contianer"
+                "A user that will be instantiated in the local container"
                 " environment to\nin order to provide access to smb shares.\n"
             ),
             "type": "object",
@@ -93,7 +93,7 @@ SCHEMA = {
         },
         "group_entry": {
             "description": (
-                "A group that will be instantiated in the local contianer"
+                "A group that will be instantiated in the local container"
                 " environment to\nin order to provide access to smb shares.\n"
             ),
             "type": "object",
@@ -131,6 +131,12 @@ SCHEMA = {
                     "description": "A plain-text password",
                     "type": "string",
                 },
+                "ou": {
+                    "description": (
+                        "A organizational unit that the user should belong to"
+                    ),
+                    "type": "string",
+                },
                 "member_of": {
                     "description": (
                         "A list of group names that the user should belong to"
@@ -152,6 +158,28 @@ SCHEMA = {
             "properties": {
                 "name": {"description": "The group name", "type": "string"},
                 "gid": {"type": "integer"},
+                "ou": {
+                    "description": (
+                        "A organizational unit that the user should belong to"
+                    ),
+                    "type": "string",
+                },
+            },
+            "required": ["name"],
+            "additionalProperties": False,
+        },
+        "organizational_unit_entry": {
+            "description": (
+                "A organizational unit that will be created in the specified"
+                " AD domain. These\ngroups are populated in the directory"
+                " after the domain is provisioned.\n"
+            ),
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "The organizational unit name",
+                    "type": "string",
+                }
             },
             "required": ["name"],
             "additionalProperties": False,
@@ -160,7 +188,7 @@ SCHEMA = {
     "properties": {
         "samba-container-config": {
             "type": "string",
-            "title": "Cofiguration Format Version",
+            "title": "Configuration Format Version",
             "description": (
                 "A short version string that assists in allowing the"
                 " configuration\nformat to (some day) support incompatible"
@@ -172,7 +200,7 @@ SCHEMA = {
             "title": "Container Configurations",
             "description": (
                 "A mapping of named configurations (instances) to top-level"
-                " configuration\nblocks. A useable configuration file must"
+                " configuration\nblocks. A usable configuration file must"
                 " have at least one configuration,\nbut more than one is"
                 " supported.\n"
             ),
@@ -221,7 +249,7 @@ SCHEMA = {
         },
         "globals": {
             "description": (
-                "A mapping of samba global configuation blocks. The global"
+                "A mapping of samba global configuration blocks. The global"
                 " section names\nare not passed to Samba. All sections"
                 " selected by a configuration are\nmerged together before"
                 " passing to Samba.\n"
@@ -254,7 +282,7 @@ SCHEMA = {
         "users": {
             "description": (
                 "Users to add to the container environment in order to"
-                " provide\nShare access-control wihout becoming a domain"
+                " provide\nShare access-control without becoming a domain"
                 " member server.\n"
             ),
             "type": "object",
@@ -268,7 +296,7 @@ SCHEMA = {
         "groups": {
             "description": (
                 "Groups to add to the container environment in order to"
-                " provide\nShare access-control wihout becoming a domain"
+                " provide\nShare access-control without becoming a domain"
                 " member server.\n"
             ),
             "type": "object",
@@ -303,6 +331,19 @@ SCHEMA = {
             "additionalProperties": {
                 "type": "array",
                 "items": {"$ref": "#/$defs/domain_group_entry"},
+            },
+        },
+        "organizational_units": {
+            "description": (
+                "The organizational_unit section defines initial"
+                " organizational unit that will be\nautomatically added to a"
+                " newly provisioned domain. This section is\na mapping of the"
+                " domain settings name to a list of domain group entries.\n"
+            ),
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/organizational_unit_entry"},
             },
         },
         "ctdb": {

@@ -1,0 +1,139 @@
+{
+  "samba-container-config": "v0",
+  "configs": {
+    "demo": {
+      "instance_features": ["addc"],
+      "domain_settings": "sink",
+      "instance_name": "dc1"
+    }
+  },
+  "domain_settings": {
+    "sink": {
+      "realm": "DOMAIN1.SINK.TEST",
+      "short_domain": "DOMAIN1",
+      "admin_password": "Passw0rd"
+    }
+  },
+  "organizational_units": {
+    "sink": [
+      {"name": "employees"}
+    ]
+  },
+  "domain_groups": {
+    "sink": [
+        {"name": "supervisors"},
+        {
+          "name": "employees",
+          "ou": "employees"
+        },
+        {"name": "characters"},
+        {"name": "bulk"}
+    ]
+  },
+  "domain_users": {
+    "sink": [
+      {
+        "name": "bwayne",
+        "password": "1115Rose.",
+        "given_name": "Bruce",
+        "surname": "Wayne",
+        "member_of": ["supervisors", "characters", "employees"],
+        "ou": "employees"
+      },
+      {
+        "name": "ckent",
+        "password": "1115Rose.",
+        "given_name": "Clark",
+        "surname": "Kent",
+        "member_of": ["characters", "employees"],
+        "ou": "employees"
+      },
+      {
+        "name": "bbanner",
+        "password": "1115Rose.",
+        "given_name": "Bruce",
+        "surname": "Banner",
+        "member_of": ["characters", "employees"],
+        "ou": "employees"
+      },
+      {
+        "name": "pparker",
+        "password": "1115Rose.",
+        "given_name": "Peter",
+        "surname": "Parker",
+        "member_of": ["characters", "employees"],
+        "ou": "employees"
+      },
+      {
+        "name": "user0",
+        "password": "1115Rose.",
+        "given_name": "George0",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user1",
+        "password": "1115Rose.",
+        "given_name": "George1",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user2",
+        "password": "1115Rose.",
+        "given_name": "George2",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user3",
+        "password": "1115Rose.",
+        "given_name": "George3",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user4",
+        "password": "1115Rose.",
+        "given_name": "George4",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user5",
+        "password": "1115Rose.",
+        "given_name": "George5",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user6",
+        "password": "1115Rose.",
+        "given_name": "George6",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user7",
+        "password": "1115Rose.",
+        "given_name": "George7",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user8",
+        "password": "1115Rose.",
+        "given_name": "George8",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      },
+      {
+        "name": "user9",
+        "password": "1115Rose.",
+        "given_name": "George9",
+        "surname": "Hue-Sir",
+        "member_of": ["bulk"]
+      }
+    ]
+  }
+}
