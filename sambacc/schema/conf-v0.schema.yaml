@@ -2,9 +2,9 @@
 # EDIT THIS FILE
 # When you are done editing this YAML representation, convert it into
 # a matching <name>.json file in the same directory. That file exists
-# for jsonschema implmenations that can't read directly from YAML.
+# for jsonschema implementations that can't read directly from YAML.
 #
-# After edting this file, generated files need to be updated.
+# After editing this file, generated files need to be updated.
 # Run: python -m sambacc.schema.tool --update
 #
 $schema:  "http://json-schema.org/draft-07/schema#"
@@ -45,7 +45,7 @@ $defs:
     additionalProperties:
       type: string
   # permissions backend configurations
-  # each backend may have it's own set of additional properties
+  # each backend may have its own set of additional properties
   permissions_config:
     description: |
       Settings that enable and manage sambacc's permissions management support.
@@ -62,7 +62,7 @@ $defs:
   # file server user entries
   user_entry:
     description: |
-      A user that will be instantiated in the local contianer environment to
+      A user that will be instantiated in the local container environment to
       in order to provide access to smb shares.
     type: object
     properties:
@@ -87,7 +87,7 @@ $defs:
   # file server group entries
   group_entry:
     description: |
-      A group that will be instantiated in the local contianer environment to
+      A group that will be instantiated in the local container environment to
       in order to provide access to smb shares.
     type: object
     properties:
@@ -170,7 +170,7 @@ $defs:
 properties:
   samba-container-config:
     type: "string"
-    title: "Cofiguration Format Version"
+    title: "Configuration Format Version"
     description: |
       A short version string that assists in allowing the configuration
       format to (some day) support incompatible version changes.
@@ -183,7 +183,7 @@ properties:
     title: "Container Configurations"
     description: |
       A mapping of named configurations (instances) to top-level configuration
-      blocks. A useable configuration file must have at least one configuration,
+      blocks. A usable configuration file must have at least one configuration,
       but more than one is supported.
     type: object
     additionalProperties:
@@ -206,7 +206,7 @@ properties:
             The name of the domain settings. Only used with 'ADDC' feature flag.
           type: string
       additionalProperties: false
-  # share defintions.
+  # share definitions.
   shares:
     description: |
       A mapping of share name to share specific configuration. A share can
@@ -221,10 +221,10 @@ properties:
         permissions:
           $ref: "#/$defs/permissions_config"
       additionalProperties: false
-  # globals defintions.
+  # globals definitions.
   globals:
     description: |
-      A mapping of samba global configuation blocks. The global section names
+      A mapping of samba global configuration blocks. The global section names
       are not passed to Samba. All sections selected by a configuration are
       merged together before passing to Samba.
     type: object
@@ -257,7 +257,7 @@ properties:
   users:
     description: |
       Users to add to the container environment in order to provide
-      Share access-control wihout becoming a domain member server.
+      Share access-control without becoming a domain member server.
     type: object
     properties:
       all_entries:
@@ -269,7 +269,7 @@ properties:
   groups:
     description: |
       Groups to add to the container environment in order to provide
-      Share access-control wihout becoming a domain member server.
+      Share access-control without becoming a domain member server.
     type: object
     properties:
       all_entries:
