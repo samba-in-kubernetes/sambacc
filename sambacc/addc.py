@@ -17,9 +17,11 @@
 #
 
 import logging
+import re
 import subprocess
 import typing
 
+from sambacc import config
 from sambacc import samba_cmds
 
 _logger = logging.getLogger(__name__)
@@ -215,3 +217,24 @@ def _group_add_members_cmd(group_name: str, members: list[str]) -> list[str]:
         ",".join(members),
     ].argv()
     return cmd
+
+
+def _ifnames() -> list[str]:
+    import socket
+
+    return [iface for _, iface in socket.if_nameindex()]
+
+
+def filtered_interfaces(
+    ic: config.DCInterfaceConfig, ifnames: typing.Optional[list[str]] = None
+) -> list[str]:
+    _include = re.compile(ic.include_pattern or "^.*$")
+    _exclude = re.compile(ic.exclude_pattern or "^$")
+    if ifnames is None:
+        ifnames = _ifnames()
+    return [
+        name
+        for name in ifnames
+        if (name == "lo")
+        or (_include.match(name) and not _exclude.match(name))
+    ]
