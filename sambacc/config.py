@@ -507,7 +507,19 @@ class DomainConfig:
         self.realm = drec["realm"]
         self.short_domain = drec.get("short_domain", "")
         self.admin_password = drec.get("admin_password", "")
+        self.interface_config = DCInterfaceConfig(drec.get("interfaces", {}))
         self.dcname = instance_name
+
+
+class DCInterfaceConfig:
+    def __init__(self, iface_config: dict) -> None:
+        self.include_pattern: str = iface_config.get("include_pattern", "")
+        self.exclude_pattern: str = iface_config.get("exclude_pattern", "")
+
+    @property
+    def configured(self) -> bool:
+        """Return true if at least one interface property has been set."""
+        return bool(self.include_pattern) or bool(self.exclude_pattern)
 
 
 class DomainUserEntry(UserEntry):
