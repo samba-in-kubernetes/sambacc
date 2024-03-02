@@ -249,6 +249,19 @@ properties:
           type: string
         admin_password:
           type: string
+        interfaces:
+          type: object
+          properties:
+            include_pattern:
+              type: string
+              description: |
+                A regular expression that must match for a system interface
+                to be included in the AD DC interfaces list.
+            exclude_pattern:
+              type: string
+              description: |
+                A regular expression that must not match for a system interface
+                to be included in the AD DC interfaces list.
       required:
         - realm
       additionalProperties: false
