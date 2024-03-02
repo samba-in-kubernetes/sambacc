@@ -274,6 +274,27 @@ SCHEMA = {
                     "realm": {"type": "string"},
                     "short_domain": {"type": "string"},
                     "admin_password": {"type": "string"},
+                    "interfaces": {
+                        "type": "object",
+                        "properties": {
+                            "include_pattern": {
+                                "type": "string",
+                                "description": (
+                                    "A regular expression that must match for"
+                                    " a system interface\nto be included in"
+                                    " the AD DC interfaces list.\n"
+                                ),
+                            },
+                            "exclude_pattern": {
+                                "type": "string",
+                                "description": (
+                                    "A regular expression that must not match"
+                                    " for a system interface\nto be included"
+                                    " in the AD DC interfaces list.\n"
+                                ),
+                            },
+                        },
+                    },
                 },
                 "required": ["realm"],
                 "additionalProperties": False,
