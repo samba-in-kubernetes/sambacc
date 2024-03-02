@@ -84,12 +84,22 @@ def _prep_provision(ctx: Context) -> None:
     _logger.info(f"Provisioning domain: {domconfig.realm}")
 
     dcname = ctx.cli.name or domconfig.dcname
+    prov_opts = list(ctx.instance_config.global_options())
+    explicit_ifaces = "interfaces" in dict(prov_opts)
+    if domconfig.interface_config.configured and not explicit_ifaces:
+        # dynamically select interfaces from the system to pass to the
+        # provisioning command
+        _logger.info("Dynamic interface selection enabled")
+        ifaces = addc.filtered_interfaces(domconfig.interface_config)
+        _logger.info("Selected interfaces: %s", ifaces)
+        prov_opts.append(("interfaces", " ".join(ifaces)))
+        prov_opts.append(("bind interfaces only", "yes"))
     addc.provision(
         realm=domconfig.realm,
         domain=domconfig.short_domain,
         dcname=dcname,
         admin_password=domconfig.admin_password,
-        options=ctx.instance_config.global_options(),
+        options=prov_opts,
     )
     _merge_config(_provisioned, ctx.instance_config.global_options())
 
