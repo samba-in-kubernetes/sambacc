@@ -259,6 +259,35 @@ Each domain configuration section is as follows:
 * `realm` - Name of the domain in kerberos realm form.
 * `short_domain` - Optional. The short (nt-style) name of the domain.
 * `admin_password` - The default password for the administrator user.
+* `interfaces` - An optional subsection for dynamically configuring the network
+  interfaces the domain controller will use. See below.
+
+#### Interfaces Section
+
+The interfaces section enables the sambacc tool to dynamically configure what
+network interfaces will be enabled when the domain is provisioned.  On some
+systems and in some environments there may be "bogus" network interfaces that
+one does not want to enable the domain controller for. Examples include
+interfaces related to virtualization or container engines that would cause the
+DC to include a private or otherwise inaccessable IP to be included in the DNS
+record(s) for the domain & domain controller.
+
+The loopback device ("lo") is always enabled.
+
+* `include_pattern` - Optional string. A regular expression that must match
+  the name of an interface for that interface to be included.
+  Example: `^eno[0-9]+$`
+* `exclude_pattern` - Optional string. A regular expression that must not
+  match the name of an interface for that interface to be included.
+  The `exclude_pattern` option takes precedence over the `include_pattern`
+  option.
+  Example: `^(docker|virbr)[0-9]+$`
+
+These options are intended to automate the act of examining a host's interfaces
+prior to deployment and creating a list of suitable interfaces prior to setting
+the "interfaces" and "bind interfaces only" parameters.  See the [Samba
+Wiki page](https://wiki.samba.org/index.php/Setting_up_Samba_as_an_Active_Directory_Domain_Controller#Parameter_Reference)
+for more details on this operation.
 
 
 ## Domain Groups Section
