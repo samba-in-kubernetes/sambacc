@@ -155,3 +155,59 @@ def test_add_group_members(tmp_path, monkeypatch):
         result = fh.read()
     assert "group addmembers quarry_workers" in result
     assert "fflintstone,brubble" in result
+
+
+@pytest.mark.parametrize(
+    "cfg,ifaces,expected",
+    [
+        ({}, ["foo", "bar"], None),
+        (
+            {"include_pattern": "^eth.*$"},
+            ["lo", "eth0", "eth1", "biff1"],
+            ["lo", "eth0", "eth1"],
+        ),
+        (
+            {"include_pattern": "^nope$"},
+            ["lo", "eth0", "eth1", "biff1"],
+            ["lo"],
+        ),
+        (
+            {"include_pattern": "^biff[0-9]+$"},
+            ["lo", "eth0", "eth1", "biff1"],
+            ["lo", "biff1"],
+        ),
+        (
+            {"exclude_pattern": "^docker[0-9]+$"},
+            ["lo", "eno1", "eno2", "docker0"],
+            ["lo", "eno1", "eno2"],
+        ),
+        (
+            {"exclude_pattern": "^.*$"},
+            ["lo", "eno1", "eno2", "docker0"],
+            ["lo"],
+        ),
+        (
+            {
+                "include_pattern": "^[ed].*$",
+                "exclude_pattern": "^docker[0-9]+$",
+            },
+            ["lo", "eno1", "eno2", "docker0"],
+            ["lo", "eno1", "eno2"],
+        ),
+        (
+            {
+                "include_pattern": "^[ed].*$",
+                "exclude_pattern": "^.*0$",
+            },
+            ["lo", "dx1f2", "docker0"],
+            ["lo", "dx1f2"],
+        ),
+    ],
+)
+def test_filtered_interfaces(cfg, ifaces, expected):
+    ic = sambacc.config.DCInterfaceConfig(cfg)
+    if cfg:
+        assert ic.configured
+        assert sambacc.addc.filtered_interfaces(ic, ifaces) == expected
+    else:
+        assert not ic.configured
