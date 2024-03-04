@@ -255,12 +255,12 @@ properties:
             include_pattern:
               type: string
               description: |
-                A regular expression that must match for a system interface
+                A regular expression that must match for a network interface
                 to be included in the AD DC interfaces list.
             exclude_pattern:
               type: string
               description: |
-                A regular expression that must not match for a system interface
+                A regular expression that must not match for a network interface
                 to be included in the AD DC interfaces list.
       required:
         - realm
