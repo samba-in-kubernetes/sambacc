@@ -281,7 +281,7 @@ SCHEMA = {
                                 "type": "string",
                                 "description": (
                                     "A regular expression that must match for"
-                                    " a system interface\nto be included in"
+                                    " a network interface\nto be included in"
                                     " the AD DC interfaces list.\n"
                                 ),
                             },
@@ -289,7 +289,7 @@ SCHEMA = {
                                 "type": "string",
                                 "description": (
                                     "A regular expression that must not match"
-                                    " for a system interface\nto be included"
+                                    " for a network interface\nto be included"
                                     " in the AD DC interfaces list.\n"
                                 ),
                             },
