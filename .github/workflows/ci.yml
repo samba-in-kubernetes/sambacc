@@ -26,6 +26,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         test_distro: ["fedora-39", "fedora-38", "centos-stream9"]
         include:
