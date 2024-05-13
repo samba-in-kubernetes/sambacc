@@ -28,12 +28,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test_distro: ["fedora-39", "fedora-38", "centos-stream9"]
+        test_distro: ["fedora-40", "fedora-39", "centos-stream9"]
         include:
+          - test_distro: "fedora-40"
+            base_image: "registry.fedoraproject.org/fedora:40"
           - test_distro: "fedora-39"
             base_image: "registry.fedoraproject.org/fedora:39"
-          - test_distro: "fedora-38"
-            base_image: "registry.fedoraproject.org/fedora:38"
           - test_distro: "centos-stream9"
             base_image: "quay.io/centos/centos:stream9"
     steps:
