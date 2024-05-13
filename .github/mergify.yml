@@ -16,7 +16,7 @@ queue_rules:
     conditions:
       - check-success=check-commits
       - check-success=test (fedora-39)
-      - check-success=test (fedora-38)
+      - check-success=test (fedora-40)
       - check-success=test (centos-stream9)
       - check-success=dpulls
 
@@ -35,7 +35,7 @@ pull_request_rules:
     conditions:
       - check-success=check-commits
       - check-success=test (fedora-39)
-      - check-success=test (fedora-38)
+      - check-success=test (fedora-40)
       - check-success=test (centos-stream9)
       - check-success=dpulls
       - "-draft"
