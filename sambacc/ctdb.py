@@ -94,21 +94,21 @@ def write_ctdb_conf(
 ) -> None:
     """Write a ctdb.conf style output."""
 
-    def _write_param(fh: typing.IO, name: str, key: str) -> None:
+    def _write_param(name: str, key: str) -> None:
         value = ctdb_params.get(key)
         if value is None:
             return
         fh.write(enc(f"{name} = {value}\n"))
 
     fh.write(enc("[logging]\n"))
-    _write_param(fh, "log level", "log_level")
+    _write_param("log level", "log_level")
     fh.write(enc("\n"))
     fh.write(enc("[cluster]\n"))
-    _write_param(fh, "recovery lock", "recovery_lock")
+    _write_param("recovery lock", "recovery_lock")
     fh.write(enc("\n"))
     fh.write(enc("[legacy]\n"))
-    _write_param(fh, "realtime scheduling", "realtime_scheduling")
-    _write_param(fh, "script log level", "script_log_level")
+    _write_param("realtime scheduling", "realtime_scheduling")
+    _write_param("script log level", "script_log_level")
     fh.write(enc("\n"))
 
 
