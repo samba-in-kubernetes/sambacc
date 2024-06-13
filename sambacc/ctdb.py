@@ -23,8 +23,8 @@ import subprocess
 import typing
 
 from sambacc import config
-from sambacc import jfile
 from sambacc import samba_cmds
+from sambacc.jfile import ClusterMetaJSONFile
 from sambacc.netcmd_loader import template_config
 from sambacc.typelets import ExcType, ExcValue, ExcTraceback
 
@@ -37,6 +37,21 @@ SHARE_DIR = "/usr/share/ctdb"
 
 CTDB_CONF: str = "/etc/ctdb/ctdb.conf"
 CTDB_NODES: str = "/etc/ctdb/nodes"
+
+
+class ClusterMetaObject(typing.Protocol):
+    def load(self) -> typing.Any:
+        ...
+
+    def dump(self, data: typing.Any) -> None:
+        ...
+
+
+class ClusterMeta(typing.Protocol):
+    def open(
+        self, *, read: bool = True, write: bool = False, locked: bool = False
+    ) -> typing.ContextManager[ClusterMetaObject]:
+        ...
 
 
 class NodeState(str, enum.Enum):
@@ -184,11 +199,26 @@ def add_node_to_statefile(
     state file, located at `path`. If in_nodes is true, the state file will
     reflect that the node is already added to the CTDB nodes file.
     """
-    with jfile.open(path, jfile.OPEN_RW) as fh:
-        jfile.flock(fh)
-        data = jfile.load(fh, {})
+    add_node_to_cluster_meta(
+        ClusterMetaJSONFile(path), identity, node, pnn, in_nodes=in_nodes
+    )
+
+
+def add_node_to_cluster_meta(
+    cmeta: ClusterMeta,
+    identity: str,
+    node: str,
+    pnn: int,
+    in_nodes: bool = False,
+) -> None:
+    """Add the given node's identity, (node) IP, and PNN to the cluster
+    metadata.  If in_nodes is true, the state file will reflect that the node
+    is already added to the CTDB nodes file.
+    """
+    with cmeta.open(write=True, locked=True) as cmo:
+        data = cmo.load()
         _update_statefile(data, identity, node, pnn, in_nodes=in_nodes)
-        jfile.dump(data, fh)
+        cmo.dump(data)
 
 
 def refresh_node_in_statefile(
@@ -197,11 +227,21 @@ def refresh_node_in_statefile(
     """Assuming the node is already in the statefile, update the state in
     the case that the node (IP) has changed.
     """
-    with jfile.open(path, jfile.OPEN_RW) as fh:
-        jfile.flock(fh)
-        data = jfile.load(fh, {})
+    refresh_node_in_cluster_meta(
+        ClusterMetaJSONFile(path), identity, node, pnn
+    )
+
+
+def refresh_node_in_cluster_meta(
+    cmeta: ClusterMeta, identity: str, node: str, pnn: int
+) -> None:
+    """Assuming the node is already in the cluster metadata, update the state
+    in the case that the node (IP) has changed.
+    """
+    with cmeta.open(write=True, locked=True) as cmo:
+        data = cmo.load()
         _refresh_statefile(data, identity, node, pnn)
-        jfile.dump(data, fh)
+        cmo.dump(data)
 
 
 def _update_statefile(
@@ -268,13 +308,19 @@ def pnn_in_nodes(pnn: int, nodes_json: str, real_path: str) -> bool:
     """Returns true if the specified pnn has an entry in the nodes json
     file and that the node is already added to the ctdb nodes file.
     """
-    with jfile.open(nodes_json, jfile.OPEN_RO) as fh:
-        jfile.flock(fh)
-        json_data = jfile.load(fh, {})
-        current_nodes = json_data.get("nodes", [])
-        for entry in current_nodes:
-            if pnn == entry["pnn"] and _get_state_ok(entry):
-                return True
+    return pnn_in_cluster_meta(ClusterMetaJSONFile(nodes_json), pnn)
+
+
+def pnn_in_cluster_meta(cmeta: ClusterMeta, pnn: int) -> bool:
+    """Returns true if the specified pnn has an entry in the cluster metadata
+    and that entry is ready for use.
+    """
+    with cmeta.open(locked=True) as cmo:
+        json_data = cmo.load()
+    current_nodes = json_data.get("nodes", [])
+    for entry in current_nodes:
+        if pnn == entry["pnn"] and _get_state_ok(entry):
+            return True
     return False
 
 
@@ -287,19 +333,19 @@ def manage_nodes(
     """Monitor nodes json for updates, reflecting those changes into ctdb."""
     while True:
         _logger.info("checking if node is able to make updates")
-        if _node_check(pnn, nodes_json, real_path):
+        cmeta = ClusterMetaJSONFile(nodes_json)
+        if _node_check(cmeta, pnn, real_path):
             _logger.info("checking for node updates")
-            if _node_update(nodes_json, real_path):
+            if _node_update(cmeta, real_path):
                 _logger.info("updated nodes")
         else:
             _logger.warning("node can not make updates")
         pause_func()
 
 
-def _node_check(pnn: int, nodes_json: str, real_path: str) -> bool:
-    with jfile.open(nodes_json, jfile.OPEN_RO) as fh:
-        jfile.flock(fh)
-        desired = jfile.load(fh, {}).get("nodes", [])
+def _node_check(cmeta: ClusterMeta, pnn: int, real_path: str) -> bool:
+    with cmeta.open(locked=True) as cmo:
+        desired = cmo.load().get("nodes", [])
     ctdb_nodes = read_ctdb_nodes(real_path)
     # first: check to see if the current node is in the nodes file
     try:
@@ -317,7 +363,7 @@ def _node_check(pnn: int, nodes_json: str, real_path: str) -> bool:
 
 
 def _node_update_check(
-    json_data: dict[str, typing.Any], nodes_json: str, real_path: str
+    json_data: dict[str, typing.Any], real_path: str
 ) -> tuple[list[str], list[typing.Any], list[typing.Any]]:
     desired = json_data.get("nodes", [])
     ctdb_nodes = read_ctdb_nodes(real_path)
@@ -358,15 +404,14 @@ def _entry_to_node(ctdb_nodes: list[str], entry: dict[str, typing.Any]) -> str:
     return entry["node"]
 
 
-def _node_update(nodes_json: str, real_path: str) -> bool:
+def _node_update(cmeta: ClusterMeta, real_path: str) -> bool:
     # open r/o so that we don't initailly open for write.  we do a probe and
     # decide if anything needs to be updated if we are wrong, its not a
     # problem, we'll "time out" and reprobe later
-    with jfile.open(nodes_json, jfile.OPEN_RO) as fh:
-        jfile.flock(fh)
-        json_data = jfile.load(fh, {})
+    with cmeta.open(locked=True) as cmo:
+        json_data = cmo.load()
         _, test_chg_nodes, test_need_reload = _node_update_check(
-            json_data, nodes_json, real_path
+            json_data, real_path
         )
         if not test_chg_nodes and not test_need_reload:
             _logger.info("examined nodes state - no changes")
@@ -374,11 +419,10 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
     # we probably need to make a change. but we recheck our state again
     # under lock, with the data file open r/w
     # update the nodes file and make changes to ctdb
-    with jfile.open(nodes_json, jfile.OPEN_RW) as fh:
-        jfile.flock(fh)
-        json_data = jfile.load(fh, {})
+    with cmeta.open(write=True, locked=True) as cmo:
+        json_data = cmo.load()
         ctdb_nodes, chg_nodes, need_reload = _node_update_check(
-            json_data, nodes_json, real_path
+            json_data, real_path
         )
         if not chg_nodes and not need_reload:
             _logger.info("reexamined nodes state - no changes")
@@ -414,9 +458,7 @@ def _node_update(nodes_json: str, real_path: str) -> bool:
                     entry["state"],
                 )
             )
-        jfile.dump(json_data, fh)
-        fh.flush()
-        os.fsync(fh)
+        cmo.dump(json_data)
     return True
 
 
