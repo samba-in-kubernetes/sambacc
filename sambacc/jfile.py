@@ -23,6 +23,8 @@ import json
 import os
 import typing
 
+from sambacc.typelets import ExcType, ExcValue, ExcTraceback, Self
+
 OPEN_RO = os.O_RDONLY
 OPEN_RW = os.O_CREAT | os.O_RDWR
 
@@ -61,3 +63,47 @@ def dump(data: typing.Any, fh: typing.IO) -> None:
 def flock(fh: typing.IO) -> None:
     """A simple wrapper around flock."""
     fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+
+
+class ClusterMetaJSONHandle:
+    def __init__(self, fh: typing.IO) -> None:
+        self._fh = fh
+
+    def load(self) -> typing.Any:
+        return load(self._fh, {})
+
+    def dump(self, data: typing.Any) -> None:
+        dump(data, self._fh)
+        self._fh.flush()
+        os.fsync(self._fh)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self, exc_type: ExcType, exc_val: ExcValue, exc_tb: ExcTraceback
+    ) -> None:
+        self._fh.close()
+
+
+class ClusterMetaJSONFile:
+    def __init__(self, path: str) -> None:
+        self.path = path
+
+    def open(
+        self, *, read: bool = True, write: bool = False, locked: bool = False
+    ) -> ClusterMetaJSONHandle:
+        if read and write:
+            flags = OPEN_RW
+        elif read:
+            flags = OPEN_RO
+        else:
+            raise ValueError("write-only not supported")
+        fh = open(self.path, flags)
+        try:
+            if locked:
+                flock(fh)
+        except Exception:
+            fh.close()
+            raise
+        return ClusterMetaJSONHandle(fh)
