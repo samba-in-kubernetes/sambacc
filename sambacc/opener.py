@@ -29,6 +29,7 @@ class Opener(typing.Protocol):
     """
 
     def open(self, path_or_uri: str) -> typing.IO:
+        """Open a specified resource by path or (pseudo) URI."""
         ...  # pragma: no cover
 
 

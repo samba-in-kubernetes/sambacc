@@ -21,12 +21,15 @@ import typing
 
 class ConfigStore(typing.Protocol):
     def __getitem__(self, name: str) -> list[tuple[str, str]]:
+        """Get an item, returning a config section."""
         ...  # pragma: no cover
 
     def __setitem__(self, name: str, value: list[tuple[str, str]]) -> None:
+        """Set a new config section."""
         ...  # pragma: no cover
 
     def __iter__(self) -> typing.Iterator[str]:
+        """Iterate over config sections in the store."""
         ...  # pragma: no cover
 
 

@@ -66,6 +66,7 @@ class Waiter(typing.Protocol):
     """Waiter protocol - interfaces common to all waiters."""
 
     def wait(self) -> None:
+        """Pause execution for a time."""
         ...  # pragma: no cover
 
     def acted(self) -> None:
