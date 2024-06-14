@@ -41,12 +41,16 @@ class Fail(ValueError):
 
 
 class Parser(typing.Protocol):
+    """Minimal protocol for wrapping argument parser or similar."""
+
     def set_defaults(self, **kwargs: typing.Any) -> None:
+        """Set a default value for an argument parser."""
         ...  # pragma: no cover
 
     def add_argument(
         self, *args: typing.Any, **kwargs: typing.Any
     ) -> typing.Any:
+        """Add an argument to be parsed."""
         ...  # pragma: no cover
 
 
@@ -133,18 +137,22 @@ class Context(typing.Protocol):
 
     @property
     def cli(self) -> argparse.Namespace:
+        """Return a parsed command line namespace object."""
         ...  # pragma: no cover
 
     @property
     def instance_config(self) -> config.InstanceConfig:
+        """Return an instance config based on cli params and env."""
         ...  # pragma: no cover
 
     @property
     def require_validation(self) -> typing.Optional[bool]:
+        """Return true if configuration needs validation."""
         ...  # pragma: no cover
 
     @property
     def opener(self) -> opener.Opener:
+        """Return an appropriate opener object for this instance."""
         ...  # pragma: no cover
 
 
