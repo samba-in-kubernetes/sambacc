@@ -40,18 +40,25 @@ CTDB_NODES: str = "/etc/ctdb/nodes"
 
 
 class ClusterMetaObject(typing.Protocol):
+    "A Cluster Meta Object can load or dump persistent cluster descriptions."
+
     def load(self) -> typing.Any:
-        ...
+        """Load a JSON-compatible object."""
+        ...  # pragma: no cover
 
     def dump(self, data: typing.Any) -> None:
-        ...
+        """Dump (save) a JSON-compatible object."""
+        ...  # pragma: no cover
 
 
 class ClusterMeta(typing.Protocol):
+    """ClusterMeta manages access to persistent cluster descriptions."""
+
     def open(
         self, *, read: bool = True, write: bool = False, locked: bool = False
     ) -> typing.ContextManager[ClusterMetaObject]:
-        ...
+        """Return a context manager with access to a cluster meta object."""
+        ...  # pragma: no cover
 
 
 class NodeState(str, enum.Enum):

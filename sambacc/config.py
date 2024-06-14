@@ -193,10 +193,14 @@ def read_config_files(
 
 
 class SambaConfig(typing.Protocol):
+    """Minimal samba configuration protocol."""
+
     def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
+        """Return global options for Samba."""
         ...  # pragma: no cover
 
     def shares(self) -> typing.Iterable[ShareConfig]:
+        """Return share configurations for Samba."""
         ...  # pragma: no cover
 
 
