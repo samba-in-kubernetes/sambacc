@@ -36,6 +36,7 @@ from . import dns  # noqa: F401
 from . import initialize  # noqa: F401
 from . import join  # noqa: F401
 from . import run  # noqa: F401
+from . import skips
 from . import users  # noqa: F401
 from .cli import commands, Fail, Parser
 
@@ -99,9 +100,22 @@ def global_args(parser: Parser) -> None:
         help="Wrap samba commands within a supplied command prefix",
     )
     parser.add_argument(
+        "--skip-if",
+        dest="skip_conditions",
+        action="append",
+        type=skips.parse,
+        help=(
+            "Skip execution based on a condition. Conditions include"
+            " 'file:<path>', 'env:<var>(==|!=)<value>', and 'always:'."
+            " (Pass `?` for more details)"
+        ),
+    )
+    parser.add_argument(
         "--skip-if-file",
         action="append",
-        help="Perform no action if the specified path exists.",
+        dest="skip_conditions",
+        type=skips.SkipFile.parse,
+        help="(DEPRECATED) Perform no action if the specified path exists.",
     )
     parser.add_argument(
         "--validate-config",
@@ -309,13 +323,6 @@ def enable_logging(cli: typing.Any) -> None:
     logger.addHandler(handler)
 
 
-def action_filter(cli: typing.Any) -> typing.Optional[str]:
-    for path in cli.skip_if_file or []:
-        if os.path.exists(path):
-            return f"skip-if-file: {path} exists"
-    return None
-
-
 def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
     cli = commands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
@@ -324,12 +331,13 @@ def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
         raise Fail("missing container identity")
 
     pre_action(cli)
-    skip = action_filter(cli)
+    ctx = CommandContext(cli)
+    skip = skips.test(ctx)
     if skip:
-        print(f"Action skipped: {skip}")
+        print(f"Command Skipped: {skip}")
         return
     cfunc = getattr(cli, "cfunc", default_cfunc)
-    cfunc(CommandContext(cli))
+    cfunc(ctx)
     return
 
 

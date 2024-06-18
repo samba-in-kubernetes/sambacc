@@ -19,10 +19,10 @@
 import typing
 
 from . import addc
+from . import skips
 from .cli import Fail
 from .main import (
     CommandContext,
-    action_filter,
     enable_logging,
     env_to_cli,
     global_args,
@@ -41,9 +41,10 @@ def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
         raise Fail("missing container identity")
 
     pre_action(cli)
-    skip = action_filter(cli)
+    ctx = CommandContext(cli)
+    skip = skips.test(ctx)
     if skip:
-        print(f"Action skipped: {skip}")
+        print(f"Command Skipped: {skip}")
         return
     cfunc = getattr(cli, "cfunc", default_cfunc)
     cfunc(CommandContext(cli))
