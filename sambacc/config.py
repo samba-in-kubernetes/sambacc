@@ -309,7 +309,7 @@ class InstanceConfig:
         if not self.with_ctdb:
             return {}
         ctdb = dict(self.gconfig.data.get("ctdb", {}))
-        ctdb.setdefault("nodes_json", CLUSTER_META_JSON)
+        ctdb.setdefault("cluster_meta_uri", CLUSTER_META_JSON)
         ctdb.setdefault("nodes_path", CTDB_NODES_PATH)
         ctdb.setdefault("recovery_lock", CTDB_RECLOCK)
         ctdb.setdefault("log_level", "DEBUG")

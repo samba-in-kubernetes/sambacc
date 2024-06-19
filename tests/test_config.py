@@ -545,7 +545,7 @@ def test_instance_ctdb_config():
     c2 = sambacc.config.GlobalConfig(io.StringIO(ctdb_config1))
     i2 = c2.get("ctdb1")
     cfg = i2.ctdb_config()
-    assert "nodes_json" in cfg
+    assert "cluster_meta_uri" in cfg
     assert "nodes_path" in cfg
     assert "log_level" in cfg
 
