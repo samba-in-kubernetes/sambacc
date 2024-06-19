@@ -23,6 +23,8 @@ import socket
 import typing
 
 from sambacc import ctdb
+from sambacc import jfile
+from sambacc.simple_waiter import Waiter
 
 from .cli import best_waiter, commands, Context, Fail
 
@@ -86,6 +88,13 @@ def _ctdb_general_node_args(parser: argparse.ArgumentParser) -> None:
         "--persistent-path",
         help="Path to a persistent path for storing nodes file",
     )
+    parser.add_argument(
+        "--metadata-source",
+        help=(
+            "Specify location of cluster metadata state-tracking object."
+            " This can be a file path or a URI-style identifier."
+        ),
+    )
 
 
 def _ctdb_set_node_args(parser: argparse.ArgumentParser) -> None:
@@ -101,8 +110,11 @@ class NodeParams:
     node_number: typing.Optional[int] = None
     hostname: typing.Optional[str] = None
     persistent_path: str = ""
-    nodes_json: str = ""
+    _nodes_json: str = ""
+    _cluster_meta_uri: str = ""
     _ip_addr: typing.Optional[str] = None
+    _cluster_meta_obj: typing.Optional[ctdb.ClusterMeta] = None
+    _waiter_obj: typing.Optional[Waiter] = None
 
     def __init__(self, ctx: Context):
         self._ctx = ctx
@@ -112,7 +124,12 @@ class NodeParams:
         self.persistent_path = ctx.cli.persistent_path
         if self.persistent_path is None:
             self.persistent_path = ccfg["nodes_path"]
-        self.nodes_json = ccfg["nodes_json"]
+        # nodes_json will now only be in the ctdb config section if it has been
+        # specified by the user.
+        self._nodes_json = ccfg.get("nodes_json") or ""
+        # cluster_meta_uri can be a uri-ish string or path. It will be set with
+        # a default value by the config even if there's no user supplied value.
+        self._cluster_meta_uri = ccfg.get("cluster_meta_uri") or ""
 
         self.hostname = ctx.cli.hostname
         if ctx.cli.node_number is not None:
@@ -145,7 +162,7 @@ class NodeParams:
         return self._ip_addr
 
     @property
-    def identity(self):
+    def identity(self) -> str:
         # this could be extended to use something like /etc/machine-id
         # or whatever in the future.
         if self.hostname:
@@ -155,6 +172,49 @@ class NodeParams:
         else:
             # the dashes make this an invalid dns name
             return "-unknown-"
+
+    @property
+    def cluster_meta_uri(self) -> str:
+        """Return a cluster meta uri value."""
+        values = (
+            # cli takes highest precedence
+            self._ctx.cli.metadata_source,
+            # _nodes_json should only be set if user set it using the old key
+            self._nodes_json,
+            # default or customized value on current key
+            self._cluster_meta_uri,
+        )
+        for uri in values:
+            if uri:
+                return uri
+        raise ValueError("failed to determine cluster_meta_uri")
+
+    def _cluster_meta_init(self) -> None:
+        uri = self.cluster_meta_uri
+        # it'd be nice to re-use the opener infrastructure here but openers
+        # don't do file modes the way we need for JSON state file or do
+        # writable file types in the url_opener (urllib wrapper). For now, just
+        # manually handle the string.
+        if uri.startswith("file:"):
+            path = uri.split(":", 1)[-1]
+        else:
+            path = uri
+        if path.startswith("/"):
+            path = "/" + path.rstrip("/")  # ensure one leading /
+        self._cluster_meta_obj = jfile.ClusterMetaJSONFile(path)
+        self._waiter_obj = best_waiter(path)
+
+    def cluster_meta(self) -> ctdb.ClusterMeta:
+        if self._cluster_meta_obj is None:
+            self._cluster_meta_init()
+        assert self._cluster_meta_obj is not None
+        return self._cluster_meta_obj
+
+    def cluster_meta_waiter(self) -> Waiter:
+        if self._waiter_obj is None:
+            self._cluster_meta_init()
+        assert self._waiter_obj is not None
+        return self._waiter_obj
 
 
 @commands.command(name="ctdb-migrate", arg_func=_ctdb_migrate_args)
@@ -180,21 +240,21 @@ def ctdb_set_node(ctx: Context) -> None:
     expected_pnn = np.node_number
 
     try:
-        ctdb.refresh_node_in_statefile(
-            np.identity,
-            np.node_ip_addr,
-            int(expected_pnn or 0),
-            path=np.nodes_json,
+        ctdb.refresh_node_in_cluster_meta(
+            cmeta=np.cluster_meta(),
+            identity=np.identity,
+            node=np.node_ip_addr,
+            pnn=int(expected_pnn or 0),
         )
         return
     except ctdb.NodeNotPresent:
         pass
 
-    ctdb.add_node_to_statefile(
-        np.identity,
-        np.node_ip_addr,
-        int(expected_pnn or 0),
-        path=np.nodes_json,
+    ctdb.add_node_to_cluster_meta(
+        cmeta=np.cluster_meta(),
+        identity=np.identity,
+        node=np.node_ip_addr,
+        pnn=int(expected_pnn or 0),
         in_nodes=(expected_pnn == 0),
     )
     if expected_pnn == 0:
@@ -214,14 +274,14 @@ def ctdb_manage_nodes(ctx: Context) -> None:
     _ctdb_ok()
     np = NodeParams(ctx)
     expected_pnn = np.node_number or 0
-    waiter = best_waiter(np.nodes_json)
+    waiter = np.cluster_meta_waiter()
 
     errors = 0
     while True:
         try:
-            ctdb.manage_nodes(
-                expected_pnn,
-                nodes_json=np.nodes_json,
+            ctdb.monitor_cluster_meta_updates(
+                cmeta=np.cluster_meta(),
+                pnn=expected_pnn,
                 real_path=np.persistent_path,
                 pause_func=waiter.wait,
             )
@@ -246,13 +306,12 @@ def ctdb_must_have_node(ctx: Context) -> None:
     _ctdb_ok()
     np = NodeParams(ctx)
     expected_pnn = np.node_number or 0
-    waiter = best_waiter(np.nodes_json)
+    waiter = np.cluster_meta_waiter()
 
     while True:
-        if ctdb.pnn_in_nodes(
-            expected_pnn,
-            nodes_json=np.nodes_json,
-            real_path=np.persistent_path,
+        if ctdb.pnn_in_cluster_meta(
+            cmeta=np.cluster_meta(),
+            pnn=expected_pnn,
         ):
             return
         _logger.info("node not yet ready")
