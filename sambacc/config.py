@@ -43,6 +43,9 @@ JSONData = dict[str, typing.Any]
 
 # the standard location for samba's smb.conf
 SMB_CONF = "/etc/samba/smb.conf"
+CLUSTER_META_JSON = "/var/lib/ctdb/shared/ctdb-nodes.json"
+CTDB_NODES_PATH = "/var/lib/ctdb/shared/nodes"
+CTDB_RECLOCK = "/var/lib/ctdb/shared/RECOVERY"
 
 CTDB: typing.Final[str] = "ctdb"
 ADDC: typing.Final[str] = "addc"
@@ -306,9 +309,9 @@ class InstanceConfig:
         if not self.with_ctdb:
             return {}
         ctdb = dict(self.gconfig.data.get("ctdb", {}))
-        ctdb.setdefault("nodes_json", "/var/lib/ctdb/shared/ctdb-nodes.json")
-        ctdb.setdefault("nodes_path", "/var/lib/ctdb/shared/nodes")
-        ctdb.setdefault("recovery_lock", "/var/lib/ctdb/shared/RECOVERY")
+        ctdb.setdefault("nodes_json", CLUSTER_META_JSON)
+        ctdb.setdefault("nodes_path", CTDB_NODES_PATH)
+        ctdb.setdefault("recovery_lock", CTDB_RECLOCK)
         ctdb.setdefault("log_level", "DEBUG")
         ctdb.setdefault("script_log_level", "DEBUG")
         ctdb.setdefault("realtime_scheduling", "false")
