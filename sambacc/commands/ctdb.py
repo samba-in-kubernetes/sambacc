@@ -24,7 +24,8 @@ import typing
 
 from sambacc import ctdb
 from sambacc import jfile
-from sambacc.simple_waiter import Waiter
+from sambacc import rados_opener
+from sambacc.simple_waiter import Sleeper, Waiter
 
 from .cli import best_waiter, commands, Context, Fail
 
@@ -195,6 +196,12 @@ class NodeParams:
         # don't do file modes the way we need for JSON state file or do
         # writable file types in the url_opener (urllib wrapper). For now, just
         # manually handle the string.
+        if rados_opener.is_rados_uri(uri):
+            self._cluster_meta_obj = (
+                rados_opener.ClusterMetaRADOSObject.create_from_uri(uri)
+            )
+            self._waiter_obj = Sleeper()
+            return
         if uri.startswith("file:"):
             path = uri.split(":", 1)[-1]
         else:
