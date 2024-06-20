@@ -106,7 +106,7 @@ def global_args(parser: Parser) -> None:
         type=skips.parse,
         help=(
             "Skip execution based on a condition. Conditions include"
-            " 'file:<path>', 'env:<var>(==|!=)<value>', and 'always:'."
+            " 'file:[!]<path>', 'env:<var>(==|!=)<value>', and 'always:'."
             " (Pass `?` for more details)"
         ),
     )
