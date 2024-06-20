@@ -86,6 +86,17 @@ def _ctdb_general_node_args(parser: argparse.ArgumentParser) -> None:
         ),
     )
     parser.add_argument(
+        "--take-node-number-from-env",
+        "-E",
+        const="NODE_NUMBER",
+        nargs="?",
+        help=(
+            "Take the node number from the environment. If specified"
+            " with a value, use that value as the environment variable"
+            " name. Otherwise, use environment variable NODE_NUMBER."
+        ),
+    )
+    parser.add_argument(
         "--persistent-path",
         help="Path to a persistent path for storing nodes file",
     )
@@ -147,6 +158,16 @@ class NodeParams:
                     f"invalid hostname for node number: {self.hostname}"
                 )
             self.node_number = int(self.hostname.rsplit("-")[-1])
+        elif ctx.cli.take_node_number_from_env:
+            try:
+                self.node_number = int(
+                    os.environ[ctx.cli.take_node_number_from_env]
+                )
+            except (KeyError, ValueError):
+                raise ValueError(
+                    "failed to get node number from environment var"
+                    f" {ctx.cli.take_node_number_from_env}"
+                )
         else:
             self.node_number = None
 
