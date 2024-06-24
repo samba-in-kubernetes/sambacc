@@ -24,6 +24,7 @@ import logging
 import time
 import typing
 import urllib.request
+import uuid
 
 from . import url_opener
 from .typelets import ExcType, ExcValue, ExcTraceback, Self
@@ -300,6 +301,83 @@ def _get_mon_config_key(interface: _RADOSInterface, key: str) -> io.BytesIO:
         ret = ret if ret > 0 else -ret
         msg = f"failed to get mon config key: {key!r}: {err}"
         raise OSError(ret, msg)
+
+
+class ClusterMetaRADOSHandle:
+    "A Cluster Meta Object can load or dump persistent cluster descriptions."
+
+    def __init__(
+        self,
+        rados_obj: RADOSObjectRef,
+        uri: str,
+        *,
+        read: bool,
+        write: bool,
+        locked: bool,
+    ):
+        self._rados_obj = rados_obj
+        self._uri = uri
+        self._read = read
+        self._write = write
+        self._locked = locked
+        if self._locked:
+            self._lock_name = "cluster_meta"
+            self._cookie = f"sambacc:{uuid.uuid4()}"
+
+    def load(self) -> typing.Any:
+        if not self._read:
+            raise ValueError("not readable")
+        buf = self._rados_obj.read()
+        if not buf:
+            return {}
+        return json.loads(buf)
+
+    def dump(self, data: typing.Any) -> None:
+        if not self._read:
+            raise ValueError("not writable")
+        buf = json.dumps(data).encode("utf8")
+        self._rados_obj.write_full(buf)
+
+    def __enter__(self) -> Self:
+        if self._locked:
+            self._rados_obj._acquire_lock_exclusive(
+                self._lock_name, self._cookie
+            )
+        return self
+
+    def __exit__(
+        self, exc_type: ExcType, exc_val: ExcValue, exc_tb: ExcTraceback
+    ) -> None:
+        if self._locked:
+            self._rados_obj._unlock(self._lock_name, self._cookie)
+        return
+
+
+class ClusterMetaRADOSObject:
+    def __init__(self, rados_handler: _RADOSHandler, uri: str) -> None:
+        self._handler = rados_handler
+        self._uri = uri
+
+    def open(
+        self, *, read: bool = True, write: bool = False, locked: bool = False
+    ) -> ClusterMetaRADOSHandle:
+        return ClusterMetaRADOSHandle(
+            self._handler.get_object(self._uri),
+            self._uri,
+            read=read,
+            write=write,
+            locked=locked,
+        )
+
+    @classmethod
+    def create_from_uri(cls, uri: str) -> Self:
+        """Return a new ClusterMetaRADOSObject given a rados uri string.
+        If rados module is unavailable RADOSUnsupported will be raised.
+        """
+        handler = _RADOSHandler()
+        if not handler._interface:
+            raise RADOSUnsupported()
+        return cls(handler, uri)
 
 
 def enable_rados_url_opener(
