@@ -63,19 +63,60 @@ class _RADOSHandler(urllib.request.BaseHandler):
     _interface: typing.Optional[_RADOSInterface] = None
 
     def rados_open(self, req: urllib.request.Request) -> typing.IO:
+        """Open a rados-style url. Called from urllib."""
         if self._interface is None:
             raise RADOSUnsupported()
-        if req.selector.startswith("mon-config-key:"):
-            return _get_mon_config_key(
-                self._interface, req.selector.split(":", 1)[1]
-            )
+        rinfo = self._parse_req(req)
+        if rinfo.get("subtype") == "mon-config-key":
+            return _get_mon_config_key(self._interface, rinfo["path"])
+        return RADOSObjectRef(
+            self._interface, rinfo["pool"], rinfo["ns"], rinfo["key"]
+        )
+
+    def get_object(
+        self, uri: str, *, must_exist: bool = False
+    ) -> RADOSObjectRef:
+        """Return a rados object reference for the given rados uri. The uri
+        must refer to a rados object only as the RADOSObjectRef can do various
+        rados-y things, more than an IO requires.
+        """
+        if self._interface is None:
+            raise RADOSUnsupported()
+        rinfo = self._parse_req(urllib.request.Request(uri))
+        if rinfo.get("type") != "rados":
+            raise ValueError("only rados URI values supported")
+        if rinfo.get("subtype") == "mon-config-key":
+            raise ValueError("only rados object URI values supported")
+        return RADOSObjectRef(
+            self._interface,
+            rinfo["pool"],
+            rinfo["ns"],
+            rinfo["key"],
+            must_exist=must_exist,
+        )
+
+    def _parse_req(self, req: urllib.request.Request) -> dict[str, str]:
+        """Parse a urlib request into useful components."""
+        subtype = "mon-config-key"
+        if req.selector.startswith(subtype + ":"):
+            return {
+                "type": req.type,
+                "subtype": subtype,
+                "path": req.selector.split(":", 1)[1],
+            }
         sel = req.selector.lstrip("/")
         if req.host:
             pool = req.host
             ns, key = sel.split("/", 1)
         else:
             pool, ns, key = sel.split("/", 2)
-        return _RADOSResponse(self._interface, pool, ns, key)
+        return {
+            "type": req.type,
+            "subtype": "object",
+            "pool": pool,
+            "ns": ns,
+            "key": key,
+        }
 
 
 # it's quite annoying to have a read-only typing.IO we're forced to
