@@ -302,9 +302,9 @@ def pre_action(cli: typing.Any) -> None:
     if cli.samba_command_prefix:
         samba_cmds.set_global_prefix([cli.samba_command_prefix])
 
-    # should there be an option to force {en,dis}able openers?
+    # should there be an option to force {en,dis}able rados?
     # Right now we just always try to enable rados when possible.
-    rados_opener.enable_rados_url_opener(
+    rados_opener.enable_rados(
         url_opener.URLOpener,
         client_name=cli.ceph_id.get("client_name", ""),
         full_name=cli.ceph_id.get("full_name", False),

@@ -388,15 +388,17 @@ def is_rados_uri(uri: str) -> bool:
     return uri.startswith("rados:")
 
 
-def enable_rados_url_opener(
+def enable_rados(
     cls: typing.Type[url_opener.URLOpener],
     *,
     client_name: str = "",
     full_name: bool = False,
 ) -> None:
-    """Extend the URLOpener type to support pseudo-URLs for rados
-    object storage. If rados libraries are not found the function
-    does nothing.
+    """Enable Ceph RADOS support in sambacc.
+    As as side-effect it will extend the URLOpener type to support pseudo-URLs
+    for rados object storage. It will also enable the
+    ClusterMetaRADOSObject.create_from_uri constructor. If rados libraries are
+    not found the function does nothing.
 
     If rados libraries are found than URLOpener can be used like:
     >>> uo = url_opener.URLOpener()
