@@ -25,7 +25,7 @@ import typing
 import urllib.request
 
 from . import url_opener
-from .typelets import ExcType, ExcValue, ExcTraceback
+from .typelets import ExcType, ExcValue, ExcTraceback, Self
 
 _RADOSModule = typing.Any
 _RADOSObject = typing.Any
@@ -80,16 +80,23 @@ class _RADOSHandler(urllib.request.BaseHandler):
 # it's quite annoying to have a read-only typing.IO we're forced to
 # have so many stub methods. Go's much more granular io interfaces for
 # readers/writers is much nicer for this.
-class _RADOSResponse(typing.IO):
+class RADOSObjectRef(typing.IO):
     def __init__(
-        self, interface: _RADOSInterface, pool: str, ns: str, key: str
+        self,
+        interface: _RADOSInterface,
+        pool: str,
+        ns: str,
+        key: str,
+        *,
+        must_exist: bool = True,
     ) -> None:
         self._pool = pool
         self._ns = ns
         self._key = key
 
         self._open(interface)
-        self._test()
+        if must_exist:
+            self._test()
 
     def _open(self, interface: _RADOSInterface) -> None:
         # TODO: connection caching
@@ -142,7 +149,7 @@ class _RADOSResponse(typing.IO):
     def name(self) -> str:
         return self._key
 
-    def __enter__(self) -> _RADOSResponse:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -150,7 +157,7 @@ class _RADOSResponse(typing.IO):
     ) -> None:
         self.close()
 
-    def __iter__(self) -> _RADOSResponse:
+    def __iter__(self) -> Self:
         return self
 
     def __next__(self) -> bytes:

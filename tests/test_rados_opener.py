@@ -133,7 +133,7 @@ def test_rados_response_read_all():
     mock = unittest.mock.MagicMock()
     mock.Rados.return_value.open_ioctx.return_value.read.side_effect = _read
 
-    rr = sambacc.rados_opener._RADOSResponse(mock, "foo", "bar", "baz")
+    rr = sambacc.rados_opener.RADOSObjectRef(mock, "foo", "bar", "baz")
     assert rr.readable()
     assert not rr.seekable()
     assert not rr.writable()
@@ -160,7 +160,7 @@ def test_rados_response_read_chunks():
     mock = unittest.mock.MagicMock()
     mock.Rados.return_value.open_ioctx.return_value.read.side_effect = _read
 
-    rr = sambacc.rados_opener._RADOSResponse(mock, "foo", "bar", "baz")
+    rr = sambacc.rados_opener.RADOSObjectRef(mock, "foo", "bar", "baz")
     assert rr.readable()
     assert rr.read(8) == b"a bad ca"
     assert rr.read(8) == b"t lives "
@@ -178,7 +178,7 @@ def test_rados_response_read_ctx_iter():
     mock = unittest.mock.MagicMock()
     mock.Rados.return_value.open_ioctx.return_value.read.side_effect = _read
 
-    rr = sambacc.rados_opener._RADOSResponse(mock, "foo", "bar", "baz")
+    rr = sambacc.rados_opener.RADOSObjectRef(mock, "foo", "bar", "baz")
     with rr:
         result = [value for value in rr]
     assert result == [sval]
@@ -189,7 +189,7 @@ def test_rados_response_read_ctx_iter():
 def test_rados_response_not_implemented():
     mock = unittest.mock.MagicMock()
 
-    rr = sambacc.rados_opener._RADOSResponse(mock, "foo", "bar", "baz")
+    rr = sambacc.rados_opener.RADOSObjectRef(mock, "foo", "bar", "baz")
     with pytest.raises(NotImplementedError):
         rr.seek(10)
     with pytest.raises(NotImplementedError):
