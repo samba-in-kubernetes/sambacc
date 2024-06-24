@@ -35,13 +35,13 @@ def test_enable_rados_url_opener(monkeypatch):
     monkeypatch.setitem(sys.modules, "rados", mock)
 
     cls_mock = unittest.mock.MagicMock()
-    sambacc.rados_opener.enable_rados_url_opener(cls_mock)
+    sambacc.rados_opener.enable_rados(cls_mock)
     assert cls_mock._handlers.append.called
 
 
 def test_enable_rados_url_opener_fail(monkeypatch):
     cls_mock = unittest.mock.MagicMock()
-    sambacc.rados_opener.enable_rados_url_opener(cls_mock)
+    sambacc.rados_opener.enable_rados(cls_mock)
     assert not cls_mock._handlers.append.called
 
 
@@ -51,7 +51,7 @@ def test_enable_rados_url_opener_with_args(monkeypatch):
 
     cls_mock = unittest.mock.MagicMock()
     cls_mock._handlers = []
-    sambacc.rados_opener.enable_rados_url_opener(cls_mock, client_name="user1")
+    sambacc.rados_opener.enable_rados(cls_mock, client_name="user1")
     assert len(cls_mock._handlers) == 1
     assert isinstance(
         cls_mock._handlers[0]._interface, sambacc.rados_opener._RADOSInterface
@@ -74,7 +74,7 @@ def test_enable_rados_url_opener_with_args2(monkeypatch):
 
     cls_mock = unittest.mock.MagicMock()
     cls_mock._handlers = []
-    sambacc.rados_opener.enable_rados_url_opener(
+    sambacc.rados_opener.enable_rados(
         cls_mock, client_name="client.user1", full_name=True
     )
     assert len(cls_mock._handlers) == 1
