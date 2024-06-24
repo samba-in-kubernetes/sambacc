@@ -21,6 +21,7 @@ from __future__ import annotations
 import io
 import json
 import logging
+import time
 import typing
 import urllib.request
 
@@ -93,6 +94,8 @@ class RADOSObjectRef(typing.IO):
         self._pool = pool
         self._ns = ns
         self._key = key
+        self._lock_description = "sambacc RADOS library"
+        self._lock_duration = None
 
         self._open(interface)
         if must_exist:
@@ -100,6 +103,7 @@ class RADOSObjectRef(typing.IO):
 
     def _open(self, interface: _RADOSInterface) -> None:
         # TODO: connection caching
+        self._api = interface.api
         self._conn = interface.Rados()
         self._conn.connect()
         self._connected = True
@@ -204,6 +208,38 @@ class RADOSObjectRef(typing.IO):
 
     def writelines(self, ls: typing.Iterable[typing.Any]) -> None:
         raise NotImplementedError()
+
+    def write_full(self, data: bytes) -> None:
+        """Write the object such that its contents are exactly `data`."""
+        self._ioctx.write_full(self._key, data)
+
+    def _lock_exclusive(self, name: str, cookie: str) -> None:
+        self._ioctx.lock_exclusive(
+            self._key,
+            name,
+            cookie,
+            desc=self._lock_description,
+            duration=self._lock_duration,
+        )
+
+    def _acquire_lock_exclusive(
+        self, name: str, cookie: str, *, delay: int = 1
+    ) -> None:
+        while True:
+            try:
+                self._lock_exclusive(name, cookie)
+                return
+            except self._api.ObjectBusy:
+                _logger.debug(
+                    "lock failed: %r, %r, %r: object busy",
+                    self._key,
+                    name,
+                    cookie,
+                )
+                time.sleep(delay)
+
+    def _unlock(self, name: str, cookie: str) -> None:
+        self._ioctx.unlock(self._key, name, cookie)
 
 
 def _get_mon_config_key(interface: _RADOSInterface, key: str) -> io.BytesIO:
