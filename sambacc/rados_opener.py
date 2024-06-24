@@ -380,6 +380,14 @@ class ClusterMetaRADOSObject:
         return cls(handler, uri)
 
 
+def is_rados_uri(uri: str) -> bool:
+    """Return true if the string can be used as a rados (pseudo) URI.
+    This function does not require the rados libraries to be available.
+    NB: It does not validate the structure of the URI.
+    """
+    return uri.startswith("rados:")
+
+
 def enable_rados_url_opener(
     cls: typing.Type[url_opener.URLOpener],
     *,
