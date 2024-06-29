@@ -483,6 +483,26 @@ def _node_update(cmeta: ClusterMeta, real_path: str) -> bool:
     return True
 
 
+def cluster_meta_to_nodes(cmeta: ClusterMeta, real_path: str) -> None:
+    """Write a nodes file based on the current content of the cluster
+    metadata."""
+    with cmeta.open(locked=True) as cmo:
+        json_data = cmo.load()
+        nodes = json_data.get("nodes", [])
+        _logger.info("Found node metadata: %r", nodes)
+        pnn_max = max(n["pnn"] for n in nodes) + 1  # pnn is zero indexed
+        ctdb_nodes: list[str] = [""] * pnn_max
+        for entry in nodes:
+            pnn = entry["pnn"]
+            expected_line = _entry_to_node(ctdb_nodes, entry)
+            ctdb_nodes[pnn] = expected_line
+        _logger.info("Will write nodes: %s", ctdb_nodes)
+        with open(real_path, "w") as nffh:
+            write_nodes_file(nffh, ctdb_nodes)
+            nffh.flush()
+            os.fsync(nffh)
+
+
 def ensure_ctdbd_etc_files(
     etc_path: str = ETC_DIR, src_path: str = SHARE_DIR
 ) -> None:
