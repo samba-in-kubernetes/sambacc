@@ -328,7 +328,18 @@ def ctdb_manage_nodes(ctx: Context) -> None:
             waiter.wait()
 
 
-@commands.command(name="ctdb-must-have-node", arg_func=_ctdb_general_node_args)
+def _ctdb_must_have_node_args(parser: argparse.ArgumentParser) -> None:
+    _ctdb_general_node_args(parser)
+    parser.add_argument(
+        "--write-nodes",
+        action="store_true",
+        help="Specify node by IP",
+    )
+
+
+@commands.command(
+    name="ctdb-must-have-node", arg_func=_ctdb_must_have_node_args
+)
 def ctdb_must_have_node(ctx: Context) -> None:
     """Block until the current node is present in the ctdb nodes file."""
     _ctdb_ok()
@@ -341,6 +352,11 @@ def ctdb_must_have_node(ctx: Context) -> None:
             cmeta=np.cluster_meta(),
             pnn=expected_pnn,
         ):
-            return
+            break
         _logger.info("node not yet ready")
         waiter.wait()
+    if ctx.cli.write_nodes:
+        _logger.info("Writing nodes file")
+        ctdb.cluster_meta_to_nodes(
+            np.cluster_meta(), real_path=np.persistent_path
+        )
