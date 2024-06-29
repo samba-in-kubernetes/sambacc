@@ -586,6 +586,23 @@ def _convert_tdb_file(tdb_path: str, dest_dir: str, pnn: int = 0) -> None:
     subprocess.check_call(list(cmd))
 
 
+def archive_tdb(iconfig: config.InstanceConfig, dest_dir: str) -> None:
+    """Arhive TDB files into a given directory."""
+    # TODO: these paths should be based on our instance config, not hard coded
+    try:
+        os.mkdir(dest_dir)
+        _logger.debug("dest_dir: %r created", dest_dir)
+    except FileExistsError:
+        _logger.debug("dest_dir: %r already exists", dest_dir)
+    for tdbfile in _SRC_TDB_FILES:
+        for parent in _SRC_TDB_DIRS:
+            tdb_path = os.path.join(parent, tdbfile)
+            if _has_tdb_file(tdb_path):
+                dest_path = os.path.join(dest_dir, tdbfile)
+                _logger.info("archiving: %r -> %r", tdb_path, dest_path)
+                os.rename(tdb_path, dest_path)
+
+
 def check_nodestatus(cmd: samba_cmds.SambaCommand = samba_cmds.ctdb) -> None:
     cmd_ctdb_check = cmd["nodestatus"]
     samba_cmds.execute(cmd_ctdb_check)
