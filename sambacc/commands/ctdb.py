@@ -62,6 +62,10 @@ def _ctdb_migrate_args(parser: argparse.ArgumentParser) -> None:
         default=ctdb.DB_DIR,
         help="Specify where CTDB database files will be written.",
     )
+    parser.add_argument(
+        "--archive",
+        help="Move converted TDB files to an archive dir.",
+    )
 
 
 def _ctdb_general_node_args(parser: argparse.ArgumentParser) -> None:
@@ -250,6 +254,8 @@ def ctdb_migrate(ctx: Context) -> None:
     """Migrate standard samba databases to CTDB databases."""
     _ctdb_ok()
     ctdb.migrate_tdb(ctx.instance_config, ctx.cli.dest_dir)
+    if ctx.cli.archive:
+        ctdb.archive_tdb(ctx.instance_config, ctx.cli.archive)
 
 
 def _lookup_hostname(hostname):
