@@ -25,6 +25,7 @@ import typing
 from sambacc import ctdb
 from sambacc import jfile
 from sambacc import rados_opener
+from sambacc import samba_cmds
 from sambacc.simple_waiter import Sleeper, Waiter
 
 from .cli import best_waiter, commands, Context, Fail
@@ -366,3 +367,47 @@ def ctdb_must_have_node(ctx: Context) -> None:
         ctdb.cluster_meta_to_nodes(
             np.cluster_meta(), real_path=np.persistent_path
         )
+
+
+def _ctdb_rados_mutex_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--cluster-name",
+        default="ceph",
+        help="Cluster name to pass to mutex lock helper",
+    )
+    parser.add_argument(
+        "mutex_uri",
+        help="RADOS (pesudo) URI value for the object to use as a mutex",
+    )
+
+
+@commands.command(name="ctdb-rados-mutex", arg_func=_ctdb_rados_mutex_args)
+def ctdb_rados_mutex(ctx: Context) -> None:
+    """A command to wrap the rados ctdb_mutex_ceph_rados_helper and wrap
+    & translate the container's ceph configuration into something
+    the helper can understand.
+    N.B. Another reason for this command is that ctdb requires the
+    `cluster lock` value to be the same on all nodes.
+    """
+    if not rados_opener.is_rados_uri(ctx.cli.mutex_uri):
+        raise ValueError(f"{ctx.cli.mutex_uri} is not a valid RADOS URI value")
+    rinfo = rados_opener.parse_rados_uri(ctx.cli.mutex_uri)
+    if rinfo["subtype"] != "object":
+        raise ValueError(
+            f"{ctx.cli.mutex_uri} is not a RADOS object URI value"
+        )
+    pool, namespace, objname = rinfo["pool"], rinfo["ns"], rinfo["key"]
+    entity = ctx.cli.ceph_id["client_name"]
+    if not entity:
+        raise ValueError("a ceph authentication entity name is required")
+    if not ctx.cli.ceph_id["full_name"]:
+        entity = f"client.{entity}"
+    # required arguments
+    cmd = samba_cmds.ctdb_mutex_ceph_rados_helper[
+        ctx.cli.cluster_name, entity, pool, objname  # cephx entity
+    ]
+    # optional namespace argument
+    if namespace:
+        cmd = cmd["-n", namespace]
+    _logger.debug("executing command: %r", cmd)
+    samba_cmds.execute(cmd)  # replaces process
