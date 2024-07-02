@@ -67,7 +67,7 @@ class _RADOSHandler(urllib.request.BaseHandler):
         """Open a rados-style url. Called from urllib."""
         if self._interface is None:
             raise RADOSUnsupported()
-        rinfo = self._parse_req(req)
+        rinfo = parse_rados_uri(req)
         if rinfo.get("subtype") == "mon-config-key":
             return _get_mon_config_key(self._interface, rinfo["path"])
         return RADOSObjectRef(
@@ -83,7 +83,7 @@ class _RADOSHandler(urllib.request.BaseHandler):
         """
         if self._interface is None:
             raise RADOSUnsupported()
-        rinfo = self._parse_req(urllib.request.Request(uri))
+        rinfo = parse_rados_uri(urllib.request.Request(uri))
         if rinfo.get("type") != "rados":
             raise ValueError("only rados URI values supported")
         if rinfo.get("subtype") == "mon-config-key":
@@ -95,29 +95,6 @@ class _RADOSHandler(urllib.request.BaseHandler):
             rinfo["key"],
             must_exist=must_exist,
         )
-
-    def _parse_req(self, req: urllib.request.Request) -> dict[str, str]:
-        """Parse a urlib request into useful components."""
-        subtype = "mon-config-key"
-        if req.selector.startswith(subtype + ":"):
-            return {
-                "type": req.type,
-                "subtype": subtype,
-                "path": req.selector.split(":", 1)[1],
-            }
-        sel = req.selector.lstrip("/")
-        if req.host:
-            pool = req.host
-            ns, key = sel.split("/", 1)
-        else:
-            pool, ns, key = sel.split("/", 2)
-        return {
-            "type": req.type,
-            "subtype": "object",
-            "pool": pool,
-            "ns": ns,
-            "key": key,
-        }
 
 
 # it's quite annoying to have a read-only typing.IO we're forced to
@@ -386,6 +363,35 @@ def is_rados_uri(uri: str) -> bool:
     NB: It does not validate the structure of the URI.
     """
     return uri.startswith("rados:")
+
+
+def parse_rados_uri(
+    uri: typing.Union[str, urllib.request.Request]
+) -> dict[str, str]:
+    """Given a rados uri-like value return a dict containing a breakdown of the
+    components of the uri.
+    """
+    req = uri if not isinstance(uri, str) else urllib.request.Request(uri)
+    subtype = "mon-config-key"
+    if req.selector.startswith(subtype + ":"):
+        return {
+            "type": req.type,
+            "subtype": subtype,
+            "path": req.selector.split(":", 1)[1],
+        }
+    sel = req.selector.lstrip("/")
+    if req.host:
+        pool = req.host
+        ns, key = sel.split("/", 1)
+    else:
+        pool, ns, key = sel.split("/", 2)
+    return {
+        "type": req.type,
+        "subtype": "object",
+        "pool": pool,
+        "ns": ns,
+        "key": key,
+    }
 
 
 def enable_rados(

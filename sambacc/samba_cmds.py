@@ -187,6 +187,10 @@ sambatool = SambaCommand("samba-tool")
 
 smbcontrol = SambaCommand("smbcontrol")
 
+ctdb_mutex_ceph_rados_helper = SambaCommand(
+    "/usr/libexec/ctdb/ctdb_mutex_ceph_rados_helper"
+)
+
 
 def encode(value: typing.Union[str, bytes, None]) -> bytes:
     if value is None:
