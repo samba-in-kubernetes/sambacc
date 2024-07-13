@@ -17,6 +17,7 @@
 #
 
 import argparse
+import contextlib
 import logging
 import os
 import socket
@@ -311,28 +312,15 @@ def ctdb_manage_nodes(ctx: Context) -> None:
     expected_pnn = np.node_number or 0
     waiter = np.cluster_meta_waiter()
 
-    errors = 0
+    limiter = ErrorLimiter("ctdb_manage_nodes", 10, pause_func=waiter.wait)
     while True:
-        try:
+        with limiter.catch():
             ctdb.monitor_cluster_meta_updates(
                 cmeta=np.cluster_meta(),
                 pnn=expected_pnn,
                 real_path=np.persistent_path,
                 pause_func=waiter.wait,
             )
-            errors = 0
-        except KeyboardInterrupt:
-            raise
-        except Exception as err:
-            _logger.error(
-                f"error during manage_nodes: {err}, count={errors}",
-                exc_info=True,
-            )
-            errors += 1
-            if errors > 10:
-                _logger.error(f"too many retries ({errors}). giving up")
-                raise
-            waiter.wait()
 
 
 def _ctdb_must_have_node_args(parser: argparse.ArgumentParser) -> None:
@@ -411,3 +399,43 @@ def ctdb_rados_mutex(ctx: Context) -> None:
         cmd = cmd["-n", namespace]
     _logger.debug("executing command: %r", cmd)
     samba_cmds.execute(cmd)  # replaces process
+
+
+class ErrorLimiter:
+    def __init__(
+        self,
+        name: str,
+        limit: int,
+        *,
+        pause_func: typing.Optional[typing.Callable] = None,
+    ) -> None:
+        self.name = name
+        self.limit = limit
+        self.errors = 0
+        self.pause_func = pause_func
+
+    def post_catch(self):
+        if self.pause_func is not None:
+            self.pause_func()
+
+    @contextlib.contextmanager
+    def catch(self) -> typing.Iterator[None]:
+        try:
+            _logger.debug(
+                "error limiter proceeding: %s: errors=%r",
+                self.name,
+                self.errors,
+            )
+            yield
+        except KeyboardInterrupt:
+            raise
+        except Exception as err:
+            _logger.error(
+                f"error during {self.name}: {err}, count={self.errors}",
+                exc_info=True,
+            )
+            self.errors += 1
+            if self.errors > self.limit:
+                _logger.error(f"too many retries ({self.errors}). giving up")
+                raise
+            self.post_catch()
