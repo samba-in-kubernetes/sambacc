@@ -303,9 +303,9 @@ def ctdb_set_node(ctx: Context) -> None:
 
 @commands.command(name="ctdb-manage-nodes", arg_func=_ctdb_general_node_args)
 def ctdb_manage_nodes(ctx: Context) -> None:
-    """Run a long lived procees to monitor the node state file for new nodes.
-    When a new node is found, if the current node is in the correct state, this
-    node will add it to CTDB.
+    """Run a long lived process to manage the cluster metadata. It can add new
+    nodes. When a new node is found, if the current node is in the correct
+    state, this node will add it to CTDB.
     """
     _ctdb_ok()
     np = NodeParams(ctx)
