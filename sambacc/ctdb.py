@@ -464,10 +464,7 @@ def _node_update(cmeta: ClusterMeta, real_path: str) -> bool:
                 new_ctdb_nodes.append(expected_line)
             else:
                 new_ctdb_nodes[pnn] = expected_line
-        with open(real_path, "w") as nffh:
-            write_nodes_file(nffh, new_ctdb_nodes)
-            nffh.flush()
-            os.fsync(nffh)
+        _save_nodes(real_path, new_ctdb_nodes)
         _logger.info("running: ctdb reloadnodes")
         subprocess.check_call(list(samba_cmds.ctdb["reloadnodes"]))
         for entry in need_reload:
@@ -490,17 +487,26 @@ def cluster_meta_to_nodes(cmeta: ClusterMeta, real_path: str) -> None:
         json_data = cmo.load()
         nodes = json_data.get("nodes", [])
         _logger.info("Found node metadata: %r", nodes)
-        pnn_max = max(n["pnn"] for n in nodes) + 1  # pnn is zero indexed
-        ctdb_nodes: list[str] = [""] * pnn_max
-        for entry in nodes:
-            pnn = entry["pnn"]
-            expected_line = _entry_to_node(ctdb_nodes, entry)
-            ctdb_nodes[pnn] = expected_line
+        ctdb_nodes = _cluster_meta_to_ctdb_nodes(nodes)
         _logger.info("Will write nodes: %s", ctdb_nodes)
-        with open(real_path, "w") as nffh:
-            write_nodes_file(nffh, ctdb_nodes)
-            nffh.flush()
-            os.fsync(nffh)
+        _save_nodes(real_path, ctdb_nodes)
+
+
+def _cluster_meta_to_ctdb_nodes(nodes: list[dict]) -> list[str]:
+    pnn_max = max(n["pnn"] for n in nodes) + 1  # pnn is zero indexed
+    ctdb_nodes: list[str] = [""] * pnn_max
+    for entry in nodes:
+        pnn = entry["pnn"]
+        expected_line = _entry_to_node(ctdb_nodes, entry)
+        ctdb_nodes[pnn] = expected_line
+    return ctdb_nodes
+
+
+def _save_nodes(path: str, ctdb_nodes: list[str]) -> None:
+    with open(path, "w") as nffh:
+        write_nodes_file(nffh, ctdb_nodes)
+        nffh.flush()
+        os.fsync(nffh)
 
 
 def ensure_ctdbd_etc_files(
