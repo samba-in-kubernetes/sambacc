@@ -315,7 +315,7 @@ def ctdb_manage_nodes(ctx: Context) -> None:
     limiter = ErrorLimiter("ctdb_manage_nodes", 10, pause_func=waiter.wait)
     while True:
         with limiter.catch():
-            ctdb.monitor_cluster_meta_updates(
+            ctdb.manage_cluster_meta_updates(
                 cmeta=np.cluster_meta(),
                 pnn=expected_pnn,
                 real_path=np.persistent_path,

@@ -338,7 +338,7 @@ def manage_nodes(
     pause_func: typing.Callable,
 ) -> None:
     """Monitor nodes json for updates, reflecting those changes into ctdb."""
-    monitor_cluster_meta_updates(
+    manage_cluster_meta_updates(
         ClusterMetaJSONFile(nodes_json),
         pnn,
         real_path,
@@ -346,7 +346,7 @@ def manage_nodes(
     )
 
 
-def monitor_cluster_meta_updates(
+def manage_cluster_meta_updates(
     cmeta: ClusterMeta,
     pnn: int,
     real_path: str,
