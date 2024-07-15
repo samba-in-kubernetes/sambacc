@@ -340,7 +340,7 @@ def _ctdb_must_have_node_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--write-nodes",
         action="store_true",
-        help="Specify node by IP",
+        help="Write ctdb nodes file based on cluster meta contents",
     )
 
 
