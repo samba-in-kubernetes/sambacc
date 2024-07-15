@@ -23,6 +23,7 @@ import subprocess
 import typing
 
 from sambacc import config
+from sambacc import leader
 from sambacc import samba_cmds
 from sambacc.jfile import ClusterMetaJSONFile
 from sambacc.netcmd_loader import template_config
@@ -507,6 +508,87 @@ def _save_nodes(path: str, ctdb_nodes: list[str]) -> None:
         write_nodes_file(nffh, ctdb_nodes)
         nffh.flush()
         os.fsync(nffh)
+
+
+def monitor_cluster_meta_changes(
+    cmeta: ClusterMeta,
+    pause_func: typing.Callable,
+    *,
+    nodes_file_path: typing.Optional[str] = None,
+    reload_all: bool = False,
+    leader_locator: typing.Optional[leader.LeaderLocator] = None,
+) -> None:
+    """Monitor cluster meta for changes, reflecting those changes into ctdb.
+
+    Unlike manage_cluster_meta_updates this function never changes the
+    contents of the nodes list in the cluster meta and takes those values
+    as a given, assuming some external agent has the correct global view of
+    the cluster and is updating it correctly. This function exists to
+    translate that content into something ctdb can understand.
+    """
+    prev_meta: dict[str, typing.Any] = {}
+    if nodes_file_path:
+        prev_nodes = read_ctdb_nodes(nodes_file_path)
+    else:
+        with cmeta.open(locked=True) as cmo:
+            meta1 = cmo.load()
+        prev_nodes = _cluster_meta_to_ctdb_nodes(meta1.get("nodes", []))
+    _logger.debug("initial cluster meta content: %r", prev_meta)
+    _logger.debug("initial nodes content: %r", prev_nodes)
+    while True:
+        pause_func()
+        with cmeta.open(locked=True) as cmo:
+            curr_meta = cmo.load()
+        if curr_meta == prev_meta:
+            _logger.debug("cluster meta content unchanged: %r", curr_meta)
+            continue
+        _logger.info("cluster meta content changed")
+        _logger.debug(
+            "cluster meta: previous=%r current=%r", prev_meta, curr_meta
+        )
+        prev_meta = curr_meta
+
+        # maybe some other metadata changed?
+        expected_nodes = _cluster_meta_to_ctdb_nodes(
+            curr_meta.get("nodes", [])
+        )
+        if prev_nodes == expected_nodes:
+            _logger.debug("ctdb nodes list unchanged: %r", expected_nodes)
+            continue
+        _logger.info("ctdb nodes list changed")
+        _logger.debug(
+            "nodes list: previous=%r current=%r", prev_nodes, expected_nodes
+        )
+        prev_nodes = expected_nodes
+
+        if nodes_file_path:
+            _logger.info("updating nodes file: %s", nodes_file_path)
+            _save_nodes(nodes_file_path, expected_nodes)
+        _maybe_reload_nodes(leader_locator, reload_all=reload_all)
+
+
+def _maybe_reload_nodes(
+    leader_locator: typing.Optional[leader.LeaderLocator] = None,
+    reload_all: bool = False,
+) -> None:
+    """Issue a reloadnodes command if leader_locator is available and
+    node is leader or reload_all is true.
+    """
+    if reload_all:
+        _logger.info("running: ctdb reloadnodes")
+        subprocess.check_call(list(samba_cmds.ctdb["reloadnodes"]))
+        return
+    if leader_locator is None:
+        _logger.warning("no leader locator: not calling reloadnodes")
+        return
+    # use the leader locator to only issue the reloadnodes command once
+    # for a change instead of all the nodes "spamming" the cluster
+    with leader_locator as ll:
+        if ll.is_leader():
+            _logger.info("running: ctdb reloadnodes")
+            subprocess.check_call(list(samba_cmds.ctdb["reloadnodes"]))
+        else:
+            _logger.info("node is not leader. skipping reloadnodes")
 
 
 def ensure_ctdbd_etc_files(
