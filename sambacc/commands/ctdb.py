@@ -29,7 +29,7 @@ from sambacc import rados_opener
 from sambacc import samba_cmds
 from sambacc.simple_waiter import Sleeper, Waiter
 
-from .cli import best_waiter, commands, Context, Fail
+from .cli import best_leader_locator, best_waiter, commands, Context, Fail
 
 _logger = logging.getLogger(__name__)
 
@@ -320,6 +320,48 @@ def ctdb_manage_nodes(ctx: Context) -> None:
                 pnn=expected_pnn,
                 real_path=np.persistent_path,
                 pause_func=waiter.wait,
+            )
+
+
+def _ctdb_monitor_nodes_args(parser: argparse.ArgumentParser) -> None:
+    _ctdb_must_have_node_args(parser)
+    parser.add_argument(
+        "--reload",
+        choices=("leader", "never", "all"),
+        default="leader",
+        help="Specify which nodes can command CTDB to reload nodes",
+    )
+
+
+@commands.command(name="ctdb-monitor-nodes", arg_func=_ctdb_monitor_nodes_args)
+def ctdb_monitor_nodes(ctx: Context) -> None:
+    """Run a long lived process to monitor the cluster metadata.
+    Unlike ctdb_manage_nodes this function assumes that the node state
+    file is externally managed and primarily exists to reflect any changes
+    to the cluster meta into CTDB.
+    """
+    _ctdb_ok()
+    np = NodeParams(ctx)
+    waiter = np.cluster_meta_waiter()
+    leader_locator = None
+    if ctx.cli.reload == "leader":
+        leader_locator = best_leader_locator(ctx.instance_config)
+    reload_all = ctx.cli.reload == "all"
+    nodes_file_path = np.persistent_path if ctx.cli.write_nodes else None
+
+    _logger.info("monitoring cluster meta changes")
+    _logger.debug(
+        "reload_all=%s leader_locator=%r", reload_all, leader_locator
+    )
+    limiter = ErrorLimiter("ctdb_monitor_nodes", 10, pause_func=waiter.wait)
+    while True:
+        with limiter.catch():
+            ctdb.monitor_cluster_meta_changes(
+                cmeta=np.cluster_meta(),
+                pause_func=waiter.wait,
+                nodes_file_path=nodes_file_path,
+                leader_locator=leader_locator,
+                reload_all=reload_all,
             )
 
 
