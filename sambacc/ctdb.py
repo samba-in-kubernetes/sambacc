@@ -497,8 +497,8 @@ def _cluster_meta_to_ctdb_nodes(nodes: list[dict]) -> list[str]:
     ctdb_nodes: list[str] = [""] * pnn_max
     for entry in nodes:
         pnn = entry["pnn"]
-        expected_line = _entry_to_node(ctdb_nodes, entry)
-        ctdb_nodes[pnn] = expected_line
+        # overwrite the pnn indexed entry with expected value
+        ctdb_nodes[pnn] = _entry_to_node(ctdb_nodes, entry)
     return ctdb_nodes
 
 
