@@ -394,9 +394,7 @@ def ctdb_must_have_node(ctx: Context) -> None:
         waiter.wait()
     if ctx.cli.write_nodes:
         _logger.info("Writing nodes file")
-        ctdb.cluster_meta_to_nodes(
-            np.cluster_meta(), real_path=np.persistent_path
-        )
+        ctdb.cluster_meta_to_nodes(np.cluster_meta(), dest=np.persistent_path)
 
 
 def _ctdb_rados_mutex_args(parser: argparse.ArgumentParser) -> None:
