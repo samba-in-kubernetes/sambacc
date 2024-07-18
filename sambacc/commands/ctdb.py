@@ -21,6 +21,7 @@ import contextlib
 import logging
 import os
 import socket
+import sys
 import typing
 
 from sambacc import ctdb
@@ -439,6 +440,15 @@ def ctdb_rados_mutex(ctx: Context) -> None:
         cmd = cmd["-n", namespace]
     _logger.debug("executing command: %r", cmd)
     samba_cmds.execute(cmd)  # replaces process
+
+
+@commands.command(name="ctdb-list-nodes", arg_func=_ctdb_general_node_args)
+def ctdb_list_nodes(ctx: Context) -> None:
+    """Write nodes content to stdout based on current cluster meta."""
+    _ctdb_ok()
+    np = NodeParams(ctx)
+
+    ctdb.cluster_meta_to_nodes(np.cluster_meta(), sys.stdout)
 
 
 class ErrorLimiter:
