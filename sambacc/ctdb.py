@@ -128,6 +128,9 @@ def write_ctdb_conf(
     fh.write(enc("\n"))
     fh.write(enc("[cluster]\n"))
     _write_param("recovery lock", "recovery_lock")
+    if ctdb_params.get("nodes_cmd"):
+        nodes_cmd = ctdb_params["nodes_cmd"]
+        fh.write(enc(f"nodes list = !{nodes_cmd}"))
     fh.write(enc("\n"))
     fh.write(enc("[legacy]\n"))
     _write_param("realtime scheduling", "realtime_scheduling")
