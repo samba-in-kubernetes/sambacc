@@ -481,7 +481,9 @@ def _node_update(cmeta: ClusterMeta, real_path: str) -> bool:
     return True
 
 
-def cluster_meta_to_nodes(cmeta: ClusterMeta, real_path: str) -> None:
+def cluster_meta_to_nodes(
+    cmeta: ClusterMeta, dest: typing.Union[str, typing.IO]
+) -> None:
     """Write a nodes file based on the current content of the cluster
     metadata."""
     with cmeta.open(locked=True) as cmo:
@@ -489,8 +491,11 @@ def cluster_meta_to_nodes(cmeta: ClusterMeta, real_path: str) -> None:
         nodes = json_data.get("nodes", [])
         _logger.info("Found node metadata: %r", nodes)
         ctdb_nodes = _cluster_meta_to_ctdb_nodes(nodes)
-        _logger.info("Will write nodes: %s", ctdb_nodes)
-        _save_nodes(real_path, ctdb_nodes)
+        if isinstance(dest, str):
+            _logger.info("Will write nodes: %s", ctdb_nodes)
+            _save_nodes(dest, ctdb_nodes)
+        else:
+            write_nodes_file(dest, ctdb_nodes)
 
 
 def _cluster_meta_to_ctdb_nodes(nodes: list[dict]) -> list[str]:
