@@ -16,6 +16,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import logging
+import time
+
 from sambacc import samba_cmds
 import sambacc.paths as paths
 
@@ -24,7 +27,34 @@ from .initialize import init_container, setup_step_names
 from .join import join
 
 
+_logger = logging.getLogger(__name__)
+
 INIT_ALL = "init-all"
+SMBD = "smbd"
+WINBINDD = "winbindd"
+CTDBD = "ctdbd"
+TARGETS = [SMBD, WINBINDD, CTDBD]
+
+
+class WaitForCTDBCondition:
+    def met(self, ctx: Context) -> bool:
+        target = getattr(ctx.cli, "target", None)
+        if target == CTDBD:
+            raise Fail(f"Can not start and wait for {CTDBD}")
+        _logger.debug("Condition required: ctdb pnn available")
+        import sambacc.ctdb
+
+        pnn = sambacc.ctdb.current_pnn()
+        ok = pnn is not None
+        _logger.debug(
+            "Condition %s: ctdb pnn available: %s",
+            "met" if ok else "not met",
+            pnn,
+        )
+        return ok
+
+
+_wait_for_conditions = {"ctdb": WaitForCTDBCondition}
 
 
 def _run_container_args(parser):
@@ -47,6 +77,17 @@ def _run_container_args(parser):
             " The special 'init-all' name will perform all known setup steps."
         ),
     )
+    _wait_for_choices = _wait_for_conditions.keys()
+    parser.add_argument(
+        "--wait-for",
+        action="append",
+        choices=_wait_for_choices,
+        help=(
+            "Specify a condition to wait for prior to starting the server"
+            " process. Available conditions: `ctdb` - wait for ctdb"
+            " to run and provide a pnn."
+        ),
+    )
     parser.add_argument(
         "--insecure-auto-join",
         action="store_true",
@@ -57,7 +98,7 @@ def _run_container_args(parser):
     )
     parser.add_argument(
         "target",
-        choices=["smbd", "winbindd", "ctdbd"],
+        choices=TARGETS,
         help="Which process to run",
     )
 
@@ -67,6 +108,12 @@ def run_container(ctx: Context) -> None:
     """Run a specified server process."""
     if ctx.cli.no_init and ctx.cli.setup:
         raise Fail("can not specify both --no-init and --setup")
+
+    if ctx.cli.wait_for:
+        conditions = [_wait_for_conditions[n]() for n in ctx.cli.wait_for]
+        while not all(c.met(ctx) for c in conditions):
+            time.sleep(1)
+
     # running servers expect to make use of ctdb whenever it is configured
     ctx.expects_ctdb = True
     if not ctx.cli.no_init and not ctx.cli.setup:
