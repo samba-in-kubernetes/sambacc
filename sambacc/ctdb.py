@@ -704,6 +704,42 @@ def check_nodestatus(cmd: samba_cmds.SambaCommand = samba_cmds.ctdb) -> None:
     samba_cmds.execute(cmd_ctdb_check)
 
 
+def _read_command_pnn(cmd: samba_cmds.SambaCommand) -> typing.Optional[int]:
+    """Run a ctdb command assuming it returns a pnn value. Return the pnn as an
+    int on success, None on command failure.
+    """
+    try:
+        out = subprocess.check_output(list(cmd))
+        pnntxt = out.decode("utf8").strip()
+    except subprocess.CalledProcessError as err:
+        _logger.error(f"command {cmd!r} failed: {err!r}")
+        return None
+    except FileNotFoundError:
+        _logger.error(f"ctdb command ({cmd!r}) not found")
+        return None
+    try:
+        return int(pnntxt)
+    except ValueError:
+        _logger.debug(f"ctdb command wrote invalid pnn: {pnntxt!r}")
+        return None
+
+
+def current_pnn() -> typing.Optional[int]:
+    """Run the `ctdb pnn` command. Returns the pnn value or None if the command
+    fails.
+    """
+    return _read_command_pnn(samba_cmds.ctdb["pnn"])
+
+
+def leader_pnn() -> typing.Optional[int]:
+    """Run the `ctdb leader` (or equivalent) command. Returns the pnn value or
+    None if the command fails.
+    """
+    # recmaster command: <ctdb recmaster|leader>
+    admin_cmd = samba_cmds.ctdb_leader_admin_cmd()
+    return _read_command_pnn(samba_cmds.ctdb[admin_cmd])
+
+
 class CLILeaderStatus:
     _isleader = False
 
@@ -717,29 +753,10 @@ class CLILeaderLocator:
     """
 
     def __enter__(self) -> CLILeaderStatus:
-        mypnn = recmaster = ""
-        # mypnn = <ctdb pnn>
-        pnn_cmd = samba_cmds.ctdb["pnn"]
-        try:
-            out = subprocess.check_output(list(pnn_cmd))
-            mypnn = out.decode("utf8").strip()
-        except subprocess.CalledProcessError as err:
-            _logger.error(f"command {pnn_cmd!r} failed: {err!r}")
-        except FileNotFoundError:
-            _logger.error(f"ctdb command ({pnn_cmd!r}) not found")
-        # recmaster = <ctdb recmaster|leader>
-        admin_cmd = samba_cmds.ctdb_leader_admin_cmd()
-        recmaster_cmd = samba_cmds.ctdb[admin_cmd]
-        try:
-            out = subprocess.check_output(list(recmaster_cmd))
-            recmaster = out.decode("utf8").strip()
-        except subprocess.CalledProcessError as err:
-            _logger.error(f"command {recmaster_cmd!r} failed: {err!r}")
-        except FileNotFoundError:
-            _logger.error(f"ctdb command ({recmaster_cmd!r}) not found")
-
+        mypnn = current_pnn()
+        leader = leader_pnn()
         sts = CLILeaderStatus()
-        sts._isleader = bool(mypnn) and mypnn == recmaster
+        sts._isleader = mypnn is not None and mypnn == leader
         return sts
 
     def __exit__(
