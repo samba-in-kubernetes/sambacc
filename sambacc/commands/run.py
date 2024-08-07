@@ -16,8 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import contextlib
 import logging
+import signal
 import time
+import typing
 
 from sambacc import samba_cmds
 import sambacc.paths as paths
@@ -103,6 +106,21 @@ def _run_container_args(parser):
     )
 
 
+_COND_TIMEOUT = 5 * 60
+
+
+@contextlib.contextmanager
+def _timeout(timeout: int) -> typing.Iterator[None]:
+    def _handler(sig: int, frame: typing.Any) -> None:
+        raise RuntimeError("timed out waiting for conditions")
+
+    signal.signal(signal.SIGALRM, _handler)
+    signal.alarm(timeout)
+    yield
+    signal.alarm(0)
+    signal.signal(signal.SIGALRM, signal.SIG_DFL)
+
+
 @commands.command(name="run", arg_func=_run_container_args)
 def run_container(ctx: Context) -> None:
     """Run a specified server process."""
@@ -110,9 +128,10 @@ def run_container(ctx: Context) -> None:
         raise Fail("can not specify both --no-init and --setup")
 
     if ctx.cli.wait_for:
-        conditions = [_wait_for_conditions[n]() for n in ctx.cli.wait_for]
-        while not all(c.met(ctx) for c in conditions):
-            time.sleep(1)
+        with _timeout(_COND_TIMEOUT):
+            conditions = [_wait_for_conditions[n]() for n in ctx.cli.wait_for]
+            while not all(c.met(ctx) for c in conditions):
+                time.sleep(1)
 
     # running servers expect to make use of ctdb whenever it is configured
     ctx.expects_ctdb = True
