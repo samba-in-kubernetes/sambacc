@@ -20,6 +20,7 @@ import enum
 import logging
 import os
 import subprocess
+import time
 import typing
 
 from sambacc import config
@@ -572,7 +573,23 @@ def monitor_cluster_meta_changes(
         if nodes_file_path:
             _logger.info("updating nodes file: %s", nodes_file_path)
             _save_nodes(nodes_file_path, expected_nodes)
-        _maybe_reload_nodes(leader_locator, reload_all=reload_all)
+        _maybe_reload_nodes_retry(leader_locator, reload_all=reload_all)
+
+
+def _maybe_reload_nodes_retry(
+    leader_locator: typing.Optional[leader.LeaderLocator] = None,
+    reload_all: bool = False,
+    *,
+    tries: int = 5,
+) -> None:
+    for idx in range(tries):
+        time.sleep(1 << idx)
+        try:
+            _maybe_reload_nodes(leader_locator, reload_all=reload_all)
+            return
+        except subprocess.CalledProcessError:
+            _logger.exception("failed to execute reload nodes command")
+    raise RuntimeError("exceeded retries running reload nodes command")
 
 
 def _maybe_reload_nodes(
