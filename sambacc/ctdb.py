@@ -551,6 +551,13 @@ def monitor_cluster_meta_changes(
         if curr_meta == prev_meta:
             _logger.debug("cluster meta content unchanged: %r", curr_meta)
             continue
+        if len(prev_meta) > 0 and len(curr_meta) == 0:
+            # cluster is possibly (probably?) being destroyed.
+            # Return from this loop and let the command-level loop decide if
+            # this function needs to be restarted or not. There's a chance this
+            # process will be terminated very soon anyway.
+            _logger.warning("no current nodes available")
+            return
         _logger.info("cluster meta content changed")
         _logger.debug(
             "cluster meta: previous=%r current=%r", prev_meta, curr_meta
