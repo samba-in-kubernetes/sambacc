@@ -315,6 +315,8 @@ class InstanceConfig:
         ctdb.setdefault("log_level", "DEBUG")
         ctdb.setdefault("script_log_level", "DEBUG")
         ctdb.setdefault("realtime_scheduling", "false")
+        # this whole thing really needs to be turned into a real object type
+        ctdb.setdefault("public_addresses", [])
         return ctdb
 
     def domain(self) -> DomainConfig:
