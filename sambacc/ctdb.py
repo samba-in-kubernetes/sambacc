@@ -181,6 +181,29 @@ def read_ctdb_nodes(path: str = CTDB_NODES) -> list[str]:
     return entries
 
 
+class PublicAddrAssignment(typing.TypedDict):
+    address: str
+    interfaces: list[str]
+
+
+def _ensure_public_addresses_file(
+    path: str, addrs: list[PublicAddrAssignment]
+) -> None:
+    with open(path, "w") as fh:
+        _write_public_addresses_file(fh, addrs)
+
+
+def _write_public_addresses_file(
+    fh: typing.IO, addrs: list[PublicAddrAssignment]
+) -> None:
+    for entry in addrs:
+        fh.write(f"{entry['address']}")
+        if entry["interfaces"]:
+            ifaces = " ".join(entry["interfaces"])
+            fh.write(f" {ifaces}")
+        fh.write("\n")
+
+
 def ensure_ctdb_node_present(
     node: str,
     real_path: str,
@@ -624,7 +647,10 @@ def _maybe_reload_nodes(
 
 
 def ensure_ctdbd_etc_files(
-    etc_path: str = ETC_DIR, src_path: str = SHARE_DIR
+    etc_path: str = ETC_DIR,
+    src_path: str = SHARE_DIR,
+    *,
+    iconfig: typing.Optional[config.InstanceConfig] = None,
 ) -> None:
     """Ensure certain files that ctdbd expects to exist in its etc dir
     do exist.
@@ -636,6 +662,17 @@ def ensure_ctdbd_etc_files(
     legacy_scripts_src = os.path.join(src_path, "events/legacy")
     legacy_scripts_dst = os.path.join(etc_path, "events/legacy")
     link_legacy_scripts = ["00.ctdb.script"]
+
+    public_addresses: list[PublicAddrAssignment] = []
+    if iconfig:
+        ctdb_conf = iconfig.ctdb_config()
+        # todo: when we have a real config object for ctdb conf we can drop
+        # the typing.cast
+        public_addresses = typing.cast(
+            list[PublicAddrAssignment], ctdb_conf.get("public_addresses", [])
+        )
+    if public_addresses:
+        link_legacy_scripts.append("10.interface.script")
 
     os.makedirs(etc_path, exist_ok=True)
     try:
@@ -659,6 +696,10 @@ def ensure_ctdbd_etc_files(
         except FileNotFoundError:
             pass
         os.symlink(lscript_src, lscript_dst)
+
+    if public_addresses:
+        pa_path = os.path.join(etc_path, "public_addresses")
+        _ensure_public_addresses_file(pa_path, public_addresses)
 
 
 _SRC_TDB_FILES = [
