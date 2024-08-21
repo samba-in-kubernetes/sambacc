@@ -70,7 +70,7 @@ def _ctdb_nodes_exists(ctx: Context) -> None:
 def _ctdb_etc_files(ctx: Context) -> None:
     if ctx.instance_config.with_ctdb and ctx.expects_ctdb:
         _logger.info("Ensuring ctdb etc files")
-        ctdb.ensure_ctdbd_etc_files()
+        ctdb.ensure_ctdbd_etc_files(iconfig=ctx.instance_config)
 
 
 @setup_steps.command("share_paths")
