@@ -197,9 +197,9 @@ def _write_public_addresses_file(
     fh: typing.IO, addrs: list[PublicAddrAssignment]
 ) -> None:
     for entry in addrs:
-        fh.write(f"{entry['address']}")
+        fh.write(entry["address"])
         if entry["interfaces"]:
-            ifaces = " ".join(entry["interfaces"])
+            ifaces = ",".join(entry["interfaces"])
             fh.write(f" {ifaces}")
         fh.write("\n")
 
