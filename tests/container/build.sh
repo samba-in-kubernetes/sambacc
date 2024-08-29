@@ -3,7 +3,7 @@
 set -e
 
 python=python3
-url="https://github.com/samba-in-kubernetes/sambacc"
+url="${SAMBACC_REPO_URL:-https://github.com/samba-in-kubernetes/sambacc}"
 bdir="${SAMBACC_BUILD_DIR:-/var/tmp/build/sambacc}"
 distname="${SAMBACC_DISTNAME}"
 # use SAMBACC_BUILD_TASKS to limit build tasks if needed
@@ -93,6 +93,11 @@ task_sys_deps() {
             info "detected centos (stream): ${OS_VER}"
             use_centos=true
         ;;
+        rhel*)
+            info "detected rhel: ${OS_VER}"
+            use_centos=
+            use_rhel=true
+        ;;
         fedora*)
             info "detected fedora: ${OS_VER}"
             use_centos=
@@ -132,6 +137,9 @@ task_sys_deps() {
     if [ "$use_centos" ]; then
         "${dnf_cmd}" install -y epel-release
         yum_args=(--enablerepo=crb)
+        pkgs+=(pyproject-rpm-macros)
+    fi
+    if [ "$use_rhel" ]; then
         pkgs+=(pyproject-rpm-macros)
     fi
     "${dnf_cmd}" "${yum_args[@]}" install -y "${pkgs[@]}"
