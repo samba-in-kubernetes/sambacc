@@ -261,12 +261,39 @@ def ctdb_migrate(ctx: Context) -> None:
         ctdb.archive_tdb(ctx.instance_config, ctx.cli.archive)
 
 
-def _lookup_hostname(hostname):
-    # XXX this is a nasty little hack.
-    ips = socket.gethostbyname_ex(hostname)[2]
-    addr = [ip for ip in ips if ip != "127.0.0.1"][0]
-    _logger.info(f"Determined address for {hostname}: {addr}")
-    return addr
+def _lookup_hostname(hostname: str) -> str:
+    try:
+        addrinfo = socket.getaddrinfo(
+            hostname,
+            None,
+            family=socket.AF_UNSPEC,
+            type=socket.SOCK_STREAM,
+        )
+        ipv6_address = None
+
+        for entry in addrinfo:
+            family, _, _, _, sockaddr = entry
+            ip_address = sockaddr[0]
+
+            if ip_address.startswith("127.") or ip_address == "::1":
+                continue
+
+            if family == socket.AF_INET:
+                return ip_address
+
+            if family == socket.AF_INET6 and ipv6_address is None:
+                ipv6_address = ip_address
+
+        if ipv6_address:
+            return ipv6_address
+
+        raise RuntimeError(
+            f"No valid IP address found for hostname '{hostname}'."
+        )
+
+    except socket.gaierror as e:
+        _logger.error(f"Failed to resolve hostname '{hostname}': {e}")
+        raise
 
 
 @commands.command(name="ctdb-set-node", arg_func=_ctdb_set_node_args)
