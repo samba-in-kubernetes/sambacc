@@ -412,14 +412,16 @@ def ctdb_must_have_node(ctx: Context) -> None:
     expected_pnn = np.node_number or 0
     waiter = np.cluster_meta_waiter()
 
+    limiter = ErrorLimiter("ctdb_must_have_node", 10, pause_func=waiter.wait)
     while True:
-        if ctdb.pnn_in_cluster_meta(
-            cmeta=np.cluster_meta(),
-            pnn=expected_pnn,
-        ):
-            break
-        _logger.info("node not yet ready")
-        waiter.wait()
+        with limiter.catch():
+            if ctdb.pnn_in_cluster_meta(
+                cmeta=np.cluster_meta(),
+                pnn=expected_pnn,
+            ):
+                break
+            _logger.info("node not yet ready")
+            waiter.wait()
     if ctx.cli.write_nodes:
         _logger.info("Writing nodes file")
         ctdb.cluster_meta_to_nodes(np.cluster_meta(), dest=np.persistent_path)
