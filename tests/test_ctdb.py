@@ -438,7 +438,8 @@ def test_ensure_ctdb_conf(tmpdir):
     ctdb.ensure_ctdb_conf(iconfig=cfg.get("ctdb1"), path=path)
     with open(path, "r") as fh:
         data = fh.read()
-    assert "DEBUG" in data
+    assert "NOTICE" in data
+    assert "ERROR" in data
     assert "/var/lib/ctdb/shared/RECOVERY" in data
 
 

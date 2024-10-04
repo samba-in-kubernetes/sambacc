@@ -312,8 +312,8 @@ class InstanceConfig:
         ctdb.setdefault("cluster_meta_uri", CLUSTER_META_JSON)
         ctdb.setdefault("nodes_path", CTDB_NODES_PATH)
         ctdb.setdefault("recovery_lock", CTDB_RECLOCK)
-        ctdb.setdefault("log_level", "DEBUG")
-        ctdb.setdefault("script_log_level", "DEBUG")
+        ctdb.setdefault("log_level", "NOTICE")
+        ctdb.setdefault("script_log_level", "ERROR")
         ctdb.setdefault("realtime_scheduling", "false")
         # this whole thing really needs to be turned into a real object type
         ctdb.setdefault("public_addresses", [])
