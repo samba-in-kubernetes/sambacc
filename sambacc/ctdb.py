@@ -448,7 +448,7 @@ def _node_line(ctdb_nodes: list[str], pnn: int) -> str:
 
 def _entry_to_node(ctdb_nodes: list[str], entry: dict[str, typing.Any]) -> str:
     pnn: int = entry["pnn"]
-    if entry["state"] == NodeState.CHANGED:
+    if entry["state"] == NodeState.CHANGED or entry["state"] == NodeState.GONE:
         return "#{}".format(ctdb_nodes[pnn].strip("#"))
     return entry["node"]
 
