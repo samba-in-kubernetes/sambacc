@@ -271,17 +271,19 @@ def _lookup_hostname(hostname: str) -> str:
         )
         ipv6_address = None
 
-        for entry in addrinfo:
-            family, _, _, _, sockaddr = entry
-            ip_address = sockaddr[0]
-
-            if ip_address.startswith("127.") or ip_address == "::1":
-                continue
-
+        for family, _, _, _, sockaddr in addrinfo:
             if family == socket.AF_INET:
+                ip_address = sockaddr[0]
+                assert isinstance(ip_address, str)
+                if ip_address.startswith("127."):
+                    continue
                 return ip_address
 
             if family == socket.AF_INET6 and ipv6_address is None:
+                ip_address = sockaddr[0]
+                assert isinstance(ip_address, str)
+                if ip_address == "::1":
+                    continue
                 ipv6_address = ip_address
 
         if ipv6_address:
