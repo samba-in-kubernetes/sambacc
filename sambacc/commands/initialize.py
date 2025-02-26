@@ -34,11 +34,19 @@ _logger = logging.getLogger(__name__)
 @setup_steps.command("nsswitch")
 def _import_nsswitch(ctx: Context) -> None:
     # should nsswitch validation/edit be conditional only on ads?
-    nss = nsswitch.NameServiceSwitchLoader("/etc/nsswitch.conf")
-    nss.read()
-    if not nss.winbind_enabled():
-        nss.ensure_winbind_enabled()
-        nss.write()
+    paths = ["/etc/nsswitch.conf", "/usr/etc/nsswitch.conf"]
+    for path in paths:
+        nss = nsswitch.NameServiceSwitchLoader(path)
+        try:
+            nss.read()
+            if not nss.winbind_enabled():
+                nss.ensure_winbind_enabled()
+                nss.write("/etc/nsswitch.conf")
+            return
+        except FileNotFoundError:
+            pass
+
+    raise FileNotFoundError(f"Failed to open {' or '.join(paths)}")
 
 
 @setup_steps.command("smb_ctdb")
