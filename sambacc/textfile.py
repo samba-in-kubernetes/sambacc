@@ -28,11 +28,14 @@ class TextFileLoader:
         with open(self.path) as f:
             self.readfp(f)
 
-    def write(self) -> None:
-        tpath = self._tmp_path(self.path)
+    def write(self, alternate_path: typing.Optional[str] = None) -> None:
+        path = self.path
+        if alternate_path:
+            path = alternate_path
+        tpath = self._tmp_path(path)
         with open(tpath, "w") as f:
             self.writefp(f)
-        os.rename(tpath, self.path)
+        os.rename(tpath, path)
 
     def _tmp_path(self, path: str) -> str:
         # for later: make this smarter
