@@ -31,6 +31,7 @@ _GLOBAL_DEBUG: str = ""
 # Known flags for SAMBA_SPECIFICS env variable
 _DAEMON_CLI_STDOUT_OPT: str = "daemon_cli_debug_output"
 _CTDB_LEADER_ADMIN_CMD: str = "ctdb_leader_admin_command"
+_CTDB_RADOS_MUTEX_SKIP_REG: str = "ctdb_rados_mutex_skip_reg"
 
 
 def get_samba_specifics() -> typing.Set[str]:
@@ -59,6 +60,12 @@ def ctdb_leader_admin_cmd() -> str:
     if _CTDB_LEADER_ADMIN_CMD in opt_lst:
         leader_cmd = "leader"
     return leader_cmd
+
+
+def ctdb_rados_mutex_skip_registration_opt() -> str:
+    if _CTDB_RADOS_MUTEX_SKIP_REG in get_samba_specifics():
+        return "-R"  # skip registration option
+    return ""
 
 
 def set_global_prefix(lst: list[str]) -> None:
