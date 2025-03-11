@@ -469,6 +469,10 @@ def ctdb_rados_mutex(ctx: Context) -> None:
     # optional namespace argument
     if namespace:
         cmd = cmd["-n", namespace]
+    skip_reg_option = samba_cmds.ctdb_rados_mutex_skip_registration_opt()
+    if skip_reg_option:
+        # skip registring ctdb rados mutex helper as a service
+        cmd = cmd[skip_reg_option]
     _logger.debug("executing command: %r", cmd)
     samba_cmds.execute(cmd)  # replaces process
 
