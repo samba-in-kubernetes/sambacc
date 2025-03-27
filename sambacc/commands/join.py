@@ -40,13 +40,13 @@ def _print_join_error(err: typing.Any) -> None:
 def _add_join_sources(joiner: joinutil.Joiner, cli: typing.Any) -> None:
     if cli.insecure or getattr(cli, "insecure_auto_join", False):
         upass = joinutil.UserPass(cli.username, cli.password)
-        joiner.add_source(joinutil.JoinBy.PASSWORD, upass)
+        joiner.add_pw_source(upass)
     if cli.files:
         for path in cli.join_files or []:
-            joiner.add_source(joinutil.JoinBy.FILE, path)
+            joiner.add_file_source(path)
     if cli.interactive:
         upass = joinutil.UserPass(cli.username)
-        joiner.add_source(joinutil.JoinBy.INTERACTIVE, upass)
+        joiner.add_interactive_source(upass)
 
 
 def _join_args(parser: Parser) -> None:

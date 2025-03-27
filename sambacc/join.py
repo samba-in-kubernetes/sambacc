@@ -90,32 +90,15 @@ class Joiner:
         self.marker = marker
         self._opener = opener or FileOpener()
 
-    def add_source(
-        self,
-        method: JoinBy,
-        value: typing.Optional[typing.Union[str, UserPass]] = None,
-    ) -> None:
-        if method in {JoinBy.PASSWORD, JoinBy.INTERACTIVE}:
-            if not isinstance(value, UserPass):
-                raise ValueError("expected UserPass value")
-            if method == JoinBy.PASSWORD:
-                self.add_pw_source(value)
-            else:
-                self.add_interactive_source(value)
-        elif method in {JoinBy.FILE}:
-            if not isinstance(value, str):
-                raise ValueError("expected str value")
-            self.add_file_source(value)
-        else:
-            raise ValueError(f"invalid method: {method}")
-
     def add_file_source(self, path_or_uri: str) -> None:
         self._sources.append(_JoinSource(JoinBy.FILE, None, path_or_uri))
 
     def add_pw_source(self, value: UserPass) -> None:
+        assert isinstance(value, UserPass)
         self._sources.append(_JoinSource(JoinBy.PASSWORD, value, ""))
 
     def add_interactive_source(self, value: UserPass) -> None:
+        assert isinstance(value, UserPass)
         self._sources.append(_JoinSource(JoinBy.INTERACTIVE, value, ""))
 
     def join(self, dns_updates: bool = False) -> None:
