@@ -44,13 +44,15 @@ def _add_join_sources(joiner: joinutil.Joiner, cli: typing.Any) -> None:
     if cli.files:
         for path in cli.join_files or []:
             joiner.add_file_source(path)
+    if cli.odj_files:
+        for path in cli.odj_files:
+            joiner.add_odj_file_source(path)
     if cli.interactive:
         upass = joinutil.UserPass(cli.username)
         joiner.add_interactive_source(upass)
 
 
-def _join_args(parser: Parser) -> None:
-    parser.set_defaults(insecure=False, files=True, interactive=True)
+def _join_args_common(parser: Parser) -> None:
     toggle_option(
         parser,
         arg="--insecure",
@@ -63,18 +65,29 @@ def _join_args(parser: Parser) -> None:
         dest="files",
         helpfmt="{} reading user/password from JSON files.",
     )
-    toggle_option(
-        parser,
-        arg="--interactive",
-        dest="interactive",
-        helpfmt="{} interactive password prompt.",
-    )
     parser.add_argument(
         "--join-file",
         "-j",
         dest="join_files",
         action="append",
         help="Path to file with user/password in JSON format.",
+    )
+    parser.add_argument(
+        "--odj-file",
+        dest="odj_files",
+        action="append",
+        help="Path to an Offline Domain Join (ODJ) provisioning data file",
+    )
+
+
+def _join_args(parser: Parser) -> None:
+    parser.set_defaults(insecure=False, files=True, interactive=True)
+    _join_args_common(parser)
+    toggle_option(
+        parser,
+        arg="--interactive",
+        dest="interactive",
+        helpfmt="{} interactive password prompt.",
     )
 
 
@@ -98,30 +111,12 @@ def join(ctx: Context) -> None:
 
 def _must_join_args(parser: Parser) -> None:
     parser.set_defaults(insecure=False, files=True, wait=True)
-    toggle_option(
-        parser,
-        arg="--insecure",
-        dest="insecure",
-        helpfmt="{} taking user/password from CLI or environment.",
-    )
-    toggle_option(
-        parser,
-        arg="--files",
-        dest="files",
-        helpfmt="{} reading user/password from JSON files.",
-    )
+    _join_args_common(parser)
     toggle_option(
         parser,
         arg="--wait",
         dest="wait",
         helpfmt="{} waiting until a join is done.",
-    )
-    parser.add_argument(
-        "--join-file",
-        "-j",
-        dest="join_files",
-        action="append",
-        help="Path to file with user/password in JSON format.",
     )
 
 
