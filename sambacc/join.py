@@ -45,6 +45,7 @@ class JoinBy(enum.Enum):
     PASSWORD = "password"
     FILE = "file"
     INTERACTIVE = "interactive"
+    ODJ_FILE = "odj_file"
 
 
 class UserPass:
@@ -78,6 +79,7 @@ class Joiner:
     """
 
     _net_ads_join = samba_cmds.net["ads", "join"]
+    _requestodj = samba_cmds.net["offlinejoin", "requestodj"]
 
     def __init__(
         self,
@@ -101,6 +103,9 @@ class Joiner:
         assert isinstance(value, UserPass)
         self._sources.append(_JoinSource(JoinBy.INTERACTIVE, value, ""))
 
+    def add_odj_file_source(self, path_or_uri: str) -> None:
+        self._sources.append(_JoinSource(JoinBy.ODJ_FILE, None, path_or_uri))
+
     def join(self, dns_updates: bool = False) -> None:
         if not self._sources:
             raise JoinError("no sources for join data")
@@ -110,15 +115,19 @@ class Joiner:
                 if src.method is JoinBy.PASSWORD:
                     assert src.upass
                     upass = src.upass
+                    self._join(upass, dns_updates=dns_updates)
                 elif src.method is JoinBy.FILE:
                     assert src.path
                     upass = self._read_from(src.path)
+                    self._join(upass, dns_updates=dns_updates)
                 elif src.method is JoinBy.INTERACTIVE:
                     assert src.upass
                     upass = UserPass(src.upass.username, _PROMPT)
+                    self._join(upass, dns_updates=dns_updates)
+                elif src.method is JoinBy.ODJ_FILE:
+                    self._offline_join(src.path)
                 else:
                     raise ValueError(f"invalid method: {src.method}")
-                self._join(upass, dns_updates=dns_updates)
                 self._set_marker()
                 return
             except JoinError as join_err:
@@ -176,6 +185,20 @@ class Joiner:
         ret = proc.wait()
         if ret != 0:
             raise JoinError("failed to run {}".format(cmd))
+
+    def _offline_join(self, path: str) -> None:
+        cmd = list(self._requestodj["-i"])
+        try:
+            with self._opener.open(path) as fh:
+                proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+                assert proc.stdin  # mypy appeasment
+                proc.stdin.write(fh.read())
+                proc.stdin.close()
+                ret = proc.wait()
+                if ret != 0:
+                    raise JoinError(f"failed running {cmd}")
+        except FileNotFoundError:
+            raise JoinError(f"source file not found: {path}")
 
     def _set_marker(self) -> None:
         if self.marker is not None:
