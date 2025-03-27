@@ -61,17 +61,14 @@ def test_no_sources(testjoiner):
 
 
 def test_invalid_source_vals(testjoiner):
-    with pytest.raises(ValueError):
-        testjoiner.add_source("bob", 123)
-    with pytest.raises(ValueError):
-        testjoiner.add_source(sambacc.join.JoinBy.PASSWORD, 123)
-    with pytest.raises(ValueError):
-        testjoiner.add_source(sambacc.join.JoinBy.FILE, 123)
+    with pytest.raises(AssertionError):
+        testjoiner.add_pw_source("abc123")
+    with pytest.raises(AssertionError):
+        testjoiner.add_interactive_source("xyzdef")
 
 
 def test_join_password(testjoiner):
-    testjoiner.add_source(
-        sambacc.join.JoinBy.PASSWORD,
+    testjoiner.add_pw_source(
         sambacc.join.UserPass("bugs", "whatsupdoc"),
     )
     testjoiner.join()
@@ -81,19 +78,13 @@ def test_join_file(testjoiner):
     jpath1 = os.path.join(testjoiner.path, "join1.json")
     with open(jpath1, "w") as fh:
         json.dump({"username": "elmer", "password": "hunter2"}, fh)
-    testjoiner.add_source(
-        sambacc.join.JoinBy.FILE,
-        jpath1,
-    )
+    testjoiner.add_file_source(jpath1)
     testjoiner.join()
 
 
 def test_join_missing_file(testjoiner):
     jpath1 = os.path.join(testjoiner.path, "nope.json")
-    testjoiner.add_source(
-        sambacc.join.JoinBy.FILE,
-        jpath1,
-    )
+    testjoiner.add_file_source(jpath1)
     with pytest.raises(sambacc.join.JoinError) as err:
         testjoiner.join()
     assert "not found" in str(err).lower()
@@ -101,10 +92,7 @@ def test_join_missing_file(testjoiner):
 
 def test_join_bad_file(testjoiner):
     jpath1 = os.path.join(testjoiner.path, "join1.json")
-    testjoiner.add_source(
-        sambacc.join.JoinBy.FILE,
-        jpath1,
-    )
+    testjoiner.add_file_source(jpath1)
 
     with open(jpath1, "w") as fh:
         json.dump({"acme": True}, fh)
@@ -123,17 +111,13 @@ def test_join_bad_file(testjoiner):
 
 
 def test_join_multi_source(testjoiner):
-    testjoiner.add_source(
-        sambacc.join.JoinBy.PASSWORD,
+    testjoiner.add_pw_source(
         sambacc.join.UserPass("bugs", "whatsupdoc"),
     )
     jpath1 = os.path.join(testjoiner.path, "join1.json")
     with open(jpath1, "w") as fh:
         json.dump({"username": "elmer", "password": "hunter2"}, fh)
-    testjoiner.add_source(
-        sambacc.join.JoinBy.FILE,
-        jpath1,
-    )
+    testjoiner.add_file_source(jpath1)
     testjoiner.join()
 
     with open(testjoiner.logpath) as fh:
@@ -144,17 +128,13 @@ def test_join_multi_source(testjoiner):
 
 
 def test_join_multi_source_fail_first(testjoiner):
-    testjoiner.add_source(
-        sambacc.join.JoinBy.PASSWORD,
+    testjoiner.add_pw_source(
         sambacc.join.UserPass("bugs", "failme"),
     )
     jpath1 = os.path.join(testjoiner.path, "join1.json")
     with open(jpath1, "w") as fh:
         json.dump({"username": "elmer", "password": "hunter2"}, fh)
-    testjoiner.add_source(
-        sambacc.join.JoinBy.FILE,
-        jpath1,
-    )
+    testjoiner.add_file_source(jpath1)
     testjoiner.join()
 
     with open(testjoiner.logpath) as fh:
@@ -165,17 +145,13 @@ def test_join_multi_source_fail_first(testjoiner):
 
 
 def test_join_multi_source_fail_both(testjoiner):
-    testjoiner.add_source(
-        sambacc.join.JoinBy.PASSWORD,
+    testjoiner.add_pw_source(
         sambacc.join.UserPass("bugs", "failme"),
     )
     jpath1 = os.path.join(testjoiner.path, "join1.json")
     with open(jpath1, "w") as fh:
         json.dump({"username": "elmer", "password": "failme2"}, fh)
-    testjoiner.add_source(
-        sambacc.join.JoinBy.FILE,
-        jpath1,
-    )
+    testjoiner.add_file_source(jpath1)
     with pytest.raises(sambacc.join.JoinError) as err:
         testjoiner.join()
     assert err.match("2 join attempts")
@@ -189,8 +165,7 @@ def test_join_multi_source_fail_both(testjoiner):
 
 
 def test_join_prompt_fake(testjoiner):
-    testjoiner.add_source(
-        sambacc.join.JoinBy.INTERACTIVE,
+    testjoiner.add_interactive_source(
         sambacc.join.UserPass("daffy"),
     )
     testjoiner.join()
@@ -205,8 +180,7 @@ def test_join_prompt_fake(testjoiner):
 
 def test_join_with_marker(testjoiner):
     testjoiner.marker = os.path.join(testjoiner.path, "marker.json")
-    testjoiner.add_source(
-        sambacc.join.JoinBy.PASSWORD,
+    testjoiner.add_pw_source(
         sambacc.join.UserPass("bugs", "whatsupdoc"),
     )
     testjoiner.join()
@@ -217,8 +191,7 @@ def test_join_with_marker(testjoiner):
 
 def test_join_bad_marker(testjoiner):
     testjoiner.marker = os.path.join(testjoiner.path, "marker.json")
-    testjoiner.add_source(
-        sambacc.join.JoinBy.PASSWORD,
+    testjoiner.add_pw_source(
         sambacc.join.UserPass("bugs", "whatsupdoc"),
     )
     testjoiner.join()
@@ -235,8 +208,7 @@ def test_join_bad_marker(testjoiner):
 
 
 def test_join_no_marker(testjoiner):
-    testjoiner.add_source(
-        sambacc.join.JoinBy.PASSWORD,
+    testjoiner.add_pw_source(
         sambacc.join.UserPass("bugs", "whatsupdoc"),
     )
     testjoiner.join()
@@ -273,8 +245,7 @@ def test_join_when_possible(testjoiner):
 
     # success case - performs a password join
     errors[:] = []
-    testjoiner.add_source(
-        sambacc.join.JoinBy.PASSWORD,
+    testjoiner.add_pw_source(
         sambacc.join.UserPass("bugs", "whatsupdoc"),
     )
     testjoiner.marker = os.path.join(testjoiner.path, "marker.json")
