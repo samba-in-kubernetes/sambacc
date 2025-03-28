@@ -43,6 +43,9 @@ def testjoiner(tmp_path):
 
     class TestJoiner(sambacc.join.Joiner):
         _net_ads_join = samba_cmds.SambaCommand(fake_net_script)["ads", "join"]
+        _requestodj = samba_cmds.SambaCommand(fake_net_script)[
+            "offlinejoin", "requestodj"
+        ]
         path = tmp_path
         logpath = data_path / "log"
         _nullfh = None
@@ -264,3 +267,32 @@ def test_join_when_possible(testjoiner):
 
     assert len(errors) == 0
     assert waiter.wcount == 6
+
+
+def test_offline_join(testjoiner):
+    odj_path = os.path.join(testjoiner.path, "foo.odj")
+    with open(odj_path, "w") as fh:
+        fh.write("FAKE!\n")
+    testjoiner.add_odj_file_source(odj_path)
+    testjoiner.join()
+
+    with open(testjoiner.logpath) as fh:
+        lines = fh.readlines()
+    assert lines[0].startswith("ARGS")
+    assert lines[1].startswith("FAKE!")
+
+
+def test_offline_join_nofile(testjoiner):
+    odj_path = os.path.join(testjoiner.path, "foo.odj")
+    testjoiner.add_odj_file_source(odj_path)
+    with pytest.raises(sambacc.join.JoinError):
+        testjoiner.join()
+
+
+def test_offline_join_fail(testjoiner):
+    odj_path = os.path.join(testjoiner.path, "foo.odj")
+    with open(odj_path, "w") as fh:
+        fh.write("failme!\n")
+    testjoiner.add_odj_file_source(odj_path)
+    with pytest.raises(sambacc.join.JoinError):
+        testjoiner.join()
