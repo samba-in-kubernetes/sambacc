@@ -120,7 +120,6 @@ def _schema_validate(data: dict[str, typing.Any], version: str) -> None:
     except AttributeError:
         _refreserror = _FakeRefResolutionError
 
-    global _JSON_SCHEMA
     if version == "v0" and version not in _JSON_SCHEMA:
         try:
             import sambacc.schema.conf_v0_schema

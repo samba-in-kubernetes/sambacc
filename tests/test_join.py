@@ -232,7 +232,6 @@ def test_join_when_possible(testjoiner):
     errors = []
 
     def ehandler(err):
-        nonlocal errors
         if len(errors) > 5:
             raise ValueError("xxx")
         errors.append(err)
