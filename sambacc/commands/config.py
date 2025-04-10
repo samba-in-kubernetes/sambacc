@@ -79,12 +79,15 @@ def _read_config(ctx: Context) -> config.InstanceConfig:
     ).get(ctx.cli.identity)
 
 
+UpdateResult = typing.Tuple[typing.Optional[config.InstanceConfig], bool]
+
+
 def _update_config(
     current: config.InstanceConfig,
     previous: typing.Optional[config.InstanceConfig],
     ensure_paths: bool = True,
     notify_server: bool = True,
-) -> typing.Tuple[config.InstanceConfig, bool]:
+) -> UpdateResult:
     """Compare the current and previous instance configurations. If they
     differ, ensure any new paths, update the samba config, and inform any
     running smbds of the new configuration.  Return the current config and a
@@ -117,8 +120,8 @@ def _update_config(
 
 def _exec_if_leader(
     ctx: Context,
-    cond_func: typing.Callable[..., typing.Tuple[config.InstanceConfig, bool]],
-) -> typing.Callable[..., typing.Tuple[config.InstanceConfig, bool]]:
+    cond_func: typing.Callable[..., UpdateResult],
+) -> typing.Callable[..., UpdateResult]:
     """Run the cond func only on "nodes" that are the cluster leader."""
 
     # CTDB status and leader detection is not changeable at runtime.
@@ -126,11 +129,11 @@ def _exec_if_leader(
     @functools.wraps(cond_func)
     def _call_if_leader(
         current: config.InstanceConfig, previous: config.InstanceConfig
-    ) -> typing.Tuple[config.InstanceConfig, bool]:
+    ) -> UpdateResult:
         with best_leader_locator(ctx.instance_config) as ll:
             if not ll.is_leader():
                 _logger.info("skipping config update. node not leader")
-                return previous, False
+                return None, False
             _logger.info("checking for update. node is leader")
             result = cond_func(current, previous)
         return result
