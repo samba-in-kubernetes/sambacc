@@ -9,7 +9,7 @@
 
 Name:           python-%{bname}
 Version:        %{rversion}
-Release:        1%{?dist}
+Release:        1%{?dist}%{?vendordist}
 Summary:        Samba Container Configurator
 
 License:        GPLv3+
