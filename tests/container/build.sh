@@ -198,11 +198,15 @@ task_rpm_build() {
             tar -xf "$spkg" -O \
                 "sambacc-${ver}/extras/python-sambacc.spec"
         ) > "${tdir}/python-sambacc.spec"
-        rpmbuild "${rpmbuild_stage}" \
+        rpmbuild_cmd=(rpmbuild "${rpmbuild_stage}" \
             -D "_rpmdir ${distdir}/RPMS" \
             -D "_srcrpmdir ${distdir}/SRPMS" \
             -D "_sourcedir $(dirname "${spkg}")" \
-            "${tdir}/python-sambacc.spec"
+        )
+        if [ "$VENDOR_DIST_SUFFIX" ]; then
+            rpmbuild_cmd+=(-D "vendordist ${VENDOR_DIST_SUFFIX}")
+        fi
+        "${rpmbuild_cmd[@]}" "${tdir}/python-sambacc.spec"
         rm -rf "${tdir}"
     done
 }
