@@ -105,13 +105,17 @@ def split_entries(value: str) -> list[str]:
 
 
 def from_env(
-    ns: typing.Any,
+    ns: argparse.Namespace,
     var: str,
     ename: str,
     default: typing.Any = None,
     convert_env: typing.Optional[typing.Callable] = None,
     convert_value: typing.Optional[typing.Callable] = str,
 ) -> None:
+    """Bind an environment variable to a command line option. This allows
+    certain cli options to be set from env vars if the cli option is
+    not directly provided.
+    """
     value = getattr(ns, var, None)
     if not value:
         value = os.environ.get(ename, "")
