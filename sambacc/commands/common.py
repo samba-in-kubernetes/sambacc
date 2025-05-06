@@ -127,7 +127,10 @@ def from_env(
         setattr(ns, var, value)
 
 
-def env_to_cli(cli: typing.Any) -> None:
+def env_to_cli(cli: argparse.Namespace) -> None:
+    """Configure the sambacc default command line option to environment
+    variable mappings.
+    """
     from_env(
         cli,
         "config",
