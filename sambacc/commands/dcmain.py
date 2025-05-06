@@ -21,7 +21,7 @@ import typing
 from . import addc
 from . import skips
 from .cli import Fail
-from .main import (
+from .common import (
     CommandContext,
     enable_logging,
     env_to_cli,
