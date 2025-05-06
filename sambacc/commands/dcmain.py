@@ -20,7 +20,7 @@ import typing
 
 from . import addc
 from . import skips
-from .cli import Fail
+from .cli import Fail, commands
 from .common import (
     CommandContext,
     enable_logging,
@@ -34,7 +34,7 @@ default_cfunc = addc.summary
 
 
 def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
-    cli = addc.dccommands.assemble(arg_func=global_args).parse_args(args)
+    cli = commands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
     enable_logging(cli)
     if not cli.identity:
