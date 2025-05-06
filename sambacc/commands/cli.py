@@ -18,6 +18,8 @@
 
 from collections import namedtuple
 import argparse
+import importlib
+import inspect
 import logging
 import typing
 
@@ -173,6 +175,30 @@ class CommandBuilder:
     def dict(self) -> dict[str, Command]:
         """Return a dict mapping command names to Command object."""
         return {c.name: c for c in self._commands}
+
+    def include(
+        self, modname: str, *, package: str = "", check: bool = True
+    ) -> None:
+        """Import a python module to add commands to this command builder.
+        If check is true and no new commands are added by the import, raise an
+        error.
+        """
+        if modname.startswith(".") and not package:
+            package = "sambacc.commands"
+        mod = importlib.import_module(modname, package=package)
+        if not check:
+            return
+        loaded_fns = {c.cmd_func for c in self._commands}
+        mod_fns = {fn for _, fn in inspect.getmembers(mod, inspect.isfunction)}
+        if not mod_fns.intersection(loaded_fns):
+            raise Fail(f"import from {modname} did not add any new commands")
+
+    def include_multiple(
+        self, modnames: typing.Iterable[str], *, package: str = ""
+    ) -> None:
+        """Run the include function on multiple module names."""
+        for modname in modnames:
+            self.include(modname, package=package)
 
 
 class Context(typing.Protocol):
