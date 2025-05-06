@@ -26,7 +26,7 @@ from sambacc import samba_cmds
 from sambacc import smbconf_api
 from sambacc import smbconf_samba
 
-from .cli import best_waiter, CommandBuilder, Context, Fail
+from .cli import Context, Fail, best_waiter, commands
 
 try:
     import dns
@@ -43,10 +43,8 @@ _logger = logging.getLogger(__name__)
 _populated: str = "/var/lib/samba/POPULATED"
 _provisioned: str = "/etc/samba/smb.conf"
 
-dccommands = CommandBuilder()
 
-
-@dccommands.command(name="summary")
+@commands.command(name="summary")
 def summary(ctx: Context) -> None:
     print("Hello", ctx)
 
@@ -192,7 +190,7 @@ def _prep_krb5_conf(ctx: Context) -> None:
     shutil.copy("/var/lib/samba/private/krb5.conf", "/etc/krb5.conf")
 
 
-@dccommands.command(name="run", arg_func=_run_container_args)
+@commands.command(name="run", arg_func=_run_container_args)
 def run(ctx: Context) -> None:
     _logger.info("Running AD DC container")
     if _dosetup(ctx, "wait-domain"):
