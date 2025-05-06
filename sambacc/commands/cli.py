@@ -72,6 +72,58 @@ def toggle_option(parser: Parser, arg: str, dest: str, helpfmt: str) -> Parser:
     return parser
 
 
+def ceph_id(
+    value: typing.Union[str, dict[str, typing.Any]]
+) -> dict[str, typing.Any]:
+    """Parse a string value into a dict containing ceph id values.
+    The input should contain name= or rados_id= to identify the kind
+    of name being provided. As a shortcut a bare name can be provided
+    and the code will guess at the kind.
+    """
+    if not isinstance(value, str):
+        return value
+    if value == "?":
+        # A hack to avoid putting tons of ceph specific info in the normal
+        # help output. There's probably a better way to do this but it
+        # gets the job done for now.
+        raise argparse.ArgumentTypeError(
+            "requested help:"
+            " Specify names in the form"
+            " --ceph-id=[key=value][,key=value][,...]."
+            ' Valid keys include "name" to set the exact name and "rados_id"'
+            ' to specify a name that lacks the "client." prefix (that will'
+            "automatically get added)."
+            " Alternatively, specify just the name to allow the system to"
+            " guess if the name is prefixed already or not."
+        )
+    result: dict[str, typing.Any] = {}
+    # complex mode
+    if "=" in value:
+        for part in value.split(","):
+            if "=" not in part:
+                raise argparse.ArgumentTypeError(
+                    f"unexpected value for ceph-id: {value!r}"
+                )
+            key, val = part.split("=", 1)
+            if key == "name":
+                result["client_name"] = val
+                result["full_name"] = True
+            elif key == "rados_id":
+                result["client_name"] = val
+                result["full_name"] = False
+            else:
+                b = f"unexpected key {key!r} in value for ceph-id: {value!r}"
+                raise argparse.ArgumentTypeError(b)
+    else:
+        # this shorthand is meant mainly for lazy humans (me) when running test
+        # images manually. The key-value form above is meant for automation.
+        result["client_name"] = value
+        # assume that if the name starts with client. it's the full name and
+        # avoid having the ceph library double up an create client.client.x.
+        result["full_name"] = value.startswith("client.")
+    return result
+
+
 def get_help(cmd: Command) -> str:
     if cmd.cmd_help is not None:
         return cmd.cmd_help
