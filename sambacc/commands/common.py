@@ -154,7 +154,7 @@ def env_to_cli(cli: argparse.Namespace) -> None:
     from_env(cli, "ceph_id", "SAMBACC_CEPH_ID", convert_value=ceph_id)
 
 
-def pre_action(cli: typing.Any) -> None:
+def pre_action(cli: argparse.Namespace) -> None:
     """Handle debugging/diagnostic related options before the target
     action of the command is performed.
     """
