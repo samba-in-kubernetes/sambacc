@@ -188,6 +188,7 @@ def enable_logging(cli: argparse.Namespace) -> None:
 
 
 def global_args(parser: Parser) -> None:
+    """Configure sambacc default global command line arguments."""
     parser.add_argument(
         "--config",
         action="append",
