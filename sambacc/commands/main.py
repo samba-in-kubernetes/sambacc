@@ -19,15 +19,8 @@
 import typing
 
 
-from . import check  # noqa: F401
 from . import config as config_cmds
-from . import ctdb  # noqa: F401
-from . import dns  # noqa: F401
-from . import initialize  # noqa: F401
-from . import join  # noqa: F401
-from . import run  # noqa: F401
 from . import skips
-from . import users  # noqa: F401
 from .cli import commands, Fail
 from .common import (
     CommandContext,
@@ -41,6 +34,10 @@ default_cfunc = config_cmds.print_config
 
 
 def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
+    commands.include_multiple(
+        [".check", ".ctdb", ".dns", ".initialize", ".join", ".run", ".users"]
+    )
+
     cli = commands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
     enable_logging(cli)
