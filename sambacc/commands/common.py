@@ -174,7 +174,8 @@ def pre_action(cli: argparse.Namespace) -> None:
     )
 
 
-def enable_logging(cli: typing.Any) -> None:
+def enable_logging(cli: argparse.Namespace) -> None:
+    """Configure sambacc command line logging."""
     level = logging.DEBUG if cli.debug else logging.INFO
     logger = logging.getLogger()
     logger.setLevel(level)
