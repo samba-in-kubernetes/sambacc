@@ -194,6 +194,8 @@ sambatool = SambaCommand("samba-tool")
 
 smbcontrol = SambaCommand("smbcontrol")
 
+smbstatus = SambaCommand("smbstatus")
+
 ctdb_mutex_ceph_rados_helper = SambaCommand(
     "/usr/libexec/ctdb/ctdb_mutex_ceph_rados_helper"
 )
