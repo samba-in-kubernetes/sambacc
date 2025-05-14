@@ -46,6 +46,7 @@ Requires: python3-pyxattr
 Recommends: %{name}+toml
 Recommends: %{name}+yaml
 Recommends: %{name}+rados
+Recommends: %{name}+grpc
 %endif
 %if 0%{?fedora} >= 37
 Recommends: %{name}+validation
@@ -78,6 +79,7 @@ Recommends: %{name}+validation
 %doc README.*
 %{_bindir}/samba-container
 %{_bindir}/samba-dc-container
+%{_bindir}/samba-remote-control
 %{_datadir}/%{bname}/examples/
 
 
@@ -85,6 +87,7 @@ Recommends: %{name}+validation
 %pyproject_extras_subpkg -n python3-%{bname} toml
 %pyproject_extras_subpkg -n python3-%{bname} yaml
 %pyproject_extras_subpkg -n python3-%{bname} rados
+%pyproject_extras_subpkg -n python3-%{bname} grpc
 
 
 %changelog
