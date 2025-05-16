@@ -1,0 +1,76 @@
+interface org.samba.containers.keybridge
+
+
+# Scopes define some subset of entries - all entries are part of some
+# scope. Different scopes might map to different servers.
+
+# ScopeInfo contains basic information about a scope.
+type ScopeInfo (
+    name: string,
+    default: bool,
+    kind: string,
+    description: string
+)
+
+# Scopes lists known scopes.
+method Scopes() -> (scopes: []ScopeInfo)
+
+# HasScope reports on the given scope name if it is known.
+method HasScope(name: string) -> (scope: ?ScopeInfo)
+
+
+# Entries are the main form of data exchange. A scope may or may not
+# support setting entries. Every entry has a EntryKind that determines
+# how data is passed to and from the API.
+
+
+# EntryKind determines how the data is encoded in the Entry object and
+# *may* affect what field the data will appear in the Entry object in
+# the future. A scope *may* translate between kinds, but does not have
+# to. In other words, if you store a B64 but request a VALUE the
+# scope is permitted to translate it but can instead return an InvalidKind
+# error.
+#
+# The B64 kind means that data is a single base64 encoded string.
+# The VALUE kind means that data is a single JSON-safe unicode string.
+type EntryKind (B64, VALUE)
+
+# Entry contains the entry's identity and data.
+type Entry (
+    name: string,
+    scope: string,
+    kind: EntryKind,
+    data: ?string
+)
+
+# Get an entry from the server.
+method Get(
+    name: string,
+    scope: string,
+    kind: EntryKind
+) -> (entry: Entry)
+
+# Set will create or update an entry on the server.
+method Set(entry: Entry) -> ()
+
+# Delete will remove an entry on the server.
+method Delete(name: string, scope: string) -> ()
+
+
+# ScopeNotFound may be returned if a request refers to an unknown scope.
+error ScopeNotFound (scope: string)
+
+# EntryNotFound may be returned if a request refers to an unknown entry.
+error EntryNotFound (name: string, scope: string)
+
+# InvalidKind may be returned if a request refers to an unknown entry kind or a
+# kind is not supported by the scope.
+error InvalidKind ()
+
+# ReadOnlyScope may be returned if a Set or Delete request is sent to a read
+# only scope.
+error ReadOnlyScope (name: string)
+
+# OperationNotSupported may be returned if an entry method is not supported by
+# the given scope.
+error OperationNotSupported (op: string, entry: string, scope: string)
