@@ -1,6 +1,6 @@
 #
 # sambacc: a samba container configuration tool
-# Copyright (C) 2021  John Mulligan
+# Copyright (C) 2025  John Mulligan
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,12 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import sys
 import typing
 
-from . import addc
-from . import skips
-from .cli import Fail, commands
-from .common import (
+
+from .. import skips
+from ..cli import Context, Fail, commands
+from ..common import (
     CommandContext,
     enable_logging,
     env_to_cli,
@@ -30,10 +31,15 @@ from .common import (
 )
 
 
-default_cfunc = addc.summary
+def _default(ctx: Context) -> None:
+    sys.stdout.write(f"{sys.argv[0]} requires a subcommand, like 'serve'.\n")
+    sys.exit(1)
 
 
 def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
+    pkg = "sambacc.commands.remotecontrol"
+    commands.include(".server", package=pkg)
+
     cli = commands.assemble(arg_func=global_args).parse_args(args)
     env_to_cli(cli)
     enable_logging(cli)
@@ -46,8 +52,8 @@ def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
     if skip:
         print(f"Command Skipped: {skip}")
         return
-    cfunc = getattr(cli, "cfunc", default_cfunc)
-    cfunc(CommandContext(cli))
+    cfunc = getattr(cli, "cfunc", _default)
+    cfunc(ctx)
     return
 
 

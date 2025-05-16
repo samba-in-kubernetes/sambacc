@@ -1,0 +1,84 @@
+// Use proto3 as the older protobuf we need for centos doesn't support
+// 2023 edition.
+syntax = "proto3";
+
+// Some requests and respose types are currently empty. However, we don't use
+// Empty in the case we want to extend them in the future.
+
+// --- Info ---
+// Provide version numbers and basic information about the samba
+// container instance. Mainly for debugging.
+
+message InfoRequest {}
+
+message SambaInfo {
+    string version = 1;
+    bool clustered = 2;
+}
+
+message SambaContainerInfo {
+    string sambacc_version = 1;
+    string container_version = 2;
+}
+
+message GeneralInfo {
+    SambaInfo samba_info = 1;
+    SambaContainerInfo container_info = 2;
+}
+
+// --- Status ---
+// Fetch status information from the samba instance. Includes basic
+// information about connected clients.
+
+message StatusRequest {}
+
+message SessionInfo {
+    string session_id = 1;
+    string username = 2;
+    string groupname = 3;
+    string remote_machine = 4;
+    string hostname = 5;
+    string session_dialect = 6;
+    uint32 uid = 7;
+    uint32 gid = 8;
+}
+
+message ConnInfo {
+    string tcon_id = 1;
+    string session_id = 2;
+    string service_name = 3;
+}
+
+message StatusInfo {
+    string server_timestamp = 1;
+    repeated SessionInfo sessions = 2;
+    repeated ConnInfo tree_connections = 3;
+}
+
+// --- CloseShare ---
+// Close shares to clients.
+
+message CloseShareRequest {
+    string share_name = 1;
+    bool denied_users = 2;
+}
+
+message CloseShareInfo {}
+
+// --- KillClientConnection ---
+// Forcibly disconnect a client.
+
+message KillClientRequest {
+    string ip_address = 1;
+}
+
+message KillClientInfo {}
+
+// --- define rpcs ---
+
+service SambaControl {
+    rpc Info (InfoRequest) returns (GeneralInfo);
+    rpc Status (StatusRequest) returns (StatusInfo);
+    rpc CloseShare (CloseShareRequest) returns (CloseShareInfo);
+    rpc KillClientConnection (KillClientRequest) returns (KillClientInfo);
+}
