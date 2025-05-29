@@ -10,6 +10,20 @@ on:
     - cron: 1 1 * * *
 
 jobs:
+  fedora-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - id: fedora-versions
+        run: |
+          curl -s -L https://fedoraproject.org/releases.json -o fedora-releases.json
+          LATEST=$(jq -r '[.[]|select(.variant == "Container" and .subvariant == "Container_Base" and .arch == "x86_64")][0]|.version' fedora-releases.json)
+          PREVIOUS=$((LATEST - 1))
+
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "previous=$PREVIOUS" >> $GITHUB_OUTPUT
+    outputs:
+      latest: ${{ steps.fedora-versions.outputs.latest }}
+      previous: ${{ steps.fedora-versions.outputs.previous }}
   check-commits:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
@@ -24,16 +38,17 @@ jobs:
       - name: Run gitlint
         run: tox -e gitlint
   test:
+    needs: fedora-versions
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        test_distro: ["fedora-40", "fedora-41", "centos-stream9"]
+        test_distro: ["fedora-previous", "fedora-latest", "centos-stream9"]
         include:
-          - test_distro: "fedora-40"
-            base_image: "registry.fedoraproject.org/fedora:40"
-          - test_distro: "fedora-41"
-            base_image: "registry.fedoraproject.org/fedora:41"
+          - test_distro: "fedora-previous"
+            base_image: "registry.fedoraproject.org/fedora:${{ needs.fedora-versions.outputs.previous }}"
+          - test_distro: "fedora-latest"
+            base_image: "registry.fedoraproject.org/fedora:${{ needs.fedora-versions.outputs.latest }}"
           - test_distro: "centos-stream9"
             base_image: "quay.io/centos/centos:stream9"
     steps:
