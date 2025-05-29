@@ -7,8 +7,8 @@ queue_rules:
   - name: default
     conditions:
       - check-success=check-commits
-      - check-success=test (fedora-41)
-      - check-success=test (fedora-40)
+      - check-success=test (fedora-latest)
+      - check-success=test (fedora-previous)
       - check-success=test (centos-stream9)
       - check-success=dpulls
     merge_method: rebase
@@ -28,8 +28,8 @@ pull_request_rules:
   - name: Automatic merge on approval
     conditions:
       - check-success=check-commits
-      - check-success=test (fedora-41)
-      - check-success=test (fedora-40)
+      - check-success=test (fedora-latest)
+      - check-success=test (fedora-previous)
       - check-success=test (centos-stream9)
       - check-success=dpulls
       - "-draft"
