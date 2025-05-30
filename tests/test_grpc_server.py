@@ -194,7 +194,18 @@ def test_status(mock_grpc_server):
 
     assert mock_grpc_server.backend._counter["get_status"] == 1
     assert rsp.server_timestamp == "2025-05-08T20:41:57.273489+0000"
-    # TODO data assertions
+    # data assertions
+    assert len(rsp.sessions) == 1
+    assert rsp.sessions[0].session_id == "2891148582"
+    assert rsp.sessions[0].uid == 103107
+    assert rsp.sessions[0].gid == 102513
+    assert rsp.sessions[0].username == "DOMAIN1\\bwayne"
+    assert rsp.sessions[0].encryption
+    assert rsp.sessions[0].encryption.cipher == ""
+    assert rsp.sessions[0].encryption.degree == "none"
+    assert rsp.sessions[0].signing
+    assert rsp.sessions[0].signing.cipher == "AES-128-GMAC"
+    assert rsp.sessions[0].signing.degree == "partial"
 
 
 def test_close_share(mock_grpc_server):
