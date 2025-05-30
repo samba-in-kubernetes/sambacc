@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 import dataclasses
 import json
@@ -36,6 +36,19 @@ class Versions:
 
 
 @dataclasses.dataclass
+class SessionCrypto:
+    cipher: str
+    degree: str
+
+    @classmethod
+    def load(cls, json_object: dict[str, Any]) -> Self:
+        cipher = json_object.get("cipher", "")
+        cipher = "" if cipher == "-" else cipher
+        degree = json_object.get("degree", "")
+        return cls(cipher=cipher, degree=degree)
+
+
+@dataclasses.dataclass
 class Session:
     session_id: str
     username: str
@@ -45,9 +58,15 @@ class Session:
     session_dialect: str
     uid: int
     gid: int
+    encryption: Optional[SessionCrypto] = None
+    signing: Optional[SessionCrypto] = None
 
     @classmethod
     def load(cls, json_object: dict[str, Any]) -> Self:
+        _encryption = json_object.get("encryption")
+        encryption = SessionCrypto.load(_encryption) if _encryption else None
+        _signing = json_object.get("signing")
+        signing = SessionCrypto.load(_signing) if _signing else None
         return cls(
             session_id=json_object.get("session_id", ""),
             username=json_object.get("username", ""),
@@ -57,6 +76,8 @@ class Session:
             session_dialect=json_object.get("session_dialect", ""),
             uid=int(json_object.get("uid", -1)),
             gid=int(json_object.get("gid", -1)),
+            encryption=encryption,
+            signing=signing,
         )
 
 
