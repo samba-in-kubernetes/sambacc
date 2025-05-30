@@ -100,6 +100,23 @@ class StatusRequest(google.protobuf.message.Message):
 
 global___StatusRequest = StatusRequest
 
+class SessionCrypto(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CIPHER_FIELD_NUMBER: builtins.int
+    DEGREE_FIELD_NUMBER: builtins.int
+    cipher: builtins.str
+    degree: builtins.str
+    def __init__(
+        self,
+        *,
+        cipher: builtins.str = ...,
+        degree: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["cipher", b"cipher", "degree", b"degree"]) -> None: ...
+
+global___SessionCrypto = SessionCrypto
+
 class SessionInfo(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -111,6 +128,8 @@ class SessionInfo(google.protobuf.message.Message):
     SESSION_DIALECT_FIELD_NUMBER: builtins.int
     UID_FIELD_NUMBER: builtins.int
     GID_FIELD_NUMBER: builtins.int
+    ENCRYPTION_FIELD_NUMBER: builtins.int
+    SIGNING_FIELD_NUMBER: builtins.int
     session_id: builtins.str
     username: builtins.str
     groupname: builtins.str
@@ -119,6 +138,10 @@ class SessionInfo(google.protobuf.message.Message):
     session_dialect: builtins.str
     uid: builtins.int
     gid: builtins.int
+    @property
+    def encryption(self) -> global___SessionCrypto: ...
+    @property
+    def signing(self) -> global___SessionCrypto: ...
     def __init__(
         self,
         *,
@@ -130,8 +153,11 @@ class SessionInfo(google.protobuf.message.Message):
         session_dialect: builtins.str = ...,
         uid: builtins.int = ...,
         gid: builtins.int = ...,
+        encryption: global___SessionCrypto | None = ...,
+        signing: global___SessionCrypto | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["gid", b"gid", "groupname", b"groupname", "hostname", b"hostname", "remote_machine", b"remote_machine", "session_dialect", b"session_dialect", "session_id", b"session_id", "uid", b"uid", "username", b"username"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["encryption", b"encryption", "signing", b"signing"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["encryption", b"encryption", "gid", b"gid", "groupname", b"groupname", "hostname", b"hostname", "remote_machine", b"remote_machine", "session_dialect", b"session_dialect", "session_id", b"session_id", "signing", b"signing", "uid", b"uid", "username", b"username"]) -> None: ...
 
 global___SessionInfo = SessionInfo
 

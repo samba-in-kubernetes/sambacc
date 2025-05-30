@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcontrol.proto\"\r\n\x0bInfoRequest\"/\n\tSambaInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x11\n\tclustered\x18\x02 \x01(\x08\"H\n\x12SambaContainerInfo\x12\x17\n\x0fsambacc_version\x18\x01 \x01(\t\x12\x19\n\x11\x63ontainer_version\x18\x02 \x01(\t\"Z\n\x0bGeneralInfo\x12\x1e\n\nsamba_info\x18\x01 \x01(\x0b\x32\n.SambaInfo\x12+\n\x0e\x63ontainer_info\x18\x02 \x01(\x0b\x32\x13.SambaContainerInfo\"\x0f\n\rStatusRequest\"\xa3\x01\n\x0bSessionInfo\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x11\n\tgroupname\x18\x03 \x01(\t\x12\x16\n\x0eremote_machine\x18\x04 \x01(\t\x12\x10\n\x08hostname\x18\x05 \x01(\t\x12\x17\n\x0fsession_dialect\x18\x06 \x01(\t\x12\x0b\n\x03uid\x18\x07 \x01(\r\x12\x0b\n\x03gid\x18\x08 \x01(\r\"E\n\x08\x43onnInfo\x12\x0f\n\x07tcon_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x14\n\x0cservice_name\x18\x03 \x01(\t\"k\n\nStatusInfo\x12\x18\n\x10server_timestamp\x18\x01 \x01(\t\x12\x1e\n\x08sessions\x18\x02 \x03(\x0b\x32\x0c.SessionInfo\x12#\n\x10tree_connections\x18\x03 \x03(\x0b\x32\t.ConnInfo\"=\n\x11\x43loseShareRequest\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65nied_users\x18\x02 \x01(\x08\"\x10\n\x0e\x43loseShareInfo\"\'\n\x11KillClientRequest\x12\x12\n\nip_address\x18\x01 \x01(\t\"\x10\n\x0eKillClientInfo2\xc9\x01\n\x0cSambaControl\x12\"\n\x04Info\x12\x0c.InfoRequest\x1a\x0c.GeneralInfo\x12%\n\x06Status\x12\x0e.StatusRequest\x1a\x0b.StatusInfo\x12\x31\n\nCloseShare\x12\x12.CloseShareRequest\x1a\x0f.CloseShareInfo\x12;\n\x14KillClientConnection\x12\x12.KillClientRequest\x1a\x0f.KillClientInfob\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcontrol.proto\"\r\n\x0bInfoRequest\"/\n\tSambaInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x11\n\tclustered\x18\x02 \x01(\x08\"H\n\x12SambaContainerInfo\x12\x17\n\x0fsambacc_version\x18\x01 \x01(\t\x12\x19\n\x11\x63ontainer_version\x18\x02 \x01(\t\"Z\n\x0bGeneralInfo\x12\x1e\n\nsamba_info\x18\x01 \x01(\x0b\x32\n.SambaInfo\x12+\n\x0e\x63ontainer_info\x18\x02 \x01(\x0b\x32\x13.SambaContainerInfo\"\x0f\n\rStatusRequest\"/\n\rSessionCrypto\x12\x0e\n\x06\x63ipher\x18\x01 \x01(\t\x12\x0e\n\x06\x64\x65gree\x18\x02 \x01(\t\"\xe8\x01\n\x0bSessionInfo\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x11\n\tgroupname\x18\x03 \x01(\t\x12\x16\n\x0eremote_machine\x18\x04 \x01(\t\x12\x10\n\x08hostname\x18\x05 \x01(\t\x12\x17\n\x0fsession_dialect\x18\x06 \x01(\t\x12\x0b\n\x03uid\x18\x07 \x01(\r\x12\x0b\n\x03gid\x18\x08 \x01(\r\x12\"\n\nencryption\x18\t \x01(\x0b\x32\x0e.SessionCrypto\x12\x1f\n\x07signing\x18\n \x01(\x0b\x32\x0e.SessionCrypto\"E\n\x08\x43onnInfo\x12\x0f\n\x07tcon_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x14\n\x0cservice_name\x18\x03 \x01(\t\"k\n\nStatusInfo\x12\x18\n\x10server_timestamp\x18\x01 \x01(\t\x12\x1e\n\x08sessions\x18\x02 \x03(\x0b\x32\x0c.SessionInfo\x12#\n\x10tree_connections\x18\x03 \x03(\x0b\x32\t.ConnInfo\"=\n\x11\x43loseShareRequest\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65nied_users\x18\x02 \x01(\x08\"\x10\n\x0e\x43loseShareInfo\"\'\n\x11KillClientRequest\x12\x12\n\nip_address\x18\x01 \x01(\t\"\x10\n\x0eKillClientInfo2\xc9\x01\n\x0cSambaControl\x12\"\n\x04Info\x12\x0c.InfoRequest\x1a\x0c.GeneralInfo\x12%\n\x06Status\x12\x0e.StatusRequest\x1a\x0b.StatusInfo\x12\x31\n\nCloseShare\x12\x12.CloseShareRequest\x1a\x0f.CloseShareInfo\x12;\n\x14KillClientConnection\x12\x12.KillClientRequest\x1a\x0f.KillClientInfob\x06proto3')
 
 
 
@@ -23,6 +23,7 @@ _SAMBAINFO = DESCRIPTOR.message_types_by_name['SambaInfo']
 _SAMBACONTAINERINFO = DESCRIPTOR.message_types_by_name['SambaContainerInfo']
 _GENERALINFO = DESCRIPTOR.message_types_by_name['GeneralInfo']
 _STATUSREQUEST = DESCRIPTOR.message_types_by_name['StatusRequest']
+_SESSIONCRYPTO = DESCRIPTOR.message_types_by_name['SessionCrypto']
 _SESSIONINFO = DESCRIPTOR.message_types_by_name['SessionInfo']
 _CONNINFO = DESCRIPTOR.message_types_by_name['ConnInfo']
 _STATUSINFO = DESCRIPTOR.message_types_by_name['StatusInfo']
@@ -64,6 +65,13 @@ StatusRequest = _reflection.GeneratedProtocolMessageType('StatusRequest', (_mess
   # @@protoc_insertion_point(class_scope:StatusRequest)
   })
 _sym_db.RegisterMessage(StatusRequest)
+
+SessionCrypto = _reflection.GeneratedProtocolMessageType('SessionCrypto', (_message.Message,), {
+  'DESCRIPTOR' : _SESSIONCRYPTO,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:SessionCrypto)
+  })
+_sym_db.RegisterMessage(SessionCrypto)
 
 SessionInfo = _reflection.GeneratedProtocolMessageType('SessionInfo', (_message.Message,), {
   'DESCRIPTOR' : _SESSIONINFO,
@@ -128,20 +136,22 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _GENERALINFO._serialized_end=245
   _STATUSREQUEST._serialized_start=247
   _STATUSREQUEST._serialized_end=262
-  _SESSIONINFO._serialized_start=265
-  _SESSIONINFO._serialized_end=428
-  _CONNINFO._serialized_start=430
-  _CONNINFO._serialized_end=499
-  _STATUSINFO._serialized_start=501
-  _STATUSINFO._serialized_end=608
-  _CLOSESHAREREQUEST._serialized_start=610
-  _CLOSESHAREREQUEST._serialized_end=671
-  _CLOSESHAREINFO._serialized_start=673
-  _CLOSESHAREINFO._serialized_end=689
-  _KILLCLIENTREQUEST._serialized_start=691
-  _KILLCLIENTREQUEST._serialized_end=730
-  _KILLCLIENTINFO._serialized_start=732
-  _KILLCLIENTINFO._serialized_end=748
-  _SAMBACONTROL._serialized_start=751
-  _SAMBACONTROL._serialized_end=952
+  _SESSIONCRYPTO._serialized_start=264
+  _SESSIONCRYPTO._serialized_end=311
+  _SESSIONINFO._serialized_start=314
+  _SESSIONINFO._serialized_end=546
+  _CONNINFO._serialized_start=548
+  _CONNINFO._serialized_end=617
+  _STATUSINFO._serialized_start=619
+  _STATUSINFO._serialized_end=726
+  _CLOSESHAREREQUEST._serialized_start=728
+  _CLOSESHAREREQUEST._serialized_end=789
+  _CLOSESHAREINFO._serialized_start=791
+  _CLOSESHAREINFO._serialized_end=807
+  _KILLCLIENTREQUEST._serialized_start=809
+  _KILLCLIENTREQUEST._serialized_end=848
+  _KILLCLIENTINFO._serialized_start=850
+  _KILLCLIENTINFO._serialized_end=866
+  _SAMBACONTROL._serialized_start=869
+  _SAMBACONTROL._serialized_end=1070
 # @@protoc_insertion_point(module_scope)
