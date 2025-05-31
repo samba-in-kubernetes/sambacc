@@ -30,9 +30,9 @@ import sambacc.samba_cmds
 
 @dataclasses.dataclass
 class Versions:
-    samba_version: str = "foo"
-    sambacc_version: str = "bar"
-    container_version: str = "baz"
+    samba_version: str = ""
+    sambacc_version: str = ""
+    container_version: str = ""
 
 
 @dataclasses.dataclass
