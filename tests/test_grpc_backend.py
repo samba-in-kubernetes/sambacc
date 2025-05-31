@@ -156,6 +156,12 @@ def _status_json1_check(status):
     assert s1.uid == 103107
     assert s1.gid == 102513
     assert len(status.tcons) == 1
+    assert s1.encryption
+    assert s1.encryption.cipher == ""
+    assert s1.encryption.degree == "none"
+    assert s1.signing
+    assert s1.signing.cipher == "AES-128-GMAC"
+    assert s1.signing.degree == "partial"
     t1 = status.tcons[0]
     assert t1.tcon_id == "3757739897"
     assert t1.session_id == "2891148582"

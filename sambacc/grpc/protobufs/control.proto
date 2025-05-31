@@ -32,6 +32,11 @@ message GeneralInfo {
 
 message StatusRequest {}
 
+message SessionCrypto {
+    string cipher = 1;
+    string degree = 2;
+}
+
 message SessionInfo {
     string session_id = 1;
     string username = 2;
@@ -41,6 +46,8 @@ message SessionInfo {
     string session_dialect = 6;
     uint32 uid = 7;
     uint32 gid = 8;
+    SessionCrypto encryption = 9;
+    SessionCrypto signing = 10;
 }
 
 message ConnInfo {

@@ -72,6 +72,14 @@ def _get_info(backend: Backend) -> pb.GeneralInfo:
     )
 
 
+def _convert_crypto(
+    crypto: Optional[rbe.SessionCrypto],
+) -> Optional[pb.SessionCrypto]:
+    if not crypto:
+        return None
+    return pb.SessionCrypto(cipher=crypto.cipher, degree=crypto.degree)
+
+
 def _convert_session(session: rbe.Session) -> pb.SessionInfo:
     info = pb.SessionInfo(
         session_id=session.session_id,
@@ -80,6 +88,8 @@ def _convert_session(session: rbe.Session) -> pb.SessionInfo:
         remote_machine=session.remote_machine,
         hostname=session.hostname,
         session_dialect=session.session_dialect,
+        encryption=_convert_crypto(session.encryption),
+        signing=_convert_crypto(session.signing),
     )
     # python side takes -1 to mean not found uid/gid. in protobufs
     # that would mean the fields are unset
