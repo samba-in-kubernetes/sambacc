@@ -764,12 +764,12 @@ def archive_tdb(iconfig: config.InstanceConfig, dest_dir: str) -> None:
                 os.rename(tdb_path, dest_path)
 
 
-def check_nodestatus(cmd: samba_cmds.SambaCommand = samba_cmds.ctdb) -> None:
+def check_nodestatus(cmd: samba_cmds.CommandArgs = samba_cmds.ctdb) -> None:
     cmd_ctdb_check = cmd["nodestatus"]
     samba_cmds.execute(cmd_ctdb_check)
 
 
-def _read_command_pnn(cmd: samba_cmds.SambaCommand) -> typing.Optional[int]:
+def _read_command_pnn(cmd: samba_cmds.CommandArgs) -> typing.Optional[int]:
     """Run a ctdb command assuming it returns a pnn value. Return the pnn as an
     int on success, None on command failure.
     """
