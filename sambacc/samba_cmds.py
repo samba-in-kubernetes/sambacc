@@ -157,7 +157,7 @@ class SambaCommand(CommandArgs):
 
 net = SambaCommand("net")
 
-wbinfo = SambaCommand("wbinfo")
+wbinfo = CommandArgs("wbinfo")
 
 smbd = SambaCommand("/usr/sbin/smbd")
 
