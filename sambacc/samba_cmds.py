@@ -188,7 +188,7 @@ ctdbd_foreground = ctdbd["--interactive"]
 
 ltdbtool = CommandArgs("ltdbtool")
 
-ctdb = SambaCommand("ctdb")
+ctdb = CommandArgs("ctdb")
 
 sambatool = SambaCommand("samba-tool")
 
