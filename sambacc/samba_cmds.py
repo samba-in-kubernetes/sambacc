@@ -157,7 +157,7 @@ class SambaCommand(CommandArgs):
 
 net = SambaCommand("net")
 
-wbinfo = SambaCommand("wbinfo")
+wbinfo = CommandArgs("wbinfo")
 
 smbd = SambaCommand("/usr/sbin/smbd")
 
@@ -188,7 +188,7 @@ ctdbd_foreground = ctdbd["--interactive"]
 
 ltdbtool = CommandArgs("ltdbtool")
 
-ctdb = SambaCommand("ctdb")
+ctdb = CommandArgs("ctdb")
 
 sambatool = SambaCommand("samba-tool")
 
@@ -209,6 +209,6 @@ def encode(value: typing.Union[str, bytes, None]) -> bytes:
     return value
 
 
-def execute(cmd: SambaCommand) -> None:
+def execute(cmd: CommandArgs) -> None:
     """Exec into the command specified (without forking)."""
     os.execvp(cmd.name, cmd.argv())  # pragma: no cover
