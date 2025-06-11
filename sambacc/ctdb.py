@@ -39,6 +39,7 @@ SHARE_DIR = "/usr/share/ctdb"
 
 CTDB_CONF: str = "/etc/ctdb/ctdb.conf"
 CTDB_NODES: str = "/etc/ctdb/nodes"
+ETC_SERVICES: str = "/etc/services"
 
 
 class ClusterMetaObject(typing.Protocol):
@@ -179,6 +180,28 @@ def read_ctdb_nodes(path: str = CTDB_NODES) -> list[str]:
     except FileNotFoundError:
         return []
     return entries
+
+
+def _svc_match(service_name: str, line: str) -> bool:
+    if not line.strip() or line.startswith("#"):
+        return False
+    first = line.split()[0]
+    return first == service_name
+
+
+def ensure_ctdb_port_in_services(port: int, path: str) -> None:
+    try:
+        with open(path, "r") as fh:
+            lines = [line.strip() for line in fh]
+    except FileNotFoundError:
+        lines = []
+    cleaned = [line for line in lines if not _svc_match("ctdb", line)]
+    cleaned.append(f"ctdb  {port}/tcp   # custom ctdb port")
+    cleaned.append(f"ctdb  {port}/udp   # custom ctdb port")
+    with open(path, "w") as fh:
+        for line in cleaned:
+            fh.write(line)
+            fh.write("\n")
 
 
 class PublicAddrAssignment(typing.TypedDict):
@@ -651,6 +674,7 @@ def ensure_ctdbd_etc_files(
     src_path: str = SHARE_DIR,
     *,
     iconfig: typing.Optional[config.InstanceConfig] = None,
+    services_path: str = ETC_SERVICES,
 ) -> None:
     """Ensure certain files that ctdbd expects to exist in its etc dir
     do exist.
@@ -664,6 +688,7 @@ def ensure_ctdbd_etc_files(
     link_legacy_scripts = ["00.ctdb.script"]
 
     public_addresses: list[PublicAddrAssignment] = []
+    custom_ctdb_port = 0
     if iconfig:
         ctdb_conf = iconfig.ctdb_config()
         # todo: when we have a real config object for ctdb conf we can drop
@@ -671,6 +696,7 @@ def ensure_ctdbd_etc_files(
         public_addresses = typing.cast(
             list[PublicAddrAssignment], ctdb_conf.get("public_addresses", [])
         )
+        custom_ctdb_port = typing.cast(int, ctdb_conf.get("ctdb_port", 0))
     if public_addresses:
         link_legacy_scripts.append("10.interface.script")
 
@@ -700,6 +726,8 @@ def ensure_ctdbd_etc_files(
     if public_addresses:
         pa_path = os.path.join(etc_path, "public_addresses")
         _ensure_public_addresses_file(pa_path, public_addresses)
+    if custom_ctdb_port:
+        ensure_ctdb_port_in_services(custom_ctdb_port, services_path)
 
 
 _SRC_TDB_FILES = [
