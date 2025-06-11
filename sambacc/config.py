@@ -316,6 +316,7 @@ class InstanceConfig:
         ctdb.setdefault("realtime_scheduling", "false")
         # this whole thing really needs to be turned into a real object type
         ctdb.setdefault("public_addresses", [])
+        ctdb.setdefault("ctdb_port", 0)
         return ctdb
 
     def domain(self) -> DomainConfig:
