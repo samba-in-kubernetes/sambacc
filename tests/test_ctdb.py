@@ -604,3 +604,34 @@ def test_check_nodestatus(tmp_path):
     else:
         _, status = os.waitpid(pid, 0)
         assert status != 0
+
+
+def test_ensure_ctdb_port_in_services(tmp_path):
+    fname = tmp_path / "fake.services"
+    with open(fname, "w") as fh:
+        # random snippets from a real /etc/services
+        print("# this is a comment", file=fh)
+        print("ftp             21/tcp", file=fh)
+        print("ftp             21/udp          fsp fspd", file=fh)
+        print("ssh             22/tcp", file=fh)
+        print("ssh             22/udp", file=fh)
+        print("telnet          23/tcp", file=fh)
+        print("telnet          23/udp", file=fh)
+        print("ctdb            4379/tcp        # CTDB", file=fh)
+        print("ctdb            4379/udp        # CTDB", file=fh)
+        print("roce            4791/udp", file=fh)
+        print("# a random comment...", file=fh)
+        print("snss            11171/udp", file=fh)
+        print("oemcacao-jmxmp  11172/tcp", file=fh)
+
+    ctdb.ensure_ctdb_port_in_services(9099, fname)
+
+    with open(fname) as fh:
+        content = fh.read()
+    assert "ctdb  9099/tcp" in content
+    assert "ctdb  9099/udp" in content
+    assert "ctdb            4379/tcp" not in content
+    assert "ctdb            4379/udp" not in content
+    # others
+    assert "ssh             22/tcp" in content
+    assert "snss            11171/udp" in content
