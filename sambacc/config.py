@@ -303,7 +303,7 @@ class InstanceConfig:
             raise ValueError("ctdb not supported in configuration")
         return CTDBSambaConfig()
 
-    def ctdb_config(self) -> dict[str, str]:
+    def ctdb_config(self) -> JSONData:
         """Common configuration of CTDB itself."""
         if not self.with_ctdb:
             return {}
