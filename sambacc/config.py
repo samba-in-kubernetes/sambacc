@@ -301,7 +301,8 @@ class InstanceConfig:
     def ctdb_smb_config(self) -> CTDBSambaConfig:
         if not self.with_ctdb:
             raise ValueError("ctdb not supported in configuration")
-        return CTDBSambaConfig()
+        includes = self.ctdb_config().get("conf_file_includes", [])
+        return CTDBSambaConfig(includes=includes)
 
     def ctdb_config(self) -> JSONData:
         """Common configuration of CTDB itself."""
@@ -317,6 +318,7 @@ class InstanceConfig:
         # this whole thing really needs to be turned into a real object type
         ctdb.setdefault("public_addresses", [])
         ctdb.setdefault("ctdb_port", 0)
+        ctdb.setdefault("conf_file_includes", [])
         return ctdb
 
     def domain(self) -> DomainConfig:
@@ -369,12 +371,18 @@ class InstanceConfig:
 
 
 class CTDBSambaConfig:
+    def __init__(self, includes: typing.Optional[list[str]] = None) -> None:
+        self._includes = includes
+
     def global_options(self) -> typing.Iterable[typing.Tuple[str, str]]:
-        return [
+        opts = [
             ("clustering", "yes"),
             ("ctdb:registry.tdb", "yes"),
-            ("include", "registry"),
         ]
+        for include in self._includes or []:
+            opts.append(("include", include))
+        opts.append(("include", "registry"))
+        return opts
 
     def shares(self) -> typing.Iterable[ShareConfig]:
         return []
