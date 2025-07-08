@@ -358,6 +358,16 @@ class InstanceConfig:
         for n, entry in enumerate(o_units):
             yield OrganizationalUnitEntry(self, entry, n)
 
+    def keybridge_config(
+        self, name: typing.Optional[str] = None
+    ) -> typing.Optional[KeyBridgeConfig]:
+        if not name:
+            name = self.iconfig.get("keybridge_config")
+        if not name:
+            return None
+        config = self.gconfig.data.get("keybridge", {}).get(name, {})
+        return KeyBridgeConfig(config, name=name)
+
     def __eq__(self, other: typing.Any) -> bool:
         if isinstance(other, InstanceConfig) and self.iconfig == other.iconfig:
             self_shares = _shares_data(self.gconfig, self.iconfig)
@@ -578,6 +588,174 @@ class PermissionsConfig:
     def options(self) -> dict[str, str]:
         filter_keys = {self._method_key, self._status_xattr_key}
         return {k: v for k, v in self._pconf.items() if k not in filter_keys}
+
+
+class KeyBridgeScopeConfig:
+    """Configuration of a single keybridge scope. Fields may or may not
+    be populated depending on the type of scope.
+    """
+
+    def __init__(self, scope_cfg: dict) -> None:
+        self._cfg = scope_cfg
+
+    @property
+    def name(self) -> str:
+        return str(self._cfg.get("name", ""))
+
+    @property
+    def type_name(self) -> str:
+        return self.name.split(".")[0]
+
+    @property
+    def subname(self) -> str:
+        return self.name.split(".", 1)[-1]
+
+    @property
+    def hostnames(self) -> list[str]:
+        return list(self._cfg.get("hostnames", []))
+
+    @property
+    def port(self) -> int:
+        return int(self._cfg.get("port", -1))
+
+    @property
+    def tls_paths(self) -> dict[str, str]:
+        _tls_paths = self._cfg.get("tls_paths", {})
+        if not _tls_paths:
+            return {}
+        # ensure dict keys are consistent and nothing extra
+        return {
+            "cert": str(_tls_paths.get("cert", "")),
+            "key": str(_tls_paths.get("key", "")),
+            "ca_cert": str(_tls_paths.get("ca_cert", "")),
+        }
+
+
+class KeyBridgeVerifyConfig:
+    """Configuration for keybridge peer verification. Each check_*
+    value can be missing - and not checked - or a range of ints or
+    a list ints.
+    """
+
+    def __init__(self, verify_cfg: dict) -> None:
+        self._cfg = verify_cfg
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._cfg!r})"
+
+    @property
+    def check_pid(self) -> typing.Union[None, range, typing.Collection[int]]:
+        return self.parameter(self._cfg.get("check_pid"))
+
+    @property
+    def check_uid(self) -> typing.Union[None, range, typing.Collection[int]]:
+        return self.parameter(self._cfg.get("check_uid"))
+
+    @property
+    def check_gid(self) -> typing.Union[None, range, typing.Collection[int]]:
+        return self.parameter(self._cfg.get("check_gid"))
+
+    @classmethod
+    def parameter(
+        cls,
+        value: typing.Optional[str],
+    ) -> typing.Union[None, range, typing.Collection[int]]:
+        """Convert a value into a PID/UID/GID range or collection.
+        Formats are:
+          <num>: a single int to match
+          <num>-<num>: a range of values
+          <num>+: a range of values ending at a 32 bit max
+          <num>[,<num>][,<num>...]: a list of allowed ints
+        """
+        if value is None:
+            return None
+
+        if value.endswith("+"):
+            value = value[:-1]
+            if value.isdigit():
+                # allow any 32 bit int over value
+                return range(int(value), 1 << 32)
+
+        if "-" in value:
+            parts = value.split("-", 1)
+            if len(parts) != 2:
+                raise ValueError("ranges must take the form <int>-<int>")
+            if parts[0].isdigit() and parts[1].isdigit():
+                return range(int(parts[0]), int(parts[1]))
+            raise ValueError("ranges must start and end with integers")
+
+        if "," in value:
+            parts = value.split(",")
+            if not all(s.isdigit() for s in parts):
+                ValueError("lists must contain only integers")
+            return set(int(s) for s in parts)
+
+        if value.isdigit():
+            return {int(value)}
+
+        raise ValueError("not a valid check value")
+
+
+class KeyBridgeConfig:
+    """Return a keybridge server configuration object.
+    A configuration consists of zero or more scopes and an optional
+    peer verification config.
+    """
+
+    def __init__(self, kbconf: dict, name: str = "") -> None:
+        self._kbconf = kbconf
+        self._name = name
+
+    def scopes(self) -> list[KeyBridgeScopeConfig]:
+        """Return a list of scope configuration objects."""
+        _scopes = self._kbconf.get("scopes", [])
+        return [KeyBridgeScopeConfig(s) for s in _scopes]
+
+    def verify(self) -> typing.Optional[KeyBridgeVerifyConfig]:
+        """Return a configuration for a general peer verification wrapper."""
+        _verify = self._kbconf.get("verify_peer")
+        if not _verify:
+            return None
+        return KeyBridgeVerifyConfig(_verify)
+
+    def update_mem_scope(self) -> None:
+        """Create or update a mem scope in this configuration."""
+        if "mem" in {s.type_name for s in self.scopes()}:
+            return
+        self._kbconf.setdefault("scopes", []).append({"name": "mem"})
+
+    def update_kmip_scope(
+        self,
+        hostnames: typing.Optional[list[str]] = None,
+        port: typing.Optional[int] = None,
+        tls_cert: typing.Optional[str] = None,
+        tls_key: typing.Optional[str] = None,
+        tls_ca_cert: typing.Optional[str] = None,
+        subname: str = "1",
+    ) -> None:
+        """Create or update a kmip scope in this configuration.  If the kmip
+        scope already exists any non-None argument to this function will update
+        the corresponding configuration value in the matching scope.
+        """
+        _scopes = {s.type_name: s._cfg for s in self.scopes()}
+        if "kmip" in _scopes:
+            scope = _scopes["kmip"]
+        else:
+            scope = {"name": f"kmip.{subname}"}
+            self._kbconf.setdefault("scopes", []).append(scope)
+        if hostnames:
+            scope["hostnames"] = hostnames
+        if port and port > 0:
+            scope["port"] = port
+        _tls = (tls_cert, tls_key, tls_ca_cert)
+        if any(_tls) and not all(_tls):
+            raise ValueError("specify all TLS files or none")
+        elif all(_tls):
+            scope["tls_paths"] = {
+                "cert": tls_cert,
+                "key": tls_key,
+                "ca_cert": tls_ca_cert,
+            }
 
 
 def _shares_data(gconfig: GlobalConfig, iconfig: dict) -> list:
