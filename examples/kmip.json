@@ -1,0 +1,60 @@
+{
+  "samba-container-config": "v0",
+  "configs": {
+    "demo": {
+      "shares": [
+        "share"
+      ],
+      "globals": [
+        "default"
+      ],
+      "instance_name": "SAMBA",
+      "keybridge_config": "keybridge-1"
+    }
+  },
+  "shares": {
+    "share": {
+      "options": {
+        "path": "/share",
+        "valid users": "sambauser, otheruser"
+      }
+    }
+  },
+  "globals": {
+    "default": {
+      "options": {
+        "security": "user",
+        "server min protocol": "SMB2",
+        "load printers": "no",
+        "printing": "bsd",
+        "printcap name": "/dev/null",
+        "disable spoolss": "yes",
+        "guest ok": "no"
+      }
+    }
+  },
+  "users": {
+    "all_entries": [
+      {
+        "name": "sambauser",
+        "password": "samba"
+      },
+      {
+        "name": "otheruser",
+        "password": "insecure321"
+      }
+    ]
+  },
+"keybridge": {
+  "keybridge-1": {
+    "verify_peer": {"check_pid": "1+", "check_uid": "0"},
+    "scopes": [
+      {"name": "mem"},
+      {"name": "kmip.1", "hostnames":["192.168.76.1"], "port": 5696}
+]
+}
+
+
+},
+  "_footer": 1
+}
