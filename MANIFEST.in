@@ -1,3 +1,7 @@
 # Include example files
 recursive-include examples *
 recursive-include sambacc/schema *.json *.yaml
+# embedded data files for grpc
+recursive-include sambacc/grpc/protobufs *.proto
+# embedded data files for varlink
+recursive-include sambacc/varlink/interfaces *.varlink
