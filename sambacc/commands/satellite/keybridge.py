@@ -214,8 +214,7 @@ def _kmip_scope(
 
     return sambacc.kmip.scope.KMIPScope(
         scope_cfg.subname,
-        hostnames=scope_cfg.hostnames,
-        port=scope_cfg.port,
+        hosts=scope_cfg.host_ports,
         tls_paths=sambacc.kmip.scope.TLSPaths(**tls),
     )
 

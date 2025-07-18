@@ -64,22 +64,19 @@ class KMIPScope:
         self,
         kmip_name: str,
         *,
-        hostnames: typing.Collection[str],
-        port: int,
+        hosts: typing.Collection[tuple[str, int]],
         tls_paths: TLSPaths,
     ) -> None:
         self.kmip_name = kmip_name
-        self.hostnames = hostnames
-        self.port = port
+        self.hosts = hosts
         self.tls_paths = tls_paths
         self._kmip_version = kmip_enums.KMIPVersion.KMIP_1_2
         self._cache_lock = threading.Lock()
         self._kmip_cache: dict[str, _Value] = {}
         _logger.debug(
-            "Created KMIP Scope with name=%r, hostnames=%r, port=%r, tls=%r",
+            "Created KMIP Scope with name=%r, hosts=%r, tls=%r",
             self.kmip_name,
-            self.hostnames,
-            self.port,
+            self.hosts,
             self.tls_paths,
         )
 
@@ -96,11 +93,11 @@ class KMIPScope:
 
     @contextlib.contextmanager
     def _client(self) -> typing.Iterator[ProxyKmipClient]:
-        for hostname in self.hostnames:
+        for hostname, port in self.hosts:
             try:
                 client = ProxyKmipClient(
                     hostname=hostname,
-                    port=self.port,
+                    port=port,
                     cert=self.tls_paths.cert,
                     key=self.tls_paths.key,
                     ca=self.tls_paths.ca_cert,
