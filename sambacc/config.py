@@ -24,6 +24,7 @@ import errno
 import json
 import sys
 import typing
+import urllib
 
 from .opener import Opener, FileOpener
 
@@ -615,6 +616,20 @@ class KeyBridgeScopeConfig:
         return list(self._cfg.get("hostnames", []))
 
     @property
+    def host_ports(self) -> list[tuple[str, int]]:
+        default_port = self.port
+        out: list[tuple[str, int]] = []
+        for host in self.hostnames:
+            host, port = _safe_split_host_port(host)
+            if port <= 0 and default_port <= 0:
+                raise ValueError("no host port and no default port")
+            elif port <= 0:
+                out.append((host, default_port))
+            else:
+                out.append((host, int(port)))
+        return out
+
+    @property
     def port(self) -> int:
         return int(self._cfg.get("port", -1))
 
@@ -772,3 +787,13 @@ def _globals_data(gconfig: GlobalConfig, iconfig: dict) -> list:
     except KeyError:
         return []
     return [gconfig.data["globals"][n] for n in gnames]
+
+
+def _safe_split_host_port(host: str, scheme: str = "https") -> tuple[str, int]:
+    if host.count(":") > 1 and "[" not in host:
+        # assume this is an undecorated ipv6 and pass it thru w/o port
+        return (host, -1)
+    # otherwise let urllib do the work for us
+    parsed = urllib.parse.urlparse(f"{scheme}://{host}")
+    assert parsed.hostname, "invalid hostname"  # should be impossible
+    return parsed.hostname, int(parsed.port or -1)
