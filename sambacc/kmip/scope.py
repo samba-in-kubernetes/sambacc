@@ -103,15 +103,17 @@ class KMIPScope:
                     ca=self.tls_paths.ca_cert,
                     kmip_version=self._kmip_version,
                 )
+                client.open()
             except OSError as err:
                 _logger.warning("failed to connect to %r: %s", hostname, err)
+                _logger.debug("KMIP connect failure details", exc_info=True)
                 continue
             try:
-                client.open()
                 yield client
             finally:
                 client.close()
             return
+        _logger.warning("exhausted list of KMIP hosts to try")
         raise OSError(errno.EHOSTUNREACH, "failed to connect to any host")
 
     @contextlib.contextmanager
