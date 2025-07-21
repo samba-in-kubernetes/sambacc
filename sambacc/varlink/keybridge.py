@@ -100,6 +100,24 @@ class OperationNotSupported(KeyBridgeError):
     _expect = {"op", "name", "scope"}
 
 
+class OperationFailed(KeyBridgeError):
+    """
+    OperationFailed may be returned if an entry method is not currently
+    functioning for the given scope. This could indicate the need to retry the
+    operation later. It may provide a scope specific status and message for the
+    reason the operation is not ready.
+
+    The status value, if provided, should be a short string suitable for
+    logging or parsing and creating conditional logic, but is scope-specific.
+    The reason value, if provided, is a human-readable description of the
+    problem.
+    """
+
+    _name = "OperationFailed"
+    _expect = {"op", "name", "scope"}
+    _optional = {"status", "reason"}
+
+
 class OpKind(str, enum.Enum):
     GET = "Get"
     SET = "Set"
