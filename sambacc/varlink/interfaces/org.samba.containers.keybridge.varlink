@@ -73,4 +73,4 @@ error ReadOnlyScope (name: string)
 
 # OperationNotSupported may be returned if an entry method is not supported by
 # the given scope.
-error OperationNotSupported (op: string, entry: string, scope: string)
+error OperationNotSupported (op: string, name: string, scope: string)

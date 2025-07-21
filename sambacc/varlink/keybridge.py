@@ -97,7 +97,7 @@ class OperationNotSupported(KeyBridgeError):
     """
 
     _name = "OperationNotSupported"
-    _expect = {"op", "entry", "scope"}
+    _expect = {"op", "name", "scope"}
 
 
 class OpKind(str, enum.Enum):
@@ -245,7 +245,7 @@ class KeyBridge:
         )
         raise OperationNotSupported(
             op=op.value,
-            entry=name,
+            name=name,
             scope=scope_name,
         )
 
@@ -316,7 +316,7 @@ class KeyBridge:
         if not _set:
             raise OperationNotSupported(
                 op=OpKind.SET.value,
-                entry=_entry.name,
+                name=_entry.name,
                 scope=_entry.scope,
             )
         _set(_entry.name, _entry.kind, _entry.data)
@@ -335,7 +335,7 @@ class KeyBridge:
         if not _delete:
             raise OperationNotSupported(
                 op=OpKind.DELETE.value,
-                entry=name,
+                name=name,
                 scope=scope,
             )
         _delete(name)
@@ -482,7 +482,7 @@ class VerifyPeerScopeWrapper:
         if not _set:
             raise OperationNotSupported(
                 op=OpKind.SET.value,
-                entry=key,
+                name=key,
                 scope=self.other.name(),
             )
         _set(key, kind, value)
@@ -492,7 +492,7 @@ class VerifyPeerScopeWrapper:
         if not _delete:
             raise OperationNotSupported(
                 op=OpKind.DELETE.value,
-                entry=key,
+                name=key,
                 scope=self.other.name(),
             )
         _delete(key)
