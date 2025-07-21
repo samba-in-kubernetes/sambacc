@@ -18,6 +18,7 @@
 
 import argparse
 import logging
+import pathlib
 import signal
 import sys
 import typing
@@ -181,8 +182,20 @@ def _serve(ctx: Context) -> None:
     opts = sambacc.varlink.server.VarlinkServerOptions(ctx.cli.address)
     srv = sambacc.varlink.server.VarlinkServer(opts)
     srv.add_endpoint(sambacc.varlink.keybridge.endpoint(scopes))
+    _clean_socket_file(ctx.cli.address)
     with srv.serve():
         signal.pause()
+
+
+def _clean_socket_file(address: str) -> None:
+    """Remove the old socket file. I think the lib has fixed this in
+    as-yet-unreleased code, but right now every time you start the server when
+    the file exists it fails (but then removes the socket) and so without this
+    cleanup it always needs to be started twice.
+    """
+    assert address.startswith("unix:")
+    path = pathlib.Path(address.split(":", 1)[-1])
+    path.unlink(missing_ok=True)
 
 
 def _new_scope(
