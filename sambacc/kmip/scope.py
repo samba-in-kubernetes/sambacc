@@ -26,10 +26,17 @@ import threading
 import time
 import typing
 
+from kmip.core import enums as kmip_enums  # type: ignore[import]
 from kmip.pie.client import ProxyKmipClient  # type: ignore[import]
-from kmip.pie.client import enums as kmip_enums
+from kmip.pie.exceptions import KmipOperationFailure  # type: ignore[import]
 
-from sambacc.varlink.keybridge import EntryKind, ScopeInfo
+from sambacc.varlink.keybridge import (
+    EntryKind,
+    EntryNotFoundError,
+    OpKind,
+    OperationFailed,
+    ScopeInfo,
+)
 
 
 _logger = logging.getLogger(__name__)
@@ -142,6 +149,44 @@ class KMIPScope:
             len(self._kmip_cache),
         )
 
+    @contextlib.contextmanager
+    def _handle_kmip_error(
+        self, op: OpKind, key: str
+    ) -> typing.Iterator[None]:
+        """Catch exceptions from KMIP libs and turn them into something
+        more reasonable for a keybridge client.
+        """
+        try:
+            yield
+        except OSError as err:
+            _logger.warning("KMIP connection failed: %s", err)
+            raise OperationFailed(
+                op=op.value,
+                name=key,
+                scope=self.name(),
+                status="KMIP_CONNECTION_FAILED",
+                reason=str(err),
+            )
+        except KmipOperationFailure as kmip_err:
+            _logger.debug("KMIP operation failure: %s", kmip_err)
+            reason = getattr(kmip_err, "reason", None)
+            if (
+                reason is kmip_enums.ResultReason.ITEM_NOT_FOUND
+                or reason is kmip_enums.ResultReason.PERMISSION_DENIED
+            ):
+                raise EntryNotFoundError(
+                    name=key,
+                    scope=self.name(),
+                ) from kmip_err
+            _logger.warning("unexpected KMIP operation failure: %s", kmip_err)
+            raise OperationFailed(
+                op=op.value,
+                name=key,
+                scope=self.name(),
+                status="KMIP_OPERATION_FAILED",
+                reason=str(kmip_err),
+            ) from kmip_err
+
     def get(self, key: str, kind: EntryKind) -> str:
         """Get a value associated with the given key from the KMIP server or
         cache. If entry kind is B64 the (typically) binary data will be base64
@@ -153,9 +198,9 @@ class KMIPScope:
             if key in cache:
                 _logger.debug("KMIP cache hit: %r", key)
                 return _format(cache[key].value, kind)
-
-        with self._client() as client:
-            result = client.get(key)
+        with self._handle_kmip_error(OpKind.GET, key):
+            with self._client() as client:
+                result = client.get(key)
         _logger.debug("KMIP result for: %r", key)
         with self._cache() as cache:
             cache[key] = _Value(result.value, created=self._timestamp())
