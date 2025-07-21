@@ -173,7 +173,8 @@ def _serve(ctx: Context) -> None:
             raise Fail(str(err))
 
     scopes = [_new_scope(ctx, s) for s in cfg.scopes()]
-    if ctx.cli.verify_peer or (vcfg := cfg.verify()):
+    vcfg = cfg.verify()
+    if ctx.cli.verify_peer or vcfg:
         scopes = [_verify_peer(ctx, vcfg, s) for s in scopes]
     if not scopes:
         raise Fail("no keybridge scopes defined")
