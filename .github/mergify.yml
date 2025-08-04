@@ -5,7 +5,7 @@
 # to dedup some of the check-x=y repetition in the future.
 queue_rules:
   - name: default
-    conditions:
+    queue_conditions:
       - check-success=check-commits
       - check-success=test (fedora-latest)
       - check-success=test (fedora-previous)
