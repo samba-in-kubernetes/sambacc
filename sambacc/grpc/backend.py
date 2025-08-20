@@ -134,7 +134,7 @@ class ControlBackend:
 
     def _sambacc_version(self) -> str:
         try:
-            import sambacc._version
+            import sambacc._version  # type: ignore
 
             return sambacc._version.version
         except ImportError:
