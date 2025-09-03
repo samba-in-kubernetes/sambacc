@@ -80,22 +80,22 @@ to date too.  You will need to have a PyPI account and access to the sambacc
 repo.
 
 Log into PyPI web UI. (Re)Generate a pypi login token for sambacc.
-Ensure `twine` is installed:
+Ensure `twine` is installed (consider installing it in a fresh virtual env):
 ```
 python3 -m pip install --upgrade twine
 ```
 
 Create a directory to store the python build artifacts:
 ```
-rm -rf _build/pypi
-mkdir -p _build/pypi
-cp sambacc-0.3.tar.gz sambacc-0.3-py3-none-any.whl _build/pypi
+mypypi=$PWD/_builds/v03/pypi
+rm -rf $mypypi
+mkdir -p $mypypi
+cp sambacc-0.3.tar.gz sambacc-0.3-py3-none-any.whl $mypypi
 ```
 Upload the files to PyPI creating a new release:
 ```
-python3 -m twine upload _build/pypi/*
-# Supply a username of `__token__` and the password will be the value
-of the token you acquiried above.
+python3 -m twine upload $mypypi/*
+# Supply the token you acquired above at the prompt.
 ```
 
 A new release like `https://pypi.org/project/sambacc/0.3/` should have become
