@@ -121,10 +121,8 @@ task_sys_deps() {
         python3-wheel \
         python3-pyxattr \
         python3-devel \
-        python3.9 \
         samba-common-tools \
         rpm-build \
-        'python3dist(flake8)' \
         'python3dist(inotify-simple)' \
         'python3dist(mypy)' \
         'python3dist(pytest)' \
