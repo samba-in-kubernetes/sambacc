@@ -88,19 +88,19 @@ setup_update() {
 task_sys_deps() {
     info "installing system packages"
     OS_VER=$(source /etc/os-release && echo "${ID}-${VERSION_ID}")
+    local use_distro
     case "${OS_VER}" in
         centos*)
             info "detected centos (stream): ${OS_VER}"
-            use_centos=true
+            use_distro="el${OS_VER/*-},centos"
         ;;
         rhel*)
             info "detected rhel: ${OS_VER}"
-            use_centos=
-            use_rhel=true
+            use_distro="el${OS_VER/*-},rhel"
         ;;
         fedora*)
             info "detected fedora: ${OS_VER}"
-            use_centos=
+            use_distro=fedora
         ;;
         *)
             info "unknown platform: ${OS_VER}"
@@ -121,10 +121,9 @@ task_sys_deps() {
         python3-wheel \
         python3-pyxattr \
         python3-devel \
-        python3.9 \
         samba-common-tools \
         rpm-build \
-        'python3dist(flake8)' \
+        pyproject-rpm-macros \
         'python3dist(inotify-simple)' \
         'python3dist(mypy)' \
         'python3dist(pytest)' \
@@ -134,14 +133,16 @@ task_sys_deps() {
         'python3dist(wheel)' \
     )
 
-    if [ "$use_centos" ]; then
-        "${dnf_cmd}" install -y epel-release
-        yum_args=(--enablerepo=crb)
-        pkgs+=(pyproject-rpm-macros)
-    fi
-    if [ "$use_rhel" ]; then
-        pkgs+=(pyproject-rpm-macros)
-    fi
+    case "${use_distro}" in
+        fedora|el9,centos)
+            pkgs+=(python3.9)
+        ;;&
+        # common for all centos
+        *,centos)
+            "${dnf_cmd}" install -y epel-release
+            yum_args=(--enablerepo=crb)
+        ;;&
+    esac
     "${dnf_cmd}" "${yum_args[@]}" install -y "${pkgs[@]}"
     "${dnf_cmd}" clean all
 }
