@@ -138,7 +138,7 @@ task_sys_deps() {
         pkgs+=(pyproject-rpm-macros)
     fi
     if [ "$use_rhel" ]; then
-        pkgs+=(pyproject-rpm-macros)
+        pkgs+=(pyproject-rpm-macros python3-inotify_simple)
     fi
     "${dnf_cmd}" "${yum_args[@]}" install -y "${pkgs[@]}"
     "${dnf_cmd}" clean all
