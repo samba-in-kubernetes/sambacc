@@ -16,7 +16,7 @@ jobs:
       - id: fedora-versions
         run: |
           curl -s -L https://fedoraproject.org/releases.json -o fedora-releases.json
-          LATEST=$(jq -r '[.[]|select(.variant == "Container" and .subvariant == "Container_Base" and .arch == "x86_64")][0]|.version' fedora-releases.json)
+          LATEST=$(jq -r '[.[]|select(.version | contains("Beta") | not)|select(.variant == "Container" and .subvariant == "Container_Base" and .arch == "x86_64")][0]|.version' fedora-releases.json)
           PREVIOUS=$((LATEST - 1))
 
           echo "latest=$LATEST" >> $GITHUB_OUTPUT
