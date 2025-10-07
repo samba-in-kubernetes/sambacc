@@ -43,7 +43,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test_distro: ["fedora-previous", "fedora-latest", "centos-stream9"]
+        test_distro:
+          - "fedora-previous"
+          - "fedora-latest"
+          - "centos-stream9"
+          - "centos-stream10"
         include:
           - test_distro: "fedora-previous"
             base_image: "registry.fedoraproject.org/fedora:${{ needs.fedora-versions.outputs.previous }}"
@@ -51,6 +55,8 @@ jobs:
             base_image: "registry.fedoraproject.org/fedora:${{ needs.fedora-versions.outputs.latest }}"
           - test_distro: "centos-stream9"
             base_image: "quay.io/centos/centos:stream9"
+          - test_distro: "centos-stream10"
+            base_image: "quay.io/centos/centos:stream10"
     steps:
       - uses: actions/checkout@v4
         with:
