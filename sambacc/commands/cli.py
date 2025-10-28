@@ -25,9 +25,9 @@ import typing
 
 from sambacc import config
 from sambacc import leader
-from sambacc import opener
 from sambacc import permissions
 from sambacc import simple_waiter
+from sambacc.opener import Opener
 
 _INOTIFY_OK = True
 try:
@@ -224,7 +224,7 @@ class Context(typing.Protocol):
         """Return true if configuration needs validation."""
 
     @property
-    def opener(self) -> opener.Opener:
+    def opener(self) -> Opener:
         """Return an appropriate opener object for this instance."""
 
 
