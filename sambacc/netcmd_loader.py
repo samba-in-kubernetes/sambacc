@@ -18,6 +18,7 @@
 
 import subprocess
 import typing
+import tempfile
 
 from sambacc import config
 from sambacc import samba_cmds
@@ -56,10 +57,11 @@ class NetCmdLoader:
 
     def import_config(self, iconfig: config.InstanceConfig) -> None:
         """Import to entire instance config to samba config."""
-        cli, proc = self._cmd("import", "/dev/stdin", stdin=subprocess.PIPE)
-        template_config(proc.stdin, iconfig, enc=samba_cmds.encode)
-        proc.stdin.close()
-        self._check(cli, proc)
+        with tempfile.NamedTemporaryFile() as tf:
+            template_config(tf, iconfig, enc=samba_cmds.encode)
+            tf.flush()
+            cli, proc = self._cmd("import", tf.name)
+            self._check(cli, proc)
 
     def dump(self, out: typing.IO) -> None:
         """Dump the current smb config in an smb.conf format.
