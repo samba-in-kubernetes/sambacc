@@ -98,7 +98,7 @@ class FakeContext:
         self.require_validation = False
 
     @classmethod
-    def defaults(cls, cfg_path, watch=False):
+    def defaults(cls, cfg_path, watch=False, signal_pids_dir=None):
         with open(cfg_path, "w") as fh:
             fh.write(config1)
 
@@ -107,6 +107,7 @@ class FakeContext:
         ctx = cls(
             {
                 "watch": watch,
+                "signal_pids_dir": signal_pids_dir,
                 "config": config,
                 "identity": identity,
             },
