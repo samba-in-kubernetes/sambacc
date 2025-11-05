@@ -19,6 +19,9 @@
 import argparse
 import functools
 import logging
+import os
+import pathlib
+import signal
 import subprocess
 import sys
 import typing
@@ -68,6 +71,13 @@ def _update_config_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="If set, watch the source for changes and update config.",
     )
+    parser.add_argument(
+        "--signal-pids-dir",
+        help=(
+            "Directory storing pid files."
+            " PIDs saved in files will be sent SIGHUP on config change."
+        ),
+    )
 
 
 def _read_config(ctx: Context) -> config.InstanceConfig:
@@ -80,6 +90,7 @@ def _read_config(ctx: Context) -> config.InstanceConfig:
 
 
 UpdateResult = typing.Tuple[typing.Optional[config.InstanceConfig], bool]
+UpdateFunc = typing.Callable[..., UpdateResult]
 
 
 def _update_config(
@@ -118,10 +129,7 @@ def _update_config(
     return current, changed
 
 
-def _exec_if_leader(
-    ctx: Context,
-    cond_func: typing.Callable[..., UpdateResult],
-) -> typing.Callable[..., UpdateResult]:
+def _exec_if_leader(ctx: Context, cond_func: UpdateFunc) -> UpdateFunc:
     """Run the cond func only on "nodes" that are the cluster leader."""
 
     # CTDB status and leader detection is not changeable at runtime.
@@ -141,14 +149,81 @@ def _exec_if_leader(
     return _call_if_leader
 
 
+def _readpid(path: pathlib.Path) -> int:
+    try:
+        return int(path.read_text())
+    except Exception as err:
+        _logger.warning("Unable to read pid file %r: %s", path, err)
+        return -1
+
+
+def _signal_pids_dir(
+    pids_dir: str,
+    current: config.InstanceConfig,
+    previous: typing.Optional[config.InstanceConfig],
+) -> UpdateResult:
+    changed = current != previous
+    if not changed:
+        return current, changed
+
+    # something changed, send signal to pids found in pid files in dir
+    try:
+        _pids = [
+            _readpid(p)
+            for p in pathlib.Path(pids_dir).iterdir()
+            if p.name.endswith(".pid")
+        ]
+    except FileNotFoundError:
+        _logger.warning("pids dir not found: %r; skipping pids", pids_dir)
+        return current, changed
+
+    pids = [pid for pid in _pids if pid > 0]  # filter out errors
+    if pids != _pids:
+        _logger.warning("Some pid files failed to be read successfully")
+    # signal other processes
+    for pid in pids:
+        try:
+            _logger.debug("Sending SIGHUP to %d", pid)
+            os.kill(pid, signal.SIGHUP)
+        except OSError as err:
+            _logger.warning("Failed to SIGHUP %d: %s", pid, err)
+    return current, changed
+
+
+class Trigger:
+    def __init__(self) -> None:
+        self._actions: list[tuple[str, UpdateFunc]] = []
+
+    def add(self, name: str, fn: UpdateFunc) -> None:
+        self._actions.append((name, fn))
+
+    def __call__(
+        self,
+        current: config.InstanceConfig,
+        previous: typing.Optional[config.InstanceConfig],
+    ) -> UpdateResult:
+        changed = False
+        for name, cb in self._actions:
+            _logger.debug("Config change callback: %r", name)
+            cfg, chg = cb(current, previous)
+            _logger.debug("Callback: %r: changed: %r", name, chg)
+            current = cfg if cfg else current
+            changed = changed or chg
+        return current, changed
+
+
 @commands.command(name="update-config", arg_func=_update_config_args)
 def update_config(ctx: Context) -> None:
     _get_config = functools.partial(_read_config, ctx)
-    _cmp_func = _update_config
+    trigger = Trigger()
 
     if ctx.instance_config.with_ctdb:
         _logger.info("enabling ctdb support: will check for leadership")
-        _cmp_func = _exec_if_leader(ctx, _cmp_func)
+        trigger.add("samba", _exec_if_leader(ctx, _update_config))
+    else:
+        trigger.add("samba", _update_config)
+    if pids_dir := ctx.cli.signal_pids_dir:
+        trigger.add("pids", functools.partial(_signal_pids_dir, pids_dir))
 
     if ctx.cli.watch:
         _logger.info("will watch configuration source")
@@ -157,10 +232,10 @@ def update_config(ctx: Context) -> None:
             waiter,
             ctx.instance_config,
             _get_config,
-            _cmp_func,
+            trigger,
         )
     else:
         # we pass None as the previous config so that the command is
         # not nearly always a no-op when run from the command line.
-        _cmp_func(_get_config(), None)
+        trigger(_get_config(), None)
     return
