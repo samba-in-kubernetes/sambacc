@@ -21,12 +21,13 @@ import typing
 
 
 from .. import skips
-from ..cli import Context, Fail, commands
+from ..cli import Context, Fail, Parser, commands
 from ..common import (
     CommandContext,
     enable_logging,
     env_to_cli,
     global_args,
+    pidfiles,
     pre_action,
 )
 
@@ -36,11 +37,21 @@ def _default(ctx: Context) -> None:
     sys.exit(1)
 
 
+def _args(parser: Parser) -> None:
+    global_args(parser)
+    parser.add_argument(
+        "--pidfile",
+        dest="pidfiles",
+        action="append",
+        help="Specify a path to store the PID",
+    )
+
+
 def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
     pkg = "sambacc.commands.satellite"
     commands.include(".keybridge", package=pkg)
 
-    cli = commands.assemble(arg_func=global_args).parse_args(args)
+    cli = commands.assemble(arg_func=_args).parse_args(args)
     env_to_cli(cli)
     enable_logging(cli)
     if not cli.identity:
@@ -53,7 +64,8 @@ def main(args: typing.Optional[typing.Sequence[str]] = None) -> None:
         print(f"Command Skipped: {skip}")
         return
     cfunc = getattr(cli, "cfunc", _default)
-    cfunc(ctx)
+    with pidfiles(cli=cli):
+        cfunc(ctx)
     return
 
 
