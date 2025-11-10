@@ -42,6 +42,10 @@ GroupEntryTuple = typing.Tuple[str, str, str, str]
 # clarify what works with json and what works with real python dicts.
 JSONData = dict[str, typing.Any]
 
+# LogDiffFunc is a callback function used to report details about object
+# differences back to a a higher level.
+LogDiffFunc = typing.Callable[[str, typing.Any, typing.Any], None]
+
 # the standard location for samba's smb.conf
 SMB_CONF = "/etc/samba/smb.conf"
 CLUSTER_META_JSON = "/var/lib/ctdb/shared/ctdb-nodes.json"
@@ -369,16 +373,42 @@ class InstanceConfig:
         config = self.gconfig.data.get("keybridge", {}).get(name, {})
         return KeyBridgeConfig(config, name=name)
 
-    def __eq__(self, other: typing.Any) -> bool:
-        if isinstance(other, InstanceConfig) and self.iconfig == other.iconfig:
-            self_shares = _shares_data(self.gconfig, self.iconfig)
-            other_shares = _shares_data(other.gconfig, other.iconfig)
-            self_globals = _globals_data(self.gconfig, self.iconfig)
-            other_globals = _globals_data(other.gconfig, other.iconfig)
-            return (
-                self_shares == other_shares and self_globals == other_globals
+    def same(
+        self,
+        other: typing.Any,
+        *,
+        log_diff: typing.Optional[LogDiffFunc] = None,
+    ) -> bool:
+        if not log_diff:
+            log_diff = _no_op_log_diff
+        if not isinstance(other, InstanceConfig):
+            log_diff("not an InstanceConfig", self, other)
+            return False
+        if self.iconfig != other.iconfig:
+            log_diff(
+                "instance config values differ", self.iconfig, other.iconfig
             )
-        return False
+            return False
+        self_shares = _shares_data(self.gconfig, self.iconfig)
+        other_shares = _shares_data(other.gconfig, other.iconfig)
+        if self_shares != other_shares:
+            log_diff("shares values differ", self_shares, other_shares)
+            return False
+        self_globals = _globals_data(self.gconfig, self.iconfig)
+        other_globals = _globals_data(other.gconfig, other.iconfig)
+        if self_globals != other_globals:
+            log_diff("globals values differ", self_globals, other_globals)
+            return False
+        # keybridge values are be held outside of the iconfig/gconfig
+        self_kbridge = _kbridge_data(self.keybridge_config())
+        other_kbridge = _kbridge_data(other.keybridge_config())
+        if self_kbridge != other_kbridge:
+            log_diff("keybridge values differ", self_kbridge, other_kbridge)
+            return False
+        return True
+
+    def __eq__(self, other: typing.Any) -> bool:
+        return self.same(other)
 
 
 class CTDBSambaConfig:
@@ -789,6 +819,14 @@ def _globals_data(gconfig: GlobalConfig, iconfig: dict) -> list:
     return [gconfig.data["globals"][n] for n in gnames]
 
 
+def _kbridge_data(obj: typing.Optional[KeyBridgeConfig]) -> dict:
+    if not obj:
+        return {}
+    values = dict(obj._kbconf)
+    values["__name"] = obj._name
+    return values
+
+
 def _safe_split_host_port(host: str, scheme: str = "https") -> tuple[str, int]:
     if host.count(":") > 1 and "[" not in host:
         # assume this is an undecorated ipv6 and pass it thru w/o port
@@ -797,3 +835,7 @@ def _safe_split_host_port(host: str, scheme: str = "https") -> tuple[str, int]:
     parsed = urllib.parse.urlparse(f"{scheme}://{host}")
     assert parsed.hostname, "invalid hostname"  # should be impossible
     return parsed.hostname, int(parsed.port or -1)
+
+
+def _no_op_log_diff(d: str, a: typing.Any, b: typing.Any) -> None:
+    pass
