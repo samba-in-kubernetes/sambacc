@@ -30,6 +30,7 @@ from sambacc import opener
 from sambacc import rados_opener
 from sambacc import samba_cmds
 from sambacc import url_opener
+from sambacc.typelets import Self
 
 from . import skips
 from .cli import Parser, ceph_id
@@ -75,6 +76,10 @@ class CommandContext:
         if self._opener is None:
             self._opener = opener.FallbackOpener([url_opener.URLOpener()])
         return self._opener
+
+    def copy(self) -> Self:
+        """Return a copy of ctx with cached objects/properties cleared."""
+        return self.__class__(self._cli)
 
 
 def split_entries(value: str) -> list[str]:
