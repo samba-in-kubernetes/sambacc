@@ -44,6 +44,10 @@ from .cli import (
 _logger = logging.getLogger(__name__)
 
 
+def _log_diff(desc: str, v1: typing.Any, v2: typing.Any) -> None:
+    _logger.debug("config objects differ: %s: %r | %r", desc, v1, v2)
+
+
 @commands.command(name="print-config")
 def print_config(ctx: Context) -> None:
     """Display the samba configuration sourced from the sambacc config
@@ -105,7 +109,7 @@ def _update_config(
     boolean indicating if the instance configs differed.
     """
     # has the config changed?
-    changed = current != previous
+    changed = not current.same(previous, log_diff=_log_diff)
     # ensure share paths exist
     if changed and ensure_paths:
         for share in current.shares():
@@ -162,7 +166,7 @@ def _signal_pids_dir(
     current: config.InstanceConfig,
     previous: typing.Optional[config.InstanceConfig],
 ) -> UpdateResult:
-    changed = current != previous
+    changed = not current.same(previous, log_diff=_log_diff)
     if not changed:
         return current, changed
 
