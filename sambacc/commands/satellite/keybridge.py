@@ -26,6 +26,7 @@ import typing
 import sambacc.config
 
 from ..cli import Context, Fail, commands
+from ..common import CommandContext
 
 
 if typing.TYPE_CHECKING:
@@ -129,6 +130,7 @@ class Restart(Exception):
 @commands.command(name="keybridge", arg_func=_serve_args)
 def serve_keybridge(ctx: Context) -> None:
     """Start a keybridge varlink RPC server."""
+    assert isinstance(ctx, CommandContext)  # for copy method
 
     def _handler(*args: typing.Any) -> None:
         raise Restart()
@@ -136,7 +138,7 @@ def serve_keybridge(ctx: Context) -> None:
     signal.signal(signal.SIGHUP, _handler)
     while True:
         try:
-            _serve(ctx)
+            _serve(ctx.copy())
             return
         except KeyboardInterrupt:
             _logger.info("Exiting")
