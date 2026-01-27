@@ -16,9 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from typing import Any, Union, Optional
+from typing import Any, Callable, IO, Iterator, Optional, Union
 
+import contextlib
 import dataclasses
+import enum
 import json
 import os
 import subprocess
@@ -123,6 +125,105 @@ class Status:
         return cls.load(json.loads(txt))
 
 
+class ConfigFor(str, enum.Enum):
+    SAMBA = "samba"
+    CTDB = "ctdb"
+    SAMBACC = "sambacc"
+    SAMBA_SHARES = "shares"
+
+
+@dataclasses.dataclass
+class ShareEntry:
+    name: str
+
+
+@dataclasses.dataclass
+class DumpItem:
+    content: str
+    line_number: int
+    hash_type: Optional[str] = None
+
+    def is_digest(self) -> bool:
+        return self.hash_type is not None
+
+
+class Dumper:
+    def __init__(self, stream: IO, hash_alg: Optional[Callable]) -> None:
+        self._stream = stream
+        self._hash = None if hash_alg is None else hash_alg()
+        self._enc = "utf-8"
+
+    def dump(self) -> Iterator[DumpItem]:
+        for lnum, line in enumerate(self._stream):
+            if self._hash:
+                data = (
+                    line if isinstance(line, bytes) else line.encode(self._enc)
+                )
+                self._hash.update(data)
+            yield DumpItem(content=line, line_number=lnum)
+        if self._hash:
+            yield DumpItem(
+                content=self._hash.hexdigest(),
+                line_number=-1,
+                hash_type=self._hash.name,
+            )
+
+    def digest(self) -> DumpItem:
+        if not self._hash:
+            raise ValueError("Dumper.digest requires a hash")
+        _digests = [d for d in self.dump() if d.is_digest()]
+        assert len(_digests) == 1
+        return _digests[0]
+
+
+@contextlib.contextmanager
+def _cmdstream(
+    cmd: Union[list, sambacc.samba_cmds.CommandArgs]
+) -> Iterator[IO]:
+    proc = subprocess.Popen(
+        list(cmd),
+        stdout=subprocess.PIPE,
+    )
+    assert proc.stdout
+    try:
+        yield proc.stdout
+        ret = proc.wait()
+    except Exception:
+        proc.kill()
+        proc.wait()
+        raise
+    if ret != 0:
+        raise subprocess.CalledProcessError(ret, proc.args)
+
+
+@contextlib.contextmanager
+def config_samba() -> Iterator[IO]:
+    cmd = sambacc.samba_cmds.net["conf", "list"]
+    with _cmdstream(cmd) as stream:
+        yield stream
+
+
+@contextlib.contextmanager
+def config_samba_shares() -> Iterator[IO]:
+    cmd = sambacc.samba_cmds.net["conf", "listshares"]
+    with _cmdstream(cmd) as stream:
+        yield stream
+
+
+@contextlib.contextmanager
+def config_stream(source: ConfigFor) -> Iterator[IO]:
+    dump_fn = {
+        ConfigFor.SAMBA: config_samba,
+        ConfigFor.SAMBA_SHARES: config_samba_shares,
+    }
+    try:
+        fn = dump_fn[source]
+    except KeyError:
+        raise NotImplementedError(source)
+    with fn() as stream:
+        yield stream
+
+
 class ControlBackend:
     def __init__(self, config: sambacc.config.InstanceConfig) -> None:
         self._config = config
@@ -180,3 +281,28 @@ class ControlBackend:
             "smbd", "kill-client-ip", ip_address
         ]
         subprocess.run(list(cmd), check=True)
+
+    def config_dump(
+        self, src: ConfigFor, hash_alg: Optional[Callable]
+    ) -> Iterator[DumpItem]:
+        with config_stream(src) as stream:
+            yield from Dumper(stream, hash_alg).dump()
+
+    def config_dump_digest(
+        self, src: ConfigFor, hash_alg: Optional[Callable]
+    ) -> DumpItem:
+        with config_stream(src) as stream:
+            digest_item = Dumper(stream, hash_alg).digest()
+        return digest_item
+
+    def config_share_list(self, src: ConfigFor) -> Iterator[ShareEntry]:
+        share_sources = {
+            ConfigFor.SAMBA: ConfigFor.SAMBA_SHARES,
+        }
+        try:
+            alt_src = share_sources[src]
+        except KeyError:
+            raise NotImplementedError(src)
+        with config_stream(alt_src) as stream:
+            for entry in Dumper(stream, None).dump():
+                yield ShareEntry(name=entry.content.strip())
