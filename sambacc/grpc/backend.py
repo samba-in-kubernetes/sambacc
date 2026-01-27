@@ -16,18 +16,31 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from typing import Any, Callable, IO, Iterator, Optional, Union
+from typing import Any, Callable, IO, Iterator, Optional, Protocol, Union
+
+from functools import partial
 
 import contextlib
 import dataclasses
 import enum
+import io
 import json
+import logging
 import os
 import subprocess
 
 from sambacc.typelets import Self
 import sambacc.config
 import sambacc.samba_cmds
+
+
+_logger = logging.getLogger(__name__)
+CTDB_CONF_PATH = "/etc/ctdb/ctdb.conf"
+
+
+class ConfigReader(Protocol):
+    def read_config(self) -> sambacc.config.GlobalConfig: ...
+    def current_identity(self) -> str: ...
 
 
 @dataclasses.dataclass
@@ -130,6 +143,7 @@ class ConfigFor(str, enum.Enum):
     CTDB = "ctdb"
     SAMBACC = "sambacc"
     SAMBA_SHARES = "shares"
+    SAMBACC_SHARES = "sambacc-shares"
 
 
 @dataclasses.dataclass
@@ -152,6 +166,7 @@ class Dumper:
         self._stream = stream
         self._hash = None if hash_alg is None else hash_alg()
         self._enc = "utf-8"
+        _logger.debug("Created dumper (with hash %r)", self._hash)
 
     def dump(self) -> Iterator[DumpItem]:
         for lnum, line in enumerate(self._stream):
@@ -170,6 +185,7 @@ class Dumper:
 
     def digest(self) -> DumpItem:
         if not self._hash:
+            _logger.error("Dumper.digest called without a hash set")
             raise ValueError("Dumper.digest requires a hash")
         _digests = [d for d in self.dump() if d.is_digest()]
         assert len(_digests) == 1
@@ -178,13 +194,14 @@ class Dumper:
 
 @contextlib.contextmanager
 def _cmdstream(
-    cmd: Union[list, sambacc.samba_cmds.CommandArgs]
+    cmd: Union[list, sambacc.samba_cmds.CommandArgs],
 ) -> Iterator[IO]:
     proc = subprocess.Popen(
         list(cmd),
         stdout=subprocess.PIPE,
     )
     assert proc.stdout
+    _logger.debug("command %r started", proc.args)
     try:
         yield proc.stdout
         ret = proc.wait()
@@ -192,12 +209,14 @@ def _cmdstream(
         proc.kill()
         proc.wait()
         raise
+    _logger.debug("command %r exited with returncode=%r", proc.args, ret)
     if ret != 0:
         raise subprocess.CalledProcessError(ret, proc.args)
 
 
 @contextlib.contextmanager
 def config_samba() -> Iterator[IO]:
+    _logger.debug("Streaming configuration from net conf list")
     cmd = sambacc.samba_cmds.net["conf", "list"]
     with _cmdstream(cmd) as stream:
         yield stream
@@ -205,17 +224,58 @@ def config_samba() -> Iterator[IO]:
 
 @contextlib.contextmanager
 def config_samba_shares() -> Iterator[IO]:
+    _logger.debug("Streaming configuration from net conf listshares")
     cmd = sambacc.samba_cmds.net["conf", "listshares"]
     with _cmdstream(cmd) as stream:
         yield stream
 
 
 @contextlib.contextmanager
-def config_stream(source: ConfigFor) -> Iterator[IO]:
+def config_sambacc(config_reader: ConfigReader) -> Iterator[IO]:
+    _logger.debug("Reading configuration for sambacc")
+    gconfig = config_reader.read_config()
+    buf = io.StringIO()
+    json.dump(gconfig.data, buf, indent=2)
+    buf.seek(0)
+    yield buf
+
+
+@contextlib.contextmanager
+def config_sambacc_shares(config_reader: ConfigReader) -> Iterator[IO]:
+    # Extract the shares from the current sambacc instance config
+    _logger.debug("Reading configuration for sambacc (shares)")
+    gconfig = config_reader.read_config()
+    iconfig = gconfig.get(config_reader.current_identity())
+    buf = io.StringIO()
+    for share in iconfig.shares():
+        buf.write(f"{share.name}\n")
+    buf.seek(0)
+    yield buf
+
+
+@contextlib.contextmanager
+def config_ctdb() -> Iterator[IO]:
+    _logger.debug("Reading configuration file for ctdb")
+    # there isn't a command from ctdb that shows the config so we can just
+    # attempt to open the well known path of the config file
+    with open(CTDB_CONF_PATH) as fh:
+        yield fh
+
+
+@contextlib.contextmanager
+def config_stream(
+    source: ConfigFor, config_reader: Optional[ConfigReader]
+) -> Iterator[IO]:
     dump_fn = {
         ConfigFor.SAMBA: config_samba,
         ConfigFor.SAMBA_SHARES: config_samba_shares,
+        ConfigFor.CTDB: config_ctdb,
     }
+    if config_reader:
+        dump_fn[ConfigFor.SAMBACC] = partial(config_sambacc, config_reader)
+        dump_fn[ConfigFor.SAMBACC_SHARES] = partial(
+            config_sambacc_shares, config_reader
+        )
     try:
         fn = dump_fn[source]
     except KeyError:
@@ -225,8 +285,14 @@ def config_stream(source: ConfigFor) -> Iterator[IO]:
 
 
 class ControlBackend:
-    def __init__(self, config: sambacc.config.InstanceConfig) -> None:
+    def __init__(
+        self,
+        config: sambacc.config.InstanceConfig,
+        *,
+        config_reader: Optional[ConfigReader] = None,
+    ) -> None:
         self._config = config
+        self._reader = config_reader
 
     def _samba_version(self) -> str:
         smbd_ver = sambacc.samba_cmds.smbd["--version"]
@@ -285,24 +351,32 @@ class ControlBackend:
     def config_dump(
         self, src: ConfigFor, hash_alg: Optional[Callable]
     ) -> Iterator[DumpItem]:
-        with config_stream(src) as stream:
+        with config_stream(src, self._reader) as stream:
             yield from Dumper(stream, hash_alg).dump()
 
     def config_dump_digest(
         self, src: ConfigFor, hash_alg: Optional[Callable]
     ) -> DumpItem:
-        with config_stream(src) as stream:
+        with config_stream(src, self._reader) as stream:
             digest_item = Dumper(stream, hash_alg).digest()
         return digest_item
 
     def config_share_list(self, src: ConfigFor) -> Iterator[ShareEntry]:
         share_sources = {
             ConfigFor.SAMBA: ConfigFor.SAMBA_SHARES,
+            ConfigFor.SAMBACC: ConfigFor.SAMBACC_SHARES,
         }
         try:
             alt_src = share_sources[src]
         except KeyError:
             raise NotImplementedError(src)
-        with config_stream(alt_src) as stream:
+        with config_stream(alt_src, self._reader) as stream:
             for entry in Dumper(stream, None).dump():
-                yield ShareEntry(name=entry.content.strip())
+                name = entry.content.strip()
+                name_str = name if isinstance(name, str) else name.decode()
+                # samba returns "global" as a share name even though it is the
+                # name of the global configuration section and not really a
+                # share. Elide it when listing configured shares.
+                if name_str == "global":
+                    continue
+                yield ShareEntry(name=name_str)
