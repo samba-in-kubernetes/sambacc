@@ -36,6 +36,21 @@ class SambaControlStub(object):
                 request_serializer=control__pb2.KillClientRequest.SerializeToString,
                 response_deserializer=control__pb2.KillClientInfo.FromString,
                 )
+        self.ConfigDump = channel.unary_stream(
+                '/SambaControl/ConfigDump',
+                request_serializer=control__pb2.ConfigDumpRequest.SerializeToString,
+                response_deserializer=control__pb2.ConfigDumpItem.FromString,
+                )
+        self.ConfigSummary = channel.unary_unary(
+                '/SambaControl/ConfigSummary',
+                request_serializer=control__pb2.ConfigSummaryRequest.SerializeToString,
+                response_deserializer=control__pb2.ConfigSummaryInfo.FromString,
+                )
+        self.ConfigSharesList = channel.unary_stream(
+                '/SambaControl/ConfigSharesList',
+                request_serializer=control__pb2.ConfigSharesListRequest.SerializeToString,
+                response_deserializer=control__pb2.ConfigShareItem.FromString,
+                )
 
 
 class SambaControlServicer(object):
@@ -67,6 +82,30 @@ class SambaControlServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ConfigDump(self, request, context):
+        """---- config info & dump ----
+        ConfigDump streams a textual represenation of the configuration
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ConfigSummary(self, request, context):
+        """ConfigSummary returns a hash (of a config dump) good for detecting
+        if the configuration has changed.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ConfigSharesList(self, request, context):
+        """ConfigShareList streams a list of shares. This can be used clients
+        needing to enumerate shares outside of the smb protocol.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SambaControlServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -89,6 +128,21 @@ def add_SambaControlServicer_to_server(servicer, server):
                     servicer.KillClientConnection,
                     request_deserializer=control__pb2.KillClientRequest.FromString,
                     response_serializer=control__pb2.KillClientInfo.SerializeToString,
+            ),
+            'ConfigDump': grpc.unary_stream_rpc_method_handler(
+                    servicer.ConfigDump,
+                    request_deserializer=control__pb2.ConfigDumpRequest.FromString,
+                    response_serializer=control__pb2.ConfigDumpItem.SerializeToString,
+            ),
+            'ConfigSummary': grpc.unary_unary_rpc_method_handler(
+                    servicer.ConfigSummary,
+                    request_deserializer=control__pb2.ConfigSummaryRequest.FromString,
+                    response_serializer=control__pb2.ConfigSummaryInfo.SerializeToString,
+            ),
+            'ConfigSharesList': grpc.unary_stream_rpc_method_handler(
+                    servicer.ConfigSharesList,
+                    request_deserializer=control__pb2.ConfigSharesListRequest.FromString,
+                    response_serializer=control__pb2.ConfigShareItem.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -167,5 +221,56 @@ class SambaControl(object):
         return grpc.experimental.unary_unary(request, target, '/SambaControl/KillClientConnection',
             control__pb2.KillClientRequest.SerializeToString,
             control__pb2.KillClientInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ConfigDump(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/SambaControl/ConfigDump',
+            control__pb2.ConfigDumpRequest.SerializeToString,
+            control__pb2.ConfigDumpItem.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ConfigSummary(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/ConfigSummary',
+            control__pb2.ConfigSummaryRequest.SerializeToString,
+            control__pb2.ConfigSummaryInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ConfigSharesList(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/SambaControl/ConfigSharesList',
+            control__pb2.ConfigSharesListRequest.SerializeToString,
+            control__pb2.ConfigShareItem.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

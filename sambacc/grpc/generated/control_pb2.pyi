@@ -8,15 +8,56 @@ import builtins
 import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
+import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 import sys
+import typing
 
-if sys.version_info >= (3, 8):
+if sys.version_info >= (3, 10):
     import typing as typing_extensions
 else:
     import typing_extensions
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
+
+class _ConfigFor:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _ConfigForEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ConfigFor.ValueType], builtins.type):  # noqa: F821
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    CONFIG_FOR_MISSING: _ConfigFor.ValueType  # 0
+    CONFIG_FOR_SAMBA: _ConfigFor.ValueType  # 1
+    CONFIG_FOR_CTDB: _ConfigFor.ValueType  # 2
+    CONFIG_FOR_SAMBACC: _ConfigFor.ValueType  # 3
+
+class ConfigFor(_ConfigFor, metaclass=_ConfigForEnumTypeWrapper):
+    """--- ConfigSummary, ConfigDump ---
+
+    ConfigFor selects the what kind/source of configuration will be used.
+    """
+
+CONFIG_FOR_MISSING: ConfigFor.ValueType  # 0
+CONFIG_FOR_SAMBA: ConfigFor.ValueType  # 1
+CONFIG_FOR_CTDB: ConfigFor.ValueType  # 2
+CONFIG_FOR_SAMBACC: ConfigFor.ValueType  # 3
+global___ConfigFor = ConfigFor
+
+class _HashAlg:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _HashAlgEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_HashAlg.ValueType], builtins.type):  # noqa: F821
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    HASH_ALG_UNSET: _HashAlg.ValueType  # 0
+    HASH_ALG_SHA256: _HashAlg.ValueType  # 1
+
+class HashAlg(_HashAlg, metaclass=_HashAlgEnumTypeWrapper):
+    """HashAlg selects a hashing algorithm to use."""
+
+HASH_ALG_UNSET: HashAlg.ValueType  # 0
+HASH_ALG_SHA256: HashAlg.ValueType  # 1
+global___HashAlg = HashAlg
 
 class InfoRequest(google.protobuf.message.Message):
     """--- Info ---
@@ -259,3 +300,176 @@ class KillClientInfo(google.protobuf.message.Message):
     ) -> None: ...
 
 global___KillClientInfo = KillClientInfo
+
+class ConfigSummaryRequest(google.protobuf.message.Message):
+    """ConfigSummaryRequest contains parameters for a ConfigSummary call.
+    The source field must be set to a valid configuration source.
+    The hash field may be used to request a specific hashing algorithm.
+    If left unset the default sha256 hash will be used.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SOURCE_FIELD_NUMBER: builtins.int
+    HASH_FIELD_NUMBER: builtins.int
+    source: global___ConfigFor.ValueType
+    hash: global___HashAlg.ValueType
+    def __init__(
+        self,
+        *,
+        source: global___ConfigFor.ValueType = ...,
+        hash: global___HashAlg.ValueType = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["hash", b"hash", "source", b"source"]) -> None: ...
+
+global___ConfigSummaryRequest = ConfigSummaryRequest
+
+class ConfigDigest(google.protobuf.message.Message):
+    """ConfigDigest represents a hashed configuration dump.
+    The hash field will contain the algorithm used.
+    The config_digest string will contain the hash value as a hex string.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    HASH_FIELD_NUMBER: builtins.int
+    CONFIG_DIGEST_FIELD_NUMBER: builtins.int
+    hash: global___HashAlg.ValueType
+    config_digest: builtins.str
+    def __init__(
+        self,
+        *,
+        hash: global___HashAlg.ValueType = ...,
+        config_digest: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["config_digest", b"config_digest", "hash", b"hash"]) -> None: ...
+
+global___ConfigDigest = ConfigDigest
+
+class ConfigSummaryInfo(google.protobuf.message.Message):
+    """ConfigSummaryInfo is returned by a ConfigSummary call.
+    The source used in the summary will be set in the source field.
+    The configuration digest value will also be set.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SOURCE_FIELD_NUMBER: builtins.int
+    DIGEST_FIELD_NUMBER: builtins.int
+    source: global___ConfigFor.ValueType
+    @property
+    def digest(self) -> global___ConfigDigest: ...
+    def __init__(
+        self,
+        *,
+        source: global___ConfigFor.ValueType = ...,
+        digest: global___ConfigDigest | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["digest", b"digest"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["digest", b"digest", "source", b"source"]) -> None: ...
+
+global___ConfigSummaryInfo = ConfigSummaryInfo
+
+class ConfigDumpRequest(google.protobuf.message.Message):
+    """ConfigDumpRequest contains parameters for a ConfigDump call.
+    The source field must be set to a valid configuration source.
+    The hash field may be used to request the a hash of the content
+    be returned in addition to the configuration lines. If left unset
+    no hashing will be done and the result stream will not contain
+    a digest ConfigDumpItem.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SOURCE_FIELD_NUMBER: builtins.int
+    HASH_FIELD_NUMBER: builtins.int
+    source: global___ConfigFor.ValueType
+    hash: global___HashAlg.ValueType
+    def __init__(
+        self,
+        *,
+        source: global___ConfigFor.ValueType = ...,
+        hash: global___HashAlg.ValueType = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["hash", b"hash", "source", b"source"]) -> None: ...
+
+global___ConfigDumpRequest = ConfigDumpRequest
+
+class ConfigLine(google.protobuf.message.Message):
+    """ConfigLine contains data for one line of a dumped config.
+    The line number and one line of text will be stored in this object.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    LINE_NUMBER_FIELD_NUMBER: builtins.int
+    CONTENT_FIELD_NUMBER: builtins.int
+    line_number: builtins.int
+    content: builtins.str
+    def __init__(
+        self,
+        *,
+        line_number: builtins.int = ...,
+        content: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["content", b"content", "line_number", b"line_number"]) -> None: ...
+
+global___ConfigLine = ConfigLine
+
+class ConfigDumpItem(google.protobuf.message.Message):
+    """ConfigDumpItem contains data to be returned from a config dump call."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    LINE_FIELD_NUMBER: builtins.int
+    DIGEST_FIELD_NUMBER: builtins.int
+    @property
+    def line(self) -> global___ConfigLine: ...
+    @property
+    def digest(self) -> global___ConfigDigest: ...
+    def __init__(
+        self,
+        *,
+        line: global___ConfigLine | None = ...,
+        digest: global___ConfigDigest | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["digest", b"digest", "dump_item", b"dump_item", "line", b"line"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["digest", b"digest", "dump_item", b"dump_item", "line", b"line"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["dump_item", b"dump_item"]) -> typing_extensions.Literal["line", "digest"] | None: ...
+
+global___ConfigDumpItem = ConfigDumpItem
+
+class ConfigSharesListRequest(google.protobuf.message.Message):
+    """ConfigSharesListRequest contains parameters for a ConfigSharesList call.
+    Unlike config dump and config summary not all sources support listing
+    the shares.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SOURCE_FIELD_NUMBER: builtins.int
+    source: global___ConfigFor.ValueType
+    def __init__(
+        self,
+        *,
+        source: global___ConfigFor.ValueType = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["source", b"source"]) -> None: ...
+
+global___ConfigSharesListRequest = ConfigSharesListRequest
+
+class ConfigShareItem(google.protobuf.message.Message):
+    """ConfigSharesItem summarized a single share returned from a shares list call."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    NAME_FIELD_NUMBER: builtins.int
+    name: builtins.str
+    def __init__(
+        self,
+        *,
+        name: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["name", b"name"]) -> None: ...
+
+global___ConfigShareItem = ConfigShareItem
