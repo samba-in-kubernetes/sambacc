@@ -52,15 +52,21 @@ class CommandContext:
     def cli(self) -> argparse.Namespace:
         return self._cli
 
+    def read_config(self) -> config.GlobalConfig:
+        cfgs = self.cli.config or []
+        return config.read_config_files(
+            cfgs,
+            require_validation=self.require_validation,
+            opener=self.opener,
+        )
+
+    def current_identity(self) -> str:
+        return self.cli.identity
+
     @property
     def instance_config(self) -> config.InstanceConfig:
         if self._iconfig is None:
-            cfgs = self.cli.config or []
-            self._iconfig = config.read_config_files(
-                cfgs,
-                require_validation=self.require_validation,
-                opener=self.opener,
-            ).get(self.cli.identity)
+            self._iconfig = self.read_config().get(self.cli.identity)
         return self._iconfig
 
     @property
