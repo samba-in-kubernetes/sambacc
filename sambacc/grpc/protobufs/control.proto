@@ -81,6 +81,85 @@ message KillClientRequest {
 
 message KillClientInfo {}
 
+// --- ConfigSummary, ConfigDump ---
+
+// ConfigFor selects the what kind/source of configuration will be used.
+enum ConfigFor {
+    CONFIG_FOR_MISSING = 0;
+    CONFIG_FOR_SAMBA = 1;
+    CONFIG_FOR_CTDB = 2;
+    CONFIG_FOR_SAMBACC = 3;
+}
+
+// HashAlg selects a hashing algorithm to use.
+enum HashAlg {
+    HASH_ALG_UNSET = 0;
+    HASH_ALG_SHA256 = 1;
+}
+
+// ConfigSummaryRequest contains parameters for a ConfigSummary call.
+// The source field must be set to a valid configuration source.
+// The hash field may be used to request a specific hashing algorithm.
+// If left unset the default sha256 hash will be used.
+message ConfigSummaryRequest {
+    ConfigFor source = 1;
+    HashAlg hash = 2;
+}
+
+// ConfigDigest represents a hashed configuration dump.
+// The hash field will contain the algorithm used.
+// The config_digest string will contain the hash value as a hex string.
+message ConfigDigest {
+    HashAlg hash = 1;
+    string config_digest = 2;
+}
+
+// ConfigSummaryInfo is returned by a ConfigSummary call.
+// The source used in the summary will be set in the source field.
+// The configuration digest value will also be set.
+message ConfigSummaryInfo {
+    ConfigFor source = 1;
+    ConfigDigest digest = 2;
+}
+
+// ConfigDumpRequest contains parameters for a ConfigDump call.
+// The source field must be set to a valid configuration source.
+// The hash field may be used to request the a hash of the content
+// be returned in addition to the configuration lines. If left unset
+// no hashing will be done and the result stream will not contain
+// a digest ConfigDumpItem.
+message ConfigDumpRequest {
+    ConfigFor source = 1;
+    HashAlg hash = 2;
+}
+
+// ConfigLine contains data for one line of a dumped config.
+// The line number and one line of text will be stored in this object.
+message ConfigLine {
+    int64 line_number = 1;
+    string content = 2;
+}
+
+// ConfigDumpItem contains data to be returned from a config dump call.
+message ConfigDumpItem {
+    oneof dump_item {
+        ConfigLine line = 1;
+        ConfigDigest digest = 2;
+    }
+}
+
+// ConfigSharesListRequest contains parameters for a ConfigSharesList call.
+// Unlike config dump and config summary not all sources support listing
+// the shares.
+message ConfigSharesListRequest {
+    ConfigFor source = 1;
+}
+
+// ConfigSharesItem summarized a single share returned from a shares list call.
+message ConfigShareItem {
+    string name = 1;
+}
+
 // --- define rpcs ---
 
 service SambaControl {
@@ -88,4 +167,13 @@ service SambaControl {
     rpc Status (StatusRequest) returns (StatusInfo);
     rpc CloseShare (CloseShareRequest) returns (CloseShareInfo);
     rpc KillClientConnection (KillClientRequest) returns (KillClientInfo);
+    // ---- config info & dump ----
+    // ConfigDump streams a textual represenation of the configuration
+    rpc ConfigDump (ConfigDumpRequest) returns (stream ConfigDumpItem);
+    // ConfigSummary returns a hash (of a config dump) good for detecting
+    // if the configuration has changed.
+    rpc ConfigSummary (ConfigSummaryRequest) returns (ConfigSummaryInfo);
+    // ConfigShareList streams a list of shares. This can be used clients
+    // needing to enumerate shares outside of the smb protocol.
+    rpc ConfigSharesList (ConfigSharesListRequest) returns (stream ConfigShareItem);
 }
