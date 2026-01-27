@@ -16,10 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from typing import Iterator, Protocol, Optional
+from typing import Any, Callable, Iterator, Protocol, Optional, cast
 
 import concurrent.futures
 import contextlib
+import hashlib
 import logging
 
 import grpc
@@ -42,6 +43,18 @@ class Backend(Protocol):
 
     def kill_client(self, ip_address: str) -> None: ...
 
+    def config_dump(
+        self, src: rbe.ConfigFor, hash_alg: Optional[Callable]
+    ) -> Iterator[rbe.DumpItem]: ...
+
+    def config_dump_digest(
+        self, src: rbe.ConfigFor, hash_alg: Optional[Callable]
+    ) -> rbe.DumpItem: ...
+
+    def config_share_list(
+        self, src: rbe.ConfigFor
+    ) -> Iterator[rbe.ShareEntry]: ...
+
 
 @contextlib.contextmanager
 def _in_rpc(context: grpc.ServicerContext, allowed: bool) -> Iterator[None]:
@@ -52,6 +65,9 @@ def _in_rpc(context: grpc.ServicerContext, allowed: bool) -> Iterator[None]:
         )
     try:
         yield
+    except NotImplementedError as err:
+        _logger.exception("exception in rpc call")
+        context.abort(grpc.StatusCode.UNIMPLEMENTED, f"not implemented: {err}")
     except Exception:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.UNKNOWN, "Unexpected server error")
@@ -116,12 +132,38 @@ def _convert_status(status: rbe.Status) -> pb.StatusInfo:
     )
 
 
+def _config_source(src_opt: pb.ConfigFor) -> rbe.ConfigFor:
+    opts: dict[Any, rbe.ConfigFor] = {
+        pb.CONFIG_FOR_SAMBA: rbe.ConfigFor.SAMBA,
+        pb.CONFIG_FOR_CTDB: rbe.ConfigFor.CTDB,
+        pb.CONFIG_FOR_SAMBACC: rbe.ConfigFor.SAMBACC,
+    }
+    try:
+        return opts[src_opt]
+    except KeyError:
+        raise ValueError("invalid configuration source")
+
+
+def _pick_hash(
+    hash_opt: pb.HashAlg, default: Optional[Callable]
+) -> Optional[Callable]:
+    opts: dict[Any, Callable] = {
+        pb.HASH_ALG_SHA256: hashlib.sha256,
+    }
+    return opts.get(hash_opt, default)
+
+
 class ControlService(control_rpc.SambaControlServicer):
     def __init__(self, backend: Backend, *, read_only: bool = False):
         self._backend = backend
         self._read_only = read_only
         self._ok_to_read = True
         self._ok_to_modify = not read_only
+
+    @property
+    def _ok_to_diag(self) -> bool:
+        # Acts as lias for _ok_to_read.
+        return self._ok_to_read
 
     def Info(
         self, request: pb.InfoRequest, context: grpc.ServicerContext
@@ -156,6 +198,61 @@ class ControlService(control_rpc.SambaControlServicer):
             self._backend.kill_client(request.ip_address)
             info = pb.KillClientInfo()
         return info
+
+    def ConfigDump(
+        self, request: pb.ConfigDumpRequest, context: grpc.ServicerContext
+    ) -> Iterator[pb.ConfigDumpItem]:
+        _logger.debug("RPC Called: ConfigDump")
+        with _in_rpc(context, self._ok_to_diag):
+            src = _config_source(cast(pb.ConfigFor, request.source))
+            hash_alg = _pick_hash(cast(pb.HashAlg, request.hash), None)
+            for dump_item in self._backend.config_dump(src, hash_alg):
+                if dump_item.is_digest():
+                    assert dump_item.hash_type == "sha256"
+                    yield pb.ConfigDumpItem(
+                        digest=pb.ConfigDigest(
+                            hash=pb.HASH_ALG_SHA256,
+                            config_digest=dump_item.content,
+                        )
+                    )
+                    continue
+                yield pb.ConfigDumpItem(
+                    line=pb.ConfigLine(
+                        line_number=dump_item.line_number,
+                        content=dump_item.content,
+                    )
+                )
+
+    def ConfigSummary(
+        self, request: pb.ConfigSummaryRequest, context: grpc.ServicerContext
+    ) -> pb.ConfigSummaryInfo:
+        _logger.debug("RPC Called: ConfigSummary")
+        with _in_rpc(context, self._ok_to_diag):
+            src = _config_source(cast(pb.ConfigFor, request.source))
+            hash_alg = _pick_hash(
+                cast(pb.HashAlg, request.hash), hashlib.sha256
+            )
+            dump_item = self._backend.config_dump_digest(src, hash_alg)
+            assert dump_item.is_digest()
+            assert dump_item.hash_type == "sha256"
+            return pb.ConfigSummaryInfo(
+                source=request.source,
+                digest=pb.ConfigDigest(
+                    hash=pb.HASH_ALG_SHA256,
+                    config_digest=dump_item.content,
+                ),
+            )
+
+    def ConfigSharesList(
+        self,
+        request: pb.ConfigSharesListRequest,
+        context: grpc.ServicerContext,
+    ) -> Iterator[pb.ConfigShareItem]:
+        _logger.debug("RPC Called: ConfigSharesList")
+        with _in_rpc(context, self._ok_to_diag):
+            src = _config_source(cast(pb.ConfigFor, request.source))
+            for share in self._backend.config_share_list(src):
+                yield pb.ConfigShareItem(name=share.name)
 
 
 class ServerConfig:
