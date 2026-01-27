@@ -23,6 +23,7 @@ import sys
 import typing
 
 from ..cli import Context, Fail, commands
+from ..common import CommandContext
 
 _logger = logging.getLogger(__name__)
 _MTLS = "mtls"
@@ -119,7 +120,10 @@ def _serve(ctx: Context) -> None:
         or (not config.insecure and config.ca_cert)
     )
 
-    backend = sambacc.grpc.backend.ControlBackend(ctx.instance_config)
+    _reader = ctx if isinstance(ctx, CommandContext) else None
+    backend = sambacc.grpc.backend.ControlBackend(
+        ctx.instance_config, config_reader=_reader
+    )
     sambacc.grpc.server.serve(config, backend)
 
 
