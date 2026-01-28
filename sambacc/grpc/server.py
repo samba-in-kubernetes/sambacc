@@ -68,6 +68,9 @@ def _in_rpc(context: grpc.ServicerContext, allowed: bool) -> Iterator[None]:
     except NotImplementedError as err:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.UNIMPLEMENTED, f"not implemented: {err}")
+    except FileNotFoundError as err:
+        _logger.exception("exception in rpc call")
+        context.abort(grpc.StatusCode.NOT_FOUND, f"not found: {err}")
     except Exception:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.UNKNOWN, "Unexpected server error")
