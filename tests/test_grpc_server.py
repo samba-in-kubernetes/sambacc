@@ -128,15 +128,17 @@ class MockBackend:
 
 
 @pytest.fixture()
-def mock_grpc_server():
+def mock_grpc_server(tmp_path):
     try:
         import sambacc.grpc.server
     except ImportError:
         pytest.skip("can not import grpc server")
 
+    socket_path = tmp_path / "grpc.sock"
+
     class TestConfig(sambacc.grpc.server.ServerConfig):
         max_workers = 3
-        address = "localhost:54445"
+        address = f"unix:{socket_path}"
         insecure = True
         _server = None
         backend = None
