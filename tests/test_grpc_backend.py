@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import hashlib
 import io
 import os
 
@@ -188,9 +189,13 @@ def _fake_command(tmp_path, monkeypatch, *, output="", exitcode=0):
     os.chmod(fake, 0o755)
 
 
-def _instance_config():
+def _global_config():
     fh = io.StringIO(config1)
-    g = sambacc.config.GlobalConfig(fh)
+    return sambacc.config.GlobalConfig(fh)
+
+
+def _instance_config():
+    g = _global_config()
     return g.get("foobar")
 
 
@@ -250,3 +255,142 @@ def test_backend_kill_client_error(tmp_path, monkeypatch):
     backend = sambacc.grpc.backend.ControlBackend(_instance_config())
     with pytest.raises(Exception):
         backend.kill_client("127.0.0.1")
+
+
+fake_output1 = """
+[global]
+foo = bar
+biz = buz
+
+[Share 1]
+path = /var/smb/share1
+
+[Share 2]
+path = /var/smb/share2
+mod:wibble = wobble
+""".lstrip()
+
+
+def test_backend_config_dump_samba(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch, output=fake_output1)
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    source = sambacc.grpc.backend.ConfigFor.SAMBA
+    res = list(backend.config_dump(source, None))
+    assert len(res) == 10
+    assert res[0].line_number == 0
+    assert res[0].content == b"[global]\n"
+    assert res[-1].line_number == 9
+    assert res[-1].content == b"mod:wibble = wobble\n"
+    assert fake_output1 == "".join(r.content.decode() for r in res)
+
+    res = list(backend.config_dump(source, hashlib.sha256))
+    assert len(res) == 11
+    assert res[0].line_number == 0
+    assert res[0].content == b"[global]\n"
+    assert res[-1].is_digest()
+    assert res[-1].hash_type == "sha256"
+    assert (
+        res[-1].content
+        == "42229092a13515b906adf990ba46ca01de4bf01d9844015a709bea41891e7c8f"
+    )
+    assert fake_output1 == "".join(
+        r.content.decode() for r in res if not r.is_digest()
+    )
+
+
+def test_backend_config_dump_digest_samba(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch, output=fake_output1)
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    source = sambacc.grpc.backend.ConfigFor.SAMBA
+    ditem = backend.config_dump_digest(source, hashlib.sha256)
+
+    assert ditem.is_digest()
+    assert ditem.hash_type == "sha256"
+    assert (
+        ditem.content
+        == "42229092a13515b906adf990ba46ca01de4bf01d9844015a709bea41891e7c8f"
+    )
+
+
+fake_output2 = """
+global
+Share 1
+Share 2
+""".lstrip()
+
+
+def test_backend_config_share_list_samba(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch, output=fake_output2)
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    source = sambacc.grpc.backend.ConfigFor.SAMBA
+    res = list(backend.config_share_list(source))
+    assert len(res) == 2
+    assert [r.name for r in res] == ["Share 1", "Share 2"]
+
+
+def test_backend_config_dump_sambacc():
+    import json
+
+    class FakeConfigReader:
+        def read_config(self):
+            return _global_config()
+
+        def current_identity(self):
+            return "foobar"
+
+    backend = sambacc.grpc.backend.ControlBackend(
+        _instance_config(), config_reader=FakeConfigReader()
+    )
+    source = sambacc.grpc.backend.ConfigFor.SAMBACC
+    res = list(backend.config_dump(source, None))
+    assert len(res) == 46
+    assert json.loads(config1) == json.loads("".join(r.content for r in res))
+
+
+def test_backend_config_share_list_sambacc():
+    class FakeConfigReader:
+        def read_config(self):
+            return _global_config()
+
+        def current_identity(self):
+            return "foobar"
+
+    backend = sambacc.grpc.backend.ControlBackend(
+        _instance_config(), config_reader=FakeConfigReader()
+    )
+    source = sambacc.grpc.backend.ConfigFor.SAMBACC
+    res = list(backend.config_share_list(source))
+    assert len(res) == 2
+    assert [r.name for r in res] == ["share", "stuff"]
+
+
+fake_ctdb1 = """
+[logging]
+log level = NOTICE
+
+[cluster]
+recovery lock = !/usr/bin/samba-container zip zap zonk
+nodes list = !/usr/bin/samba-container ctdb-list-nodes
+
+[legacy]
+realtime scheduling = false
+script log level = ERROR
+""".lstrip()
+
+
+def test_backend_config_dump_ctdb(tmp_path, monkeypatch):
+    ctdb_conf = tmp_path / "ctdb.conf"
+    ctdb_conf.write_text(fake_ctdb1)
+    monkeypatch.setattr(sambacc.grpc.backend, "CTDB_CONF_PATH", str(ctdb_conf))
+
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    source = sambacc.grpc.backend.ConfigFor.CTDB
+    res = list(backend.config_dump(source, hashlib.sha256))
+    assert len(res) == 11
+    assert fake_ctdb1 == "".join(r.content for r in res if not r.is_digest())
+    assert res[-1].is_digest()
+    assert res[-1].hash_type == "sha256"
+    assert (
+        res[-1].content
+        == "b1599885110ed9fe4a5ca3731a2b793c4cf8ce4581d71cbc79468434c366195d"
+    )
