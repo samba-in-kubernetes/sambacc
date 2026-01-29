@@ -126,6 +126,31 @@ class MockBackend:
     def kill_client(self, ip_address: str) -> None:
         self._counter["kill_client"] += 1
 
+    def config_dump(self, source, hash_alg):
+        self._counter["config_dump"] += 1
+        if self._kaboom:
+            raise self._kaboom
+        yield backend.DumpItem(line_number=0, content="foo\n")
+        yield backend.DumpItem(line_number=0, content="bar\n")
+        yield backend.DumpItem(line_number=0, content="baz\n")
+        yield backend.DumpItem(line_number=0, content="bingo\n")
+        if hash_alg:
+            yield backend.DumpItem(
+                line_number=-1, hash_type="sha256", content="xxxxxxxx"
+            )
+
+    def config_dump_digest(self, source, hash_alg):
+        self._counter["config_dump_digest"] += 1
+        return backend.DumpItem(
+            line_number=-1, hash_type="sha256", content="xxxxxxxx"
+        )
+
+    def config_share_list(self, source):
+        self._counter["config_share_list"] += 1
+        yield backend.ShareEntry(name="alice")
+        yield backend.ShareEntry(name="bob")
+        yield backend.ShareEntry(name="zongo")
+
 
 @pytest.fixture()
 def mock_grpc_server(tmp_path):
@@ -236,3 +261,122 @@ def test_kill_client(mock_grpc_server):
 
     assert mock_grpc_server.backend._counter["kill_client"] == 1
     assert rsp
+
+
+def test_config_dump(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.ConfigDump(
+            _pb.ConfigDumpRequest(source=_pb.CONFIG_FOR_SAMBA)
+        )
+        items = list(rsp)
+    assert len(items) == 4
+    assert [i.line.content for i in items] == [
+        "foo\n",
+        "bar\n",
+        "baz\n",
+        "bingo\n",
+    ]
+
+
+def test_config_dump_with_digest(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.ConfigDump(
+            _pb.ConfigDumpRequest(
+                source=_pb.CONFIG_FOR_SAMBA,
+                hash=_pb.HASH_ALG_SHA256,
+            )
+        )
+        items = list(rsp)
+    assert len(items) == 5
+    assert [i.line.content for i in items[:-1]] == [
+        "foo\n",
+        "bar\n",
+        "baz\n",
+        "bingo\n",
+    ]
+    assert items[-1].digest.hash == _pb.HASH_ALG_SHA256
+    assert items[-1].digest.config_digest == "xxxxxxxx"
+
+
+def test_config_summary(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.ConfigSummary(
+            _pb.ConfigDumpRequest(
+                source=_pb.CONFIG_FOR_SAMBA,
+                hash=_pb.HASH_ALG_SHA256,
+            )
+        )
+    assert rsp.digest.hash == _pb.HASH_ALG_SHA256
+    assert rsp.digest.config_digest == "xxxxxxxx"
+
+
+def test_config_shares_list(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.ConfigSharesList(
+            _pb.ConfigSharesListRequest(
+                source=_pb.CONFIG_FOR_SAMBA,
+            )
+        )
+        items = list(rsp)
+    assert len(items) == 3
+    assert items[0].name == "alice"
+    assert items[1].name == "bob"
+    assert items[2].name == "zongo"
+
+
+def test_config_dump_error_unimplemented(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    mock_grpc_server.backend._kaboom = NotImplementedError("samba")
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        with pytest.raises(grpc.RpcError):
+            res = client.ConfigDump(
+                _pb.ConfigDumpRequest(
+                    source=_pb.CONFIG_FOR_SAMBA,
+                    hash=_pb.HASH_ALG_SHA256,
+                )
+            )
+            # consume stream to trigger error
+            list(res)
+
+
+def test_config_dump_error_not_found(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    mock_grpc_server.backend._kaboom = FileNotFoundError("ctdb")
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        with pytest.raises(grpc.RpcError):
+            res = client.ConfigDump(
+                _pb.ConfigDumpRequest(
+                    source=_pb.CONFIG_FOR_SAMBA,
+                    hash=_pb.HASH_ALG_SHA256,
+                )
+            )
+            # consume stream to trigger error
+            list(res)
