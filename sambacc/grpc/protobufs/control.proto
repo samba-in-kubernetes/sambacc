@@ -160,6 +160,37 @@ message ConfigShareItem {
     string name = 1;
 }
 
+
+// --- Set and Get Debug Levels ----
+
+
+// SMBProcess chooses between processes that make up the smb service.
+enum SMBProcess {
+    SMB_PROCESS_MISSING = 0;
+    SMB_PROCESS_SMB = 1;
+    SMB_PROCESS_WINBIND = 2;
+    SMB_PROCESS_CTDB = 3;
+}
+
+// SetDebugLevelRequest will attempt to apply the given debug level
+// to the indicated smb process(es).
+message SetDebugLevelRequest {
+    SMBProcess process = 1;
+    string debug_level = 2;
+}
+
+// GetDebugLevelRequest will query the given debug level for the indicated smb
+// process(es).
+message GetDebugLevelRequest {
+    SMBProcess process = 1;
+}
+
+// DebugLevelInfo indicates the current debug level for the smb process.
+message DebugLevelInfo {
+    SMBProcess process = 1;
+    string debug_level = 2;
+}
+
 // --- define rpcs ---
 
 service SambaControl {
@@ -167,7 +198,9 @@ service SambaControl {
     rpc Status (StatusRequest) returns (StatusInfo);
     rpc CloseShare (CloseShareRequest) returns (CloseShareInfo);
     rpc KillClientConnection (KillClientRequest) returns (KillClientInfo);
+
     // ---- config info & dump ----
+
     // ConfigDump streams a textual represenation of the configuration
     rpc ConfigDump (ConfigDumpRequest) returns (stream ConfigDumpItem);
     // ConfigSummary returns a hash (of a config dump) good for detecting
@@ -176,4 +209,11 @@ service SambaControl {
     // ConfigShareList streams a list of shares. This can be used clients
     // needing to enumerate shares outside of the smb protocol.
     rpc ConfigSharesList (ConfigSharesListRequest) returns (stream ConfigShareItem);
+
+    // ---- live debug level control ----
+
+    // SetDebugLevel attempts to set the debug level for an smb process.
+    rpc SetDebugLevel (SetDebugLevelRequest) returns (DebugLevelInfo);
+    // GetDebugLevel attempts to get the debug level for an smb process.
+    rpc GetDebugLevel (GetDebugLevelRequest) returns (DebugLevelInfo);
 }
