@@ -15,18 +15,24 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcontrol.proto\"\r\n\x0bInfoRequest\"/\n\tSambaInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x11\n\tclustered\x18\x02 \x01(\x08\"H\n\x12SambaContainerInfo\x12\x17\n\x0fsambacc_version\x18\x01 \x01(\t\x12\x19\n\x11\x63ontainer_version\x18\x02 \x01(\t\"Z\n\x0bGeneralInfo\x12\x1e\n\nsamba_info\x18\x01 \x01(\x0b\x32\n.SambaInfo\x12+\n\x0e\x63ontainer_info\x18\x02 \x01(\x0b\x32\x13.SambaContainerInfo\"\x0f\n\rStatusRequest\"/\n\rSessionCrypto\x12\x0e\n\x06\x63ipher\x18\x01 \x01(\t\x12\x0e\n\x06\x64\x65gree\x18\x02 \x01(\t\"\xe8\x01\n\x0bSessionInfo\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x11\n\tgroupname\x18\x03 \x01(\t\x12\x16\n\x0eremote_machine\x18\x04 \x01(\t\x12\x10\n\x08hostname\x18\x05 \x01(\t\x12\x17\n\x0fsession_dialect\x18\x06 \x01(\t\x12\x0b\n\x03uid\x18\x07 \x01(\r\x12\x0b\n\x03gid\x18\x08 \x01(\r\x12\"\n\nencryption\x18\t \x01(\x0b\x32\x0e.SessionCrypto\x12\x1f\n\x07signing\x18\n \x01(\x0b\x32\x0e.SessionCrypto\"E\n\x08\x43onnInfo\x12\x0f\n\x07tcon_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x14\n\x0cservice_name\x18\x03 \x01(\t\"k\n\nStatusInfo\x12\x18\n\x10server_timestamp\x18\x01 \x01(\t\x12\x1e\n\x08sessions\x18\x02 \x03(\x0b\x32\x0c.SessionInfo\x12#\n\x10tree_connections\x18\x03 \x03(\x0b\x32\t.ConnInfo\"=\n\x11\x43loseShareRequest\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65nied_users\x18\x02 \x01(\x08\"\x10\n\x0e\x43loseShareInfo\"\'\n\x11KillClientRequest\x12\x12\n\nip_address\x18\x01 \x01(\t\"\x10\n\x0eKillClientInfo\"J\n\x14\x43onfigSummaryRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x16\n\x04hash\x18\x02 \x01(\x0e\x32\x08.HashAlg\"=\n\x0c\x43onfigDigest\x12\x16\n\x04hash\x18\x01 \x01(\x0e\x32\x08.HashAlg\x12\x15\n\rconfig_digest\x18\x02 \x01(\t\"N\n\x11\x43onfigSummaryInfo\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x1d\n\x06\x64igest\x18\x02 \x01(\x0b\x32\r.ConfigDigest\"G\n\x11\x43onfigDumpRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x16\n\x04hash\x18\x02 \x01(\x0e\x32\x08.HashAlg\"2\n\nConfigLine\x12\x13\n\x0bline_number\x18\x01 \x01(\x03\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\"[\n\x0e\x43onfigDumpItem\x12\x1b\n\x04line\x18\x01 \x01(\x0b\x32\x0b.ConfigLineH\x00\x12\x1f\n\x06\x64igest\x18\x02 \x01(\x0b\x32\r.ConfigDigestH\x00\x42\x0b\n\tdump_item\"5\n\x17\x43onfigSharesListRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\"\x1f\n\x0f\x43onfigShareItem\x12\x0c\n\x04name\x18\x01 \x01(\t*f\n\tConfigFor\x12\x16\n\x12\x43ONFIG_FOR_MISSING\x10\x00\x12\x14\n\x10\x43ONFIG_FOR_SAMBA\x10\x01\x12\x13\n\x0f\x43ONFIG_FOR_CTDB\x10\x02\x12\x16\n\x12\x43ONFIG_FOR_SAMBACC\x10\x03*2\n\x07HashAlg\x12\x12\n\x0eHASH_ALG_UNSET\x10\x00\x12\x13\n\x0fHASH_ALG_SHA256\x10\x01\x32\xfc\x02\n\x0cSambaControl\x12\"\n\x04Info\x12\x0c.InfoRequest\x1a\x0c.GeneralInfo\x12%\n\x06Status\x12\x0e.StatusRequest\x1a\x0b.StatusInfo\x12\x31\n\nCloseShare\x12\x12.CloseShareRequest\x1a\x0f.CloseShareInfo\x12;\n\x14KillClientConnection\x12\x12.KillClientRequest\x1a\x0f.KillClientInfo\x12\x33\n\nConfigDump\x12\x12.ConfigDumpRequest\x1a\x0f.ConfigDumpItem0\x01\x12:\n\rConfigSummary\x12\x15.ConfigSummaryRequest\x1a\x12.ConfigSummaryInfo\x12@\n\x10\x43onfigSharesList\x12\x18.ConfigSharesListRequest\x1a\x10.ConfigShareItem0\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcontrol.proto\"\r\n\x0bInfoRequest\"/\n\tSambaInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x11\n\tclustered\x18\x02 \x01(\x08\"H\n\x12SambaContainerInfo\x12\x17\n\x0fsambacc_version\x18\x01 \x01(\t\x12\x19\n\x11\x63ontainer_version\x18\x02 \x01(\t\"Z\n\x0bGeneralInfo\x12\x1e\n\nsamba_info\x18\x01 \x01(\x0b\x32\n.SambaInfo\x12+\n\x0e\x63ontainer_info\x18\x02 \x01(\x0b\x32\x13.SambaContainerInfo\"\x0f\n\rStatusRequest\"/\n\rSessionCrypto\x12\x0e\n\x06\x63ipher\x18\x01 \x01(\t\x12\x0e\n\x06\x64\x65gree\x18\x02 \x01(\t\"\xe8\x01\n\x0bSessionInfo\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x11\n\tgroupname\x18\x03 \x01(\t\x12\x16\n\x0eremote_machine\x18\x04 \x01(\t\x12\x10\n\x08hostname\x18\x05 \x01(\t\x12\x17\n\x0fsession_dialect\x18\x06 \x01(\t\x12\x0b\n\x03uid\x18\x07 \x01(\r\x12\x0b\n\x03gid\x18\x08 \x01(\r\x12\"\n\nencryption\x18\t \x01(\x0b\x32\x0e.SessionCrypto\x12\x1f\n\x07signing\x18\n \x01(\x0b\x32\x0e.SessionCrypto\"E\n\x08\x43onnInfo\x12\x0f\n\x07tcon_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x14\n\x0cservice_name\x18\x03 \x01(\t\"k\n\nStatusInfo\x12\x18\n\x10server_timestamp\x18\x01 \x01(\t\x12\x1e\n\x08sessions\x18\x02 \x03(\x0b\x32\x0c.SessionInfo\x12#\n\x10tree_connections\x18\x03 \x03(\x0b\x32\t.ConnInfo\"=\n\x11\x43loseShareRequest\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65nied_users\x18\x02 \x01(\x08\"\x10\n\x0e\x43loseShareInfo\"\'\n\x11KillClientRequest\x12\x12\n\nip_address\x18\x01 \x01(\t\"\x10\n\x0eKillClientInfo\"J\n\x14\x43onfigSummaryRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x16\n\x04hash\x18\x02 \x01(\x0e\x32\x08.HashAlg\"=\n\x0c\x43onfigDigest\x12\x16\n\x04hash\x18\x01 \x01(\x0e\x32\x08.HashAlg\x12\x15\n\rconfig_digest\x18\x02 \x01(\t\"N\n\x11\x43onfigSummaryInfo\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x1d\n\x06\x64igest\x18\x02 \x01(\x0b\x32\r.ConfigDigest\"G\n\x11\x43onfigDumpRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x16\n\x04hash\x18\x02 \x01(\x0e\x32\x08.HashAlg\"2\n\nConfigLine\x12\x13\n\x0bline_number\x18\x01 \x01(\x03\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\"[\n\x0e\x43onfigDumpItem\x12\x1b\n\x04line\x18\x01 \x01(\x0b\x32\x0b.ConfigLineH\x00\x12\x1f\n\x06\x64igest\x18\x02 \x01(\x0b\x32\r.ConfigDigestH\x00\x42\x0b\n\tdump_item\"5\n\x17\x43onfigSharesListRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\"\x1f\n\x0f\x43onfigShareItem\x12\x0c\n\x04name\x18\x01 \x01(\t\"I\n\x14SetDebugLevelRequest\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\x12\x13\n\x0b\x64\x65\x62ug_level\x18\x02 \x01(\t\"4\n\x14GetDebugLevelRequest\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\"C\n\x0e\x44\x65\x62ugLevelInfo\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\x12\x13\n\x0b\x64\x65\x62ug_level\x18\x02 \x01(\t*f\n\tConfigFor\x12\x16\n\x12\x43ONFIG_FOR_MISSING\x10\x00\x12\x14\n\x10\x43ONFIG_FOR_SAMBA\x10\x01\x12\x13\n\x0f\x43ONFIG_FOR_CTDB\x10\x02\x12\x16\n\x12\x43ONFIG_FOR_SAMBACC\x10\x03*2\n\x07HashAlg\x12\x12\n\x0eHASH_ALG_UNSET\x10\x00\x12\x13\n\x0fHASH_ALG_SHA256\x10\x01*i\n\nSMBProcess\x12\x17\n\x13SMB_PROCESS_MISSING\x10\x00\x12\x13\n\x0fSMB_PROCESS_SMB\x10\x01\x12\x17\n\x13SMB_PROCESS_WINBIND\x10\x02\x12\x14\n\x10SMB_PROCESS_CTDB\x10\x03\x32\xee\x03\n\x0cSambaControl\x12\"\n\x04Info\x12\x0c.InfoRequest\x1a\x0c.GeneralInfo\x12%\n\x06Status\x12\x0e.StatusRequest\x1a\x0b.StatusInfo\x12\x31\n\nCloseShare\x12\x12.CloseShareRequest\x1a\x0f.CloseShareInfo\x12;\n\x14KillClientConnection\x12\x12.KillClientRequest\x1a\x0f.KillClientInfo\x12\x33\n\nConfigDump\x12\x12.ConfigDumpRequest\x1a\x0f.ConfigDumpItem0\x01\x12:\n\rConfigSummary\x12\x15.ConfigSummaryRequest\x1a\x12.ConfigSummaryInfo\x12@\n\x10\x43onfigSharesList\x12\x18.ConfigSharesListRequest\x1a\x10.ConfigShareItem0\x01\x12\x37\n\rSetDebugLevel\x12\x15.SetDebugLevelRequest\x1a\x0f.DebugLevelInfo\x12\x37\n\rGetDebugLevel\x12\x15.GetDebugLevelRequest\x1a\x0f.DebugLevelInfob\x06proto3')
 
 _CONFIGFOR = DESCRIPTOR.enum_types_by_name['ConfigFor']
 ConfigFor = enum_type_wrapper.EnumTypeWrapper(_CONFIGFOR)
 _HASHALG = DESCRIPTOR.enum_types_by_name['HashAlg']
 HashAlg = enum_type_wrapper.EnumTypeWrapper(_HASHALG)
+_SMBPROCESS = DESCRIPTOR.enum_types_by_name['SMBProcess']
+SMBProcess = enum_type_wrapper.EnumTypeWrapper(_SMBPROCESS)
 CONFIG_FOR_MISSING = 0
 CONFIG_FOR_SAMBA = 1
 CONFIG_FOR_CTDB = 2
 CONFIG_FOR_SAMBACC = 3
 HASH_ALG_UNSET = 0
 HASH_ALG_SHA256 = 1
+SMB_PROCESS_MISSING = 0
+SMB_PROCESS_SMB = 1
+SMB_PROCESS_WINBIND = 2
+SMB_PROCESS_CTDB = 3
 
 
 _INFOREQUEST = DESCRIPTOR.message_types_by_name['InfoRequest']
@@ -50,6 +56,9 @@ _CONFIGLINE = DESCRIPTOR.message_types_by_name['ConfigLine']
 _CONFIGDUMPITEM = DESCRIPTOR.message_types_by_name['ConfigDumpItem']
 _CONFIGSHARESLISTREQUEST = DESCRIPTOR.message_types_by_name['ConfigSharesListRequest']
 _CONFIGSHAREITEM = DESCRIPTOR.message_types_by_name['ConfigShareItem']
+_SETDEBUGLEVELREQUEST = DESCRIPTOR.message_types_by_name['SetDebugLevelRequest']
+_GETDEBUGLEVELREQUEST = DESCRIPTOR.message_types_by_name['GetDebugLevelRequest']
+_DEBUGLEVELINFO = DESCRIPTOR.message_types_by_name['DebugLevelInfo']
 InfoRequest = _reflection.GeneratedProtocolMessageType('InfoRequest', (_message.Message,), {
   'DESCRIPTOR' : _INFOREQUEST,
   '__module__' : 'control_pb2'
@@ -197,14 +206,37 @@ ConfigShareItem = _reflection.GeneratedProtocolMessageType('ConfigShareItem', (_
   })
 _sym_db.RegisterMessage(ConfigShareItem)
 
+SetDebugLevelRequest = _reflection.GeneratedProtocolMessageType('SetDebugLevelRequest', (_message.Message,), {
+  'DESCRIPTOR' : _SETDEBUGLEVELREQUEST,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:SetDebugLevelRequest)
+  })
+_sym_db.RegisterMessage(SetDebugLevelRequest)
+
+GetDebugLevelRequest = _reflection.GeneratedProtocolMessageType('GetDebugLevelRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETDEBUGLEVELREQUEST,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:GetDebugLevelRequest)
+  })
+_sym_db.RegisterMessage(GetDebugLevelRequest)
+
+DebugLevelInfo = _reflection.GeneratedProtocolMessageType('DebugLevelInfo', (_message.Message,), {
+  'DESCRIPTOR' : _DEBUGLEVELINFO,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:DebugLevelInfo)
+  })
+_sym_db.RegisterMessage(DebugLevelInfo)
+
 _SAMBACONTROL = DESCRIPTOR.services_by_name['SambaControl']
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _CONFIGFOR._serialized_start=1393
-  _CONFIGFOR._serialized_end=1495
-  _HASHALG._serialized_start=1497
-  _HASHALG._serialized_end=1547
+  _CONFIGFOR._serialized_start=1591
+  _CONFIGFOR._serialized_end=1693
+  _HASHALG._serialized_start=1695
+  _HASHALG._serialized_end=1745
+  _SMBPROCESS._serialized_start=1747
+  _SMBPROCESS._serialized_end=1852
   _INFOREQUEST._serialized_start=17
   _INFOREQUEST._serialized_end=30
   _SAMBAINFO._serialized_start=32
@@ -247,6 +279,12 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _CONFIGSHARESLISTREQUEST._serialized_end=1358
   _CONFIGSHAREITEM._serialized_start=1360
   _CONFIGSHAREITEM._serialized_end=1391
-  _SAMBACONTROL._serialized_start=1550
-  _SAMBACONTROL._serialized_end=1930
+  _SETDEBUGLEVELREQUEST._serialized_start=1393
+  _SETDEBUGLEVELREQUEST._serialized_end=1466
+  _GETDEBUGLEVELREQUEST._serialized_start=1468
+  _GETDEBUGLEVELREQUEST._serialized_end=1520
+  _DEBUGLEVELINFO._serialized_start=1522
+  _DEBUGLEVELINFO._serialized_end=1589
+  _SAMBACONTROL._serialized_start=1855
+  _SAMBACONTROL._serialized_end=2349
 # @@protoc_insertion_point(module_scope)
