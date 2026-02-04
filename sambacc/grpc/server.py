@@ -55,6 +55,12 @@ class Backend(Protocol):
         self, src: rbe.ConfigFor
     ) -> Iterator[rbe.ShareEntry]: ...
 
+    def set_debug_level(
+        self, server: rbe.ServerType, debug_level: str
+    ) -> None: ...
+
+    def get_debug_level(self, server: rbe.ServerType) -> str: ...
+
 
 @contextlib.contextmanager
 def _in_rpc(context: grpc.ServicerContext, allowed: bool) -> Iterator[None]:
@@ -154,6 +160,18 @@ def _pick_hash(
         pb.HASH_ALG_SHA256: hashlib.sha256,
     }
     return opts.get(hash_opt, default)
+
+
+def _server_type(process: pb.SMBProcess) -> rbe.ServerType:
+    opts: dict[Any, rbe.ServerType] = {
+        pb.SMB_PROCESS_SMB: rbe.ServerType.SMB,
+        pb.SMB_PROCESS_WINBIND: rbe.ServerType.WINBIND,
+        pb.SMB_PROCESS_CTDB: rbe.ServerType.CTDB,
+    }
+    try:
+        return opts[process]
+    except KeyError:
+        raise ValueError(f"invalid smb process type: {process!r}")
 
 
 class ControlService(control_rpc.SambaControlServicer):
@@ -256,6 +274,34 @@ class ControlService(control_rpc.SambaControlServicer):
             src = _config_source(cast(pb.ConfigFor, request.source))
             for share in self._backend.config_share_list(src):
                 yield pb.ConfigShareItem(name=share.name)
+
+    def SetDebugLevel(
+        self, request: pb.SetDebugLevelRequest, context: grpc.ServicerContext
+    ) -> pb.DebugLevelInfo:
+        _logger.debug("RPC Called: SetDebugLevel")
+        with _in_rpc(context, self._ok_to_modify):
+            server = _server_type(cast(pb.SMBProcess, request.process))
+            debug_level = request.debug_level
+            self._backend.set_debug_level(server, debug_level)
+            # round trip for clarity
+            info = pb.DebugLevelInfo(
+                process=request.process,
+                debug_level=debug_level,
+            )
+        return info
+
+    def GetDebugLevel(
+        self, request: pb.GetDebugLevelRequest, context: grpc.ServicerContext
+    ) -> pb.DebugLevelInfo:
+        _logger.debug("RPC Called: GetDebugLevel")
+        with _in_rpc(context, self._ok_to_read):
+            server = _server_type(cast(pb.SMBProcess, request.process))
+            debug_level = self._backend.get_debug_level(server)
+            info = pb.DebugLevelInfo(
+                process=request.process,
+                debug_level=debug_level,
+            )
+        return info
 
 
 class ServerConfig:
