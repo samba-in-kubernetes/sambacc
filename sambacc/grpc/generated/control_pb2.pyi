@@ -59,6 +59,29 @@ HASH_ALG_UNSET: HashAlg.ValueType  # 0
 HASH_ALG_SHA256: HashAlg.ValueType  # 1
 global___HashAlg = HashAlg
 
+class _SMBProcess:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _SMBProcessEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_SMBProcess.ValueType], builtins.type):  # noqa: F821
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    SMB_PROCESS_MISSING: _SMBProcess.ValueType  # 0
+    SMB_PROCESS_SMB: _SMBProcess.ValueType  # 1
+    SMB_PROCESS_WINBIND: _SMBProcess.ValueType  # 2
+    SMB_PROCESS_CTDB: _SMBProcess.ValueType  # 3
+
+class SMBProcess(_SMBProcess, metaclass=_SMBProcessEnumTypeWrapper):
+    """--- Set and Get Debug Levels ----
+
+    SMBProcess chooses between processes that make up the smb service.
+    """
+
+SMB_PROCESS_MISSING: SMBProcess.ValueType  # 0
+SMB_PROCESS_SMB: SMBProcess.ValueType  # 1
+SMB_PROCESS_WINBIND: SMBProcess.ValueType  # 2
+SMB_PROCESS_CTDB: SMBProcess.ValueType  # 3
+global___SMBProcess = SMBProcess
+
 class InfoRequest(google.protobuf.message.Message):
     """--- Info ---
     Provide version numbers and basic information about the samba
@@ -473,3 +496,61 @@ class ConfigShareItem(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["name", b"name"]) -> None: ...
 
 global___ConfigShareItem = ConfigShareItem
+
+class SetDebugLevelRequest(google.protobuf.message.Message):
+    """SetDebugLevelRequest will attempt to apply the given debug level
+    to the indicated smb process(es).
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PROCESS_FIELD_NUMBER: builtins.int
+    DEBUG_LEVEL_FIELD_NUMBER: builtins.int
+    process: global___SMBProcess.ValueType
+    debug_level: builtins.str
+    def __init__(
+        self,
+        *,
+        process: global___SMBProcess.ValueType = ...,
+        debug_level: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["debug_level", b"debug_level", "process", b"process"]) -> None: ...
+
+global___SetDebugLevelRequest = SetDebugLevelRequest
+
+class GetDebugLevelRequest(google.protobuf.message.Message):
+    """GetDebugLevelRequest will query the given debug level for the indicated smb
+    process(es).
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PROCESS_FIELD_NUMBER: builtins.int
+    process: global___SMBProcess.ValueType
+    def __init__(
+        self,
+        *,
+        process: global___SMBProcess.ValueType = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["process", b"process"]) -> None: ...
+
+global___GetDebugLevelRequest = GetDebugLevelRequest
+
+class DebugLevelInfo(google.protobuf.message.Message):
+    """DebugLevelInfo indicates the current debug level for the smb process."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PROCESS_FIELD_NUMBER: builtins.int
+    DEBUG_LEVEL_FIELD_NUMBER: builtins.int
+    process: global___SMBProcess.ValueType
+    debug_level: builtins.str
+    def __init__(
+        self,
+        *,
+        process: global___SMBProcess.ValueType = ...,
+        debug_level: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["debug_level", b"debug_level", "process", b"process"]) -> None: ...
+
+global___DebugLevelInfo = DebugLevelInfo

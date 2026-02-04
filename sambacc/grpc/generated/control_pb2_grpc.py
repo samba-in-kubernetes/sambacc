@@ -51,6 +51,16 @@ class SambaControlStub(object):
                 request_serializer=control__pb2.ConfigSharesListRequest.SerializeToString,
                 response_deserializer=control__pb2.ConfigShareItem.FromString,
                 )
+        self.SetDebugLevel = channel.unary_unary(
+                '/SambaControl/SetDebugLevel',
+                request_serializer=control__pb2.SetDebugLevelRequest.SerializeToString,
+                response_deserializer=control__pb2.DebugLevelInfo.FromString,
+                )
+        self.GetDebugLevel = channel.unary_unary(
+                '/SambaControl/GetDebugLevel',
+                request_serializer=control__pb2.GetDebugLevelRequest.SerializeToString,
+                response_deserializer=control__pb2.DebugLevelInfo.FromString,
+                )
 
 
 class SambaControlServicer(object):
@@ -84,6 +94,7 @@ class SambaControlServicer(object):
 
     def ConfigDump(self, request, context):
         """---- config info & dump ----
+
         ConfigDump streams a textual represenation of the configuration
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -101,6 +112,22 @@ class SambaControlServicer(object):
     def ConfigSharesList(self, request, context):
         """ConfigShareList streams a list of shares. This can be used clients
         needing to enumerate shares outside of the smb protocol.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SetDebugLevel(self, request, context):
+        """---- live debug level control ----
+
+        SetDebugLevel attempts to set the debug level for an smb process.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetDebugLevel(self, request, context):
+        """GetDebugLevel attempts to get the debug level for an smb process.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -143,6 +170,16 @@ def add_SambaControlServicer_to_server(servicer, server):
                     servicer.ConfigSharesList,
                     request_deserializer=control__pb2.ConfigSharesListRequest.FromString,
                     response_serializer=control__pb2.ConfigShareItem.SerializeToString,
+            ),
+            'SetDebugLevel': grpc.unary_unary_rpc_method_handler(
+                    servicer.SetDebugLevel,
+                    request_deserializer=control__pb2.SetDebugLevelRequest.FromString,
+                    response_serializer=control__pb2.DebugLevelInfo.SerializeToString,
+            ),
+            'GetDebugLevel': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetDebugLevel,
+                    request_deserializer=control__pb2.GetDebugLevelRequest.FromString,
+                    response_serializer=control__pb2.DebugLevelInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -272,5 +309,39 @@ class SambaControl(object):
         return grpc.experimental.unary_stream(request, target, '/SambaControl/ConfigSharesList',
             control__pb2.ConfigSharesListRequest.SerializeToString,
             control__pb2.ConfigShareItem.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def SetDebugLevel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/SetDebugLevel',
+            control__pb2.SetDebugLevelRequest.SerializeToString,
+            control__pb2.DebugLevelInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetDebugLevel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/GetDebugLevel',
+            control__pb2.GetDebugLevelRequest.SerializeToString,
+            control__pb2.DebugLevelInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
