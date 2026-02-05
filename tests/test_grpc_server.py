@@ -151,6 +151,13 @@ class MockBackend:
         yield backend.ShareEntry(name="bob")
         yield backend.ShareEntry(name="zongo")
 
+    def set_debug_level(self, server, debug_level):
+        self._counter["set_debug_level"] += 1
+
+    def get_debug_level(self, server):
+        self._counter["get_debug_level"] += 1
+        return "ERROR" if server is backend.ServerType.CTDB else "10"
+
 
 @pytest.fixture()
 def mock_grpc_server(tmp_path):
@@ -380,3 +387,75 @@ def test_config_dump_error_not_found(mock_grpc_server):
             )
             # consume stream to trigger error
             list(res)
+
+
+def test_set_debug_level(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    mock_grpc_server.backend._kaboom = FileNotFoundError("ctdb")
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        res = client.SetDebugLevel(
+            _pb.SetDebugLevelRequest(
+                process=_pb.SMB_PROCESS_SMB,
+                debug_level="7",
+            )
+        )
+    assert res.process == _pb.SMB_PROCESS_SMB
+    assert res.debug_level == "7"
+    assert mock_grpc_server.backend._counter["set_debug_level"] == 1
+
+
+def test_set_debug_level_error(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    mock_grpc_server.backend._kaboom = FileNotFoundError("ctdb")
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        with pytest.raises(grpc.RpcError):
+            client.SetDebugLevel(
+                _pb.SetDebugLevelRequest(
+                    process=2222,  # junk value
+                    debug_level="7",
+                )
+            )
+
+
+def test_get_debug_level(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    mock_grpc_server.backend._kaboom = FileNotFoundError("ctdb")
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        res = client.GetDebugLevel(
+            _pb.GetDebugLevelRequest(
+                process=_pb.SMB_PROCESS_SMB,
+            )
+        )
+    assert res.process == _pb.SMB_PROCESS_SMB
+    assert res.debug_level == "10"
+    assert mock_grpc_server.backend._counter["get_debug_level"] == 1
+
+
+def test_get_debug_level_ctdb(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    mock_grpc_server.backend._kaboom = FileNotFoundError("ctdb")
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        res = client.GetDebugLevel(
+            _pb.GetDebugLevelRequest(
+                process=_pb.SMB_PROCESS_CTDB,
+            )
+        )
+    assert res.process == _pb.SMB_PROCESS_CTDB
+    assert res.debug_level == "ERROR"
+    assert mock_grpc_server.backend._counter["get_debug_level"] == 1

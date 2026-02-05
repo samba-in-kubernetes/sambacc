@@ -146,6 +146,28 @@ class ConfigFor(str, enum.Enum):
     SAMBACC_SHARES = "sambacc-shares"
 
 
+class ServerType(str, enum.Enum):
+    SMB = "smbd"
+    WINBIND = "winbindd"
+    CTDB = "ctdb"
+
+
+def debug_level_command(server: ServerType) -> sambacc.samba_cmds.CommandArgs:
+    if server is ServerType.CTDB:
+        return sambacc.samba_cmds.ctdb
+    return sambacc.samba_cmds.smbcontrol
+
+
+def _parse_debuglevel(command_output: str) -> str:
+    parts = command_output.split()
+    _pfx, _id, *rest = parts
+    if _pfx != "PID" or not _id:
+        raise ValueError(f"unexpected string in output: {command_output!r}")
+    if rest[0].startswith("all:"):
+        return rest[0].split(":", 1)[-1]
+    raise ValueError(f"unexpected string in output: {command_output!r}")
+
+
 @dataclasses.dataclass
 class ShareEntry:
     name: str
@@ -380,3 +402,27 @@ class ControlBackend:
                 if name_str == "global":
                     continue
                 yield ShareEntry(name=name_str)
+
+    def set_debug_level(self, server: ServerType, debug_level: str) -> None:
+        base_cmd = debug_level_command(server)
+        if base_cmd is sambacc.samba_cmds.smbcontrol:
+            cmd = base_cmd[server.value, "debug", debug_level]
+        elif base_cmd is sambacc.samba_cmds.ctdb:
+            cmd = base_cmd["setdebug", debug_level]
+        else:
+            raise ValueError(f"unexpected command: {base_cmd!r}")
+        subprocess.run(list(cmd), check=True)
+
+    def get_debug_level(self, server: ServerType) -> str:
+        _parser = None
+        base_cmd = debug_level_command(server)
+        if base_cmd is sambacc.samba_cmds.smbcontrol:
+            cmd = base_cmd[server.value, "debuglevel"]
+            _parser = _parse_debuglevel
+        elif base_cmd is sambacc.samba_cmds.ctdb:
+            cmd = base_cmd["getdebug"]
+        else:
+            raise ValueError(f"unexpected command: {base_cmd!r}")
+        res = subprocess.run(list(cmd), check=True, capture_output=True)
+        output = res.stdout.decode().strip()
+        return output if not _parser else _parser(output)
