@@ -394,3 +394,54 @@ def test_backend_config_dump_ctdb(tmp_path, monkeypatch):
         res[-1].content
         == "b1599885110ed9fe4a5ca3731a2b793c4cf8ce4581d71cbc79468434c366195d"
     )
+
+
+def test_backend_set_debug_level(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch)
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    server_type = sambacc.grpc.backend.ServerType.SMB
+    backend.set_debug_level(server_type, "8")
+
+
+def test_backend_set_debug_level_ctdb(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch)
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    server_type = sambacc.grpc.backend.ServerType.CTDB
+    backend.set_debug_level(server_type, "INFO")
+
+
+def test_backend_set_debug_level_error(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch, exitcode=2)
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    server_type = sambacc.grpc.backend.ServerType.SMB
+    with pytest.raises(Exception):
+        backend.set_debug_level(server_type, "quack")
+
+
+debuglevel_output1 = """
+PID 1:2: all:10 tdb:10 printdrivers:10 lanman:10 smb:10 rpc_parse:10 rpc_srv:10 rpc_cli:10 passdb:10 sam:10 auth:10 winbind:10 vfs:10 idmap:10 quota:10 acls:10 locking:10 msdfs:10 dmapi:10 registry:10 scavenger:10 dns:10 ldb:10 tevent:10 auth_audit:10 auth_json_audit:10 kerberos:10 drs_repl:10 smb2:10 smb2_credits:10 dsdb_audit:10 dsdb_json_audit:10 dsdb_password_audit:10 dsdb_password_json_audit:10 dsdb_transaction_audit:10 dsdb_transaction_json_audit:10 dsdb_group_audit:10 dsdb_group_json_audit:10 ldapsrv:10
+""".rstrip()  # NOQA
+
+
+def test_backend_get_debug_level(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch, output=debuglevel_output1)
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    server_type = sambacc.grpc.backend.ServerType.SMB
+    res = backend.get_debug_level(server_type)
+    assert res == "10"
+
+
+def test_backend_get_debug_level_ctdb(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch, output="INFO")
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    server_type = sambacc.grpc.backend.ServerType.CTDB
+    res = backend.get_debug_level(server_type)
+    assert res == "INFO"
+
+
+def test_backend_get_debug_level_error(tmp_path, monkeypatch):
+    _fake_command(tmp_path, monkeypatch, exitcode=2)
+    backend = sambacc.grpc.backend.ControlBackend(_instance_config())
+    server_type = sambacc.grpc.backend.ServerType.SMB
+    with pytest.raises(Exception):
+        backend.get_debug_level(server_type)
