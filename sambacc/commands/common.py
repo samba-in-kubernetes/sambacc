@@ -27,7 +27,7 @@ import typing
 
 from sambacc import config
 from sambacc import opener
-from sambacc import rados_opener
+from sambacc import ceph
 from sambacc import samba_cmds
 from sambacc import url_opener
 from sambacc.typelets import Self
@@ -180,7 +180,7 @@ def pre_action(cli: argparse.Namespace) -> None:
 
     # should there be an option to force {en,dis}able rados?
     # Right now we just always try to enable rados when possible.
-    rados_opener.enable_rados(
+    ceph.enable_rados_opener(
         url_opener.URLOpener,
         client_name=cli.ceph_id.get("client_name", ""),
         full_name=cli.ceph_id.get("full_name", False),

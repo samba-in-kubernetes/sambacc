@@ -26,8 +26,8 @@ import typing
 import urllib.request
 import uuid
 
-from . import url_opener
-from .typelets import ExcType, ExcValue, ExcTraceback, Self
+from .. import url_opener
+from ..typelets import ExcType, ExcValue, ExcTraceback, Self
 
 _RADOSModule = typing.Any
 _RADOSObject = typing.Any

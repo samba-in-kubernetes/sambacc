@@ -23,7 +23,7 @@ import urllib.request
 
 import pytest
 
-import sambacc.rados_opener
+import sambacc.ceph.rados
 
 # CAUTION: nearly all of these tests are based on mocking the ceph rados API.
 # Testing this for real would require an operational ceph cluster and that's
@@ -35,13 +35,13 @@ def test_enable_rados_url_opener(monkeypatch):
     monkeypatch.setitem(sys.modules, "rados", mock)
 
     cls_mock = unittest.mock.MagicMock()
-    sambacc.rados_opener.enable_rados(cls_mock)
+    sambacc.ceph.rados.enable_rados(cls_mock)
     assert cls_mock._handlers.append.called
 
 
 def test_enable_rados_url_opener_fail(monkeypatch):
     cls_mock = unittest.mock.MagicMock()
-    sambacc.rados_opener.enable_rados(cls_mock)
+    sambacc.ceph.rados.enable_rados(cls_mock)
     assert not cls_mock._handlers.append.called
 
 
@@ -51,10 +51,10 @@ def test_enable_rados_url_opener_with_args(monkeypatch):
 
     cls_mock = unittest.mock.MagicMock()
     cls_mock._handlers = []
-    sambacc.rados_opener.enable_rados(cls_mock, client_name="user1")
+    sambacc.ceph.rados.enable_rados(cls_mock, client_name="user1")
     assert len(cls_mock._handlers) == 1
     assert isinstance(
-        cls_mock._handlers[0]._interface, sambacc.rados_opener._RADOSInterface
+        cls_mock._handlers[0]._interface, sambacc.ceph.rados._RADOSInterface
     )
     assert cls_mock._handlers[0]._interface.api is mock
     assert cls_mock._handlers[0]._interface.client_name == "user1"
@@ -74,12 +74,12 @@ def test_enable_rados_url_opener_with_args2(monkeypatch):
 
     cls_mock = unittest.mock.MagicMock()
     cls_mock._handlers = []
-    sambacc.rados_opener.enable_rados(
+    sambacc.ceph.rados.enable_rados(
         cls_mock, client_name="client.user1", full_name=True
     )
     assert len(cls_mock._handlers) == 1
     assert isinstance(
-        cls_mock._handlers[0]._interface, sambacc.rados_opener._RADOSInterface
+        cls_mock._handlers[0]._interface, sambacc.ceph.rados._RADOSInterface
     )
     assert cls_mock._handlers[0]._interface.api is mock
     assert cls_mock._handlers[0]._interface.client_name == "client.user1"
@@ -94,7 +94,7 @@ def test_enable_rados_url_opener_with_args2(monkeypatch):
 
 
 def test_rados_handler_parse():
-    class RH(sambacc.rados_opener._RADOSHandler):
+    class RH(sambacc.ceph.rados._RADOSHandler):
         _rados_api = unittest.mock.MagicMock()
 
     rh = RH()
@@ -114,12 +114,12 @@ def test_rados_handler_parse():
 def test_rados_handler_norados():
     # Generally, this shouldn't happen because the rados handler shouldn't
     # be added to the URLOpener if rados module was unavailable.
-    class RH(sambacc.rados_opener._RADOSHandler):
+    class RH(sambacc.ceph.rados._RADOSHandler):
         _interface = None
 
     rh = RH()
     rq = urllib.request.Request("rados://foo/bar/baz")
-    with pytest.raises(sambacc.rados_opener.RADOSUnsupported):
+    with pytest.raises(sambacc.ceph.rados.RADOSUnsupported):
         rh.rados_open(rq)
 
 
@@ -133,7 +133,7 @@ def test_rados_response_read_all():
     mock = unittest.mock.MagicMock()
     mock.Rados.return_value.open_ioctx.return_value.read.side_effect = _read
 
-    rr = sambacc.rados_opener.RADOSObjectRef(mock, "foo", "bar", "baz")
+    rr = sambacc.ceph.rados.RADOSObjectRef(mock, "foo", "bar", "baz")
     assert rr.readable()
     assert not rr.seekable()
     assert not rr.writable()
@@ -160,7 +160,7 @@ def test_rados_response_read_chunks():
     mock = unittest.mock.MagicMock()
     mock.Rados.return_value.open_ioctx.return_value.read.side_effect = _read
 
-    rr = sambacc.rados_opener.RADOSObjectRef(mock, "foo", "bar", "baz")
+    rr = sambacc.ceph.rados.RADOSObjectRef(mock, "foo", "bar", "baz")
     assert rr.readable()
     assert rr.read(8) == b"a bad ca"
     assert rr.read(8) == b"t lives "
@@ -178,7 +178,7 @@ def test_rados_response_read_ctx_iter():
     mock = unittest.mock.MagicMock()
     mock.Rados.return_value.open_ioctx.return_value.read.side_effect = _read
 
-    rr = sambacc.rados_opener.RADOSObjectRef(mock, "foo", "bar", "baz")
+    rr = sambacc.ceph.rados.RADOSObjectRef(mock, "foo", "bar", "baz")
     with rr:
         result = [value for value in rr]
     assert result == [sval]
@@ -189,7 +189,7 @@ def test_rados_response_read_ctx_iter():
 def test_rados_response_not_implemented():
     mock = unittest.mock.MagicMock()
 
-    rr = sambacc.rados_opener.RADOSObjectRef(mock, "foo", "bar", "baz")
+    rr = sambacc.ceph.rados.RADOSObjectRef(mock, "foo", "bar", "baz")
     with pytest.raises(NotImplementedError):
         rr.seek(10)
     with pytest.raises(NotImplementedError):
@@ -207,7 +207,7 @@ def test_rados_response_not_implemented():
 
 
 def test_rados_handler_config_key():
-    class RH(sambacc.rados_opener._RADOSHandler):
+    class RH(sambacc.ceph.rados._RADOSHandler):
         _interface = unittest.mock.MagicMock()
 
     mc = RH._interface.Rados.return_value.__enter__.return_value.mon_command

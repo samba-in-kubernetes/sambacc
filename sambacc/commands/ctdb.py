@@ -26,8 +26,8 @@ import typing
 
 from sambacc import ctdb
 from sambacc import jfile
-from sambacc import rados_opener
 from sambacc import samba_cmds
+from sambacc.ceph import rados
 from sambacc.simple_waiter import Sleeper, Waiter
 
 from .cli import best_leader_locator, best_waiter, commands, Context, Fail
@@ -224,9 +224,9 @@ class NodeParams:
         # don't do file modes the way we need for JSON state file or do
         # writable file types in the url_opener (urllib wrapper). For now, just
         # manually handle the string.
-        if rados_opener.is_rados_uri(uri):
+        if rados.is_rados_uri(uri):
             self._cluster_meta_obj = (
-                rados_opener.ClusterMetaRADOSObject.create_from_uri(uri)
+                rados.ClusterMetaRADOSObject.create_from_uri(uri)
             )
             self._waiter_obj = Sleeper()
             return
@@ -449,9 +449,9 @@ def ctdb_rados_mutex(ctx: Context) -> None:
     N.B. Another reason for this command is that ctdb requires the
     `cluster lock` value to be the same on all nodes.
     """
-    if not rados_opener.is_rados_uri(ctx.cli.mutex_uri):
+    if not rados.is_rados_uri(ctx.cli.mutex_uri):
         raise ValueError(f"{ctx.cli.mutex_uri} is not a valid RADOS URI value")
-    rinfo = rados_opener.parse_rados_uri(ctx.cli.mutex_uri)
+    rinfo = rados.parse_rados_uri(ctx.cli.mutex_uri)
     if rinfo["subtype"] != "object":
         raise ValueError(
             f"{ctx.cli.mutex_uri} is not a RADOS object URI value"
