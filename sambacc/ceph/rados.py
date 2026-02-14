@@ -458,3 +458,40 @@ def _rados_lib() -> _RADOSModule:
         return _module["rados"]
     except KeyError:
         raise ValueError("rados library not available")
+
+
+class RADOSConnection:
+    """A generic rados connection object."""
+
+    _conn: _RADOSObject
+
+    def __init__(self, rados_conn: _RADOSObject) -> None:
+        self._conn = rados_conn
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        module: typing.Any = None,
+        conffile: typing.Optional[str] = None,
+        name: typing.Optional[str] = None,
+        rados_id: typing.Optional[str] = None,
+        key: typing.Optional[str] = None,
+        connect: bool = True,
+    ) -> Self:
+        _rados = module if module else _rados_lib()
+        kwargs = {"conffile": _rados.Rados.DEFAULT_CONF_FILES}
+        if conffile is not None:
+            kwargs["conffile"] = conffile
+        if name is not None:
+            kwargs["name"] = name
+        if rados_id is not None:
+            kwargs["rados_id"] = rados_id
+        _logger.debug("Creating RADOS connection")
+        rconn = _rados.Rados(**kwargs)
+        if key is not None:
+            rconn.conf_set("key", key)
+        if connect:
+            _logger.debug("Connecting to RADOS")
+            rconn.connect()
+        return cls(rconn)
