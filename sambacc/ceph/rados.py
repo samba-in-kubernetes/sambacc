@@ -394,7 +394,7 @@ def parse_rados_uri(
     }
 
 
-def enable_rados(
+def enable_rados_opener(
     cls: typing.Type[url_opener.URLOpener],
     *,
     client_name: str = "",
@@ -411,10 +411,7 @@ def enable_rados(
     >>> res = uo.open("rados://my_pool/namepace/obj_key")
     >>> res.read()
     """
-    try:
-        import rados  # type: ignore[import]
-    except ImportError:
-        _logger.debug("Failed to import ceph 'rados' module")
+    if not enable_rados_lib(ignore_error=True):
         return
 
     _logger.debug(
@@ -422,9 +419,42 @@ def enable_rados(
         f" client_name={client_name!r}, full_name={full_name}"
     )
     rados_interface = _RADOSInterface()
-    rados_interface.api = rados
+    rados_interface.api = _rados_lib()
     rados_interface.client_name = client_name
     rados_interface.full_name = full_name
 
     _RADOSHandler._interface = rados_interface
     cls._handlers.append(_RADOSHandler)
+
+
+_module = {}
+
+
+def enable_rados_lib(*, ignore_error: bool = False) -> bool:
+    """Enable Ceph RADOS libraries for sambacc.
+    If rados is successfully imported True is returned. If ignore_error is true
+    and rados fails to import return False, otherwise when the import fails an
+    an exception will be raised.
+    """
+    if "rados" in _module:
+        return True
+
+    try:
+        import rados  # type: ignore[import]
+    except ImportError:
+        _logger.debug("Failed to import ceph 'rados' module")
+        if ignore_error:
+            return False
+        raise
+
+    # cache imported module
+    _module["rados"] = rados
+    return True
+
+
+def _rados_lib() -> _RADOSModule:
+    """Return the cached rados module."""
+    try:
+        return _module["rados"]
+    except KeyError:
+        raise ValueError("rados library not available")

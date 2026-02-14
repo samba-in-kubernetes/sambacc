@@ -17,7 +17,6 @@
 #
 
 import io
-import sys
 import unittest.mock
 import urllib.request
 
@@ -32,26 +31,26 @@ import sambacc.ceph.rados
 
 def test_enable_rados_url_opener(monkeypatch):
     mock = unittest.mock.MagicMock()
-    monkeypatch.setitem(sys.modules, "rados", mock)
+    monkeypatch.setitem(sambacc.ceph.rados._module, "rados", mock)
 
     cls_mock = unittest.mock.MagicMock()
-    sambacc.ceph.rados.enable_rados(cls_mock)
+    sambacc.ceph.rados.enable_rados_opener(cls_mock)
     assert cls_mock._handlers.append.called
 
 
 def test_enable_rados_url_opener_fail(monkeypatch):
     cls_mock = unittest.mock.MagicMock()
-    sambacc.ceph.rados.enable_rados(cls_mock)
+    sambacc.ceph.rados.enable_rados_opener(cls_mock)
     assert not cls_mock._handlers.append.called
 
 
 def test_enable_rados_url_opener_with_args(monkeypatch):
     mock = unittest.mock.MagicMock()
-    monkeypatch.setitem(sys.modules, "rados", mock)
+    monkeypatch.setitem(sambacc.ceph.rados._module, "rados", mock)
 
     cls_mock = unittest.mock.MagicMock()
     cls_mock._handlers = []
-    sambacc.ceph.rados.enable_rados(cls_mock, client_name="user1")
+    sambacc.ceph.rados.enable_rados_opener(cls_mock, client_name="user1")
     assert len(cls_mock._handlers) == 1
     assert isinstance(
         cls_mock._handlers[0]._interface, sambacc.ceph.rados._RADOSInterface
@@ -70,11 +69,11 @@ def test_enable_rados_url_opener_with_args(monkeypatch):
 
 def test_enable_rados_url_opener_with_args2(monkeypatch):
     mock = unittest.mock.MagicMock()
-    monkeypatch.setitem(sys.modules, "rados", mock)
+    monkeypatch.setitem(sambacc.ceph.rados._module, "rados", mock)
 
     cls_mock = unittest.mock.MagicMock()
     cls_mock._handlers = []
-    sambacc.ceph.rados.enable_rados(
+    sambacc.ceph.rados.enable_rados_opener(
         cls_mock, client_name="client.user1", full_name=True
     )
     assert len(cls_mock._handlers) == 1
