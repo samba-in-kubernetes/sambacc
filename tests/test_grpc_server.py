@@ -94,6 +94,20 @@ json1 = """
 """
 
 
+def server_config(socket_path=""):
+    import sambacc.grpc.config
+
+    class TestConfig(sambacc.grpc.config.ServerConfig):
+        def wait(self, server):
+            self._server = server
+
+    tc = TestConfig.default()
+    tc.max_workers = 3
+    tc.first_connection().address = f"unix:{socket_path}"
+    tc.first_connection().insecure = True
+    return tc
+
+
 class MockBackend:
     def __init__(self):
         self._counter = collections.Counter()
@@ -166,20 +180,9 @@ def mock_grpc_server(tmp_path):
     except ImportError:
         pytest.skip("can not import grpc server")
 
-    socket_path = tmp_path / "grpc.sock"
-
-    class TestConfig(sambacc.grpc.server.ServerConfig):
-        max_workers = 3
-        address = f"unix:{socket_path}"
-        insecure = True
-        _server = None
-        backend = None
-
-        def wait(self, server):
-            self._server = server
-
-    tc = TestConfig()
+    tc = server_config(socket_path=tmp_path / "grpc.sock")
     tc.backend = MockBackend()
+    tc.address = tc.first_connection().address
     sambacc.grpc.server.serve(tc, tc.backend)
     assert tc._server
     assert tc.backend
