@@ -25,6 +25,9 @@ import typing
 from ..cli import Context, Fail, commands
 from ..common import CommandContext
 
+import sambacc.grpc.config
+
+
 _logger = logging.getLogger(__name__)
 _MTLS = "mtls"
 _FORCE = "force"
@@ -97,29 +100,34 @@ def serve(ctx: Context) -> None:
             continue
 
 
-def _serve(ctx: Context) -> None:
-    import sambacc.grpc.backend
-    import sambacc.grpc.server
-
-    config = sambacc.grpc.server.ServerConfig()
-    config.insecure = bool(ctx.cli.insecure)
+def _configure(ctx: Context) -> sambacc.grpc.config.ServerConfig:
+    config = sambacc.grpc.config.ServerConfig.default()
+    conn_config = config.first_connection()
+    conn_config.insecure = bool(ctx.cli.insecure)
     if ctx.cli.address:
-        config.address = ctx.cli.address
+        conn_config.address = ctx.cli.address
     if not (ctx.cli.insecure or ctx.cli.tls_key):
         raise Fail("Specify --tls-key=... or --insecure")
     if not (ctx.cli.insecure or ctx.cli.tls_cert):
         raise Fail("Specify --tls-cert=... or --insecure")
     if ctx.cli.tls_key:
-        config.server_key = _read(ctx, ctx.cli.tls_key)
+        conn_config.server_key = _read(ctx, ctx.cli.tls_key)
     if ctx.cli.tls_cert:
-        config.server_cert = _read(ctx, ctx.cli.tls_cert)
+        conn_config.server_cert = _read(ctx, ctx.cli.tls_cert)
     if ctx.cli.tls_ca_cert:
-        config.ca_cert = _read(ctx, ctx.cli.tls_ca_cert)
+        conn_config.ca_cert = _read(ctx, ctx.cli.tls_ca_cert)
     config.read_only = not (
         ctx.cli.allow_modify == _FORCE
-        or (not config.insecure and config.ca_cert)
+        or (not conn_config.insecure and conn_config.ca_cert)
     )
+    return config
 
+
+def _serve(ctx: Context) -> None:
+    import sambacc.grpc.backend
+    import sambacc.grpc.server
+
+    config = _configure(ctx)
     _reader = ctx if isinstance(ctx, CommandContext) else None
     backend = sambacc.grpc.backend.ControlBackend(
         ctx.instance_config, config_reader=_reader
