@@ -83,16 +83,9 @@ class _RADOSHandler(urllib.request.BaseHandler):
         """
         if self._interface is None:
             raise RADOSUnsupported()
-        rinfo = parse_rados_uri(urllib.request.Request(uri))
-        if rinfo.get("type") != "rados":
-            raise ValueError("only rados URI values supported")
-        if rinfo.get("subtype") == "mon-config-key":
-            raise ValueError("only rados object URI values supported")
-        return RADOSObjectRef(
-            self._interface,
-            rinfo["pool"],
-            rinfo["ns"],
-            rinfo["key"],
+        return RADOSObjectRef._from_uri(
+            uri,
+            interface=self._interface,
             must_exist=must_exist,
         )
 
@@ -103,7 +96,7 @@ class _RADOSHandler(urllib.request.BaseHandler):
 class RADOSObjectRef(typing.IO):
     def __init__(
         self,
-        interface: _RADOSInterface,
+        interface: typing.Union[_RADOSInterface, RADOSConnection],
         pool: str,
         ns: str,
         key: str,
@@ -116,7 +109,11 @@ class RADOSObjectRef(typing.IO):
         self._lock_description = "sambacc RADOS library"
         self._lock_duration = None
 
-        self._open(interface)
+        if isinstance(interface, RADOSConnection):
+            self._connected_to(interface)
+        else:
+            self._open(interface)
+        self._open_ioctx()
         if must_exist:
             self._test()
 
@@ -126,6 +123,13 @@ class RADOSObjectRef(typing.IO):
         self._conn = interface.Rados()
         self._conn.connect()
         self._connected = True
+
+    def _connected_to(self, rconn: RADOSConnection) -> None:
+        self._api = _rados_lib()
+        self._conn = rconn._conn
+        self._connected = True
+
+    def _open_ioctx(self) -> None:
         self._ioctx = self._conn.open_ioctx(self._pool)
         self._ioctx.set_namespace(self._ns)
         self._closed = False
@@ -133,6 +137,31 @@ class RADOSObjectRef(typing.IO):
 
     def _test(self) -> None:
         self._ioctx.stat(self._key)
+
+    @classmethod
+    def _from_uri(
+        cls,
+        uri: str,
+        *,
+        interface: typing.Union[_RADOSInterface, RADOSConnection],
+        must_exist: bool = False,
+    ) -> RADOSObjectRef:
+        """Return a rados object reference for the given rados uri. The uri
+        must refer to a rados object only as the RADOSObjectRef can do various
+        rados-y things, more than an IO requires.
+        """
+        rinfo = parse_rados_uri(urllib.request.Request(uri))
+        if rinfo.get("type") != "rados":
+            raise ValueError("only rados URI values supported")
+        if rinfo.get("subtype") == "mon-config-key":
+            raise ValueError("only rados object URI values supported")
+        return cls(
+            interface=interface,
+            pool=rinfo["pool"],
+            ns=rinfo["ns"],
+            key=rinfo["key"],
+            must_exist=must_exist,
+        )
 
     def read(self, size: typing.Optional[int] = None) -> bytes:
         if self._closed:
@@ -495,3 +524,21 @@ class RADOSConnection:
             _logger.debug("Connecting to RADOS")
             rconn.connect()
         return cls(rconn)
+
+    @classmethod
+    def library(cls) -> typing.Any:
+        """Return the rados module. Useful for accessing execptions."""
+        return _rados_lib()
+
+    def get_object(
+        self, uri: str, *, must_exist: bool = False
+    ) -> RADOSObjectRef:
+        """Return a rados object reference for the given rados uri. The uri
+        must refer to a rados object only as the RADOSObjectRef can do various
+        rados-y things, more than an IO requires.
+        """
+        return RADOSObjectRef._from_uri(
+            uri,
+            interface=self,
+            must_exist=must_exist,
+        )
