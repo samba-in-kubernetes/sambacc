@@ -29,7 +29,7 @@ import sambacc.grpc.backend as rbe
 import sambacc.grpc.generated.control_pb2 as pb
 import sambacc.grpc.generated.control_pb2_grpc as control_rpc
 
-from sambacc.grpc.config import ServerConfig
+from sambacc.grpc.config import ConnectionConfig, ServerConfig
 
 
 _logger = logging.getLogger(__name__)
@@ -307,12 +307,36 @@ class ControlService(control_rpc.SambaControlServicer):
         return info
 
 
-def serve(config: ServerConfig, backend: Backend) -> None:
-    conn_config = config.first_connection()
+def _add_port(server: grpc.Server, config: ConnectionConfig) -> None:
     _logger.info(
-        "Starting gRPC server on %s (%s, %s)",
-        conn_config.address,
-        "insecure" if conn_config.insecure else "tls",
+        "Adding gRPC port on %s (%s)", config.address, config.describe()
+    )
+    if config.insecure:
+        server.add_insecure_port(config.address)
+        return
+
+    if not config.server_key:
+        raise ValueError("missing server TLS key")
+    if not config.server_cert:
+        raise ValueError("missing server TLS cert")
+    if config.ca_cert:
+        creds = grpc.ssl_server_credentials(
+            [(config.server_key, config.server_cert)],
+            root_certificates=config.ca_cert,
+            require_client_auth=True,
+        )
+    else:
+        creds = grpc.ssl_server_credentials(
+            [(config.server_key, config.server_cert)],
+        )
+    server.add_secure_port(config.address, creds)
+
+
+def serve(config: ServerConfig, backend: Backend) -> None:
+    if not config.connections:
+        raise ValueError("no connections in server config")
+    _logger.info(
+        "Starting gRPC server (%s mode)",
         "read-only" if config.read_only else "read-modify",
     )
     service = ControlService(backend, read_only=config.read_only)
@@ -321,24 +345,8 @@ def serve(config: ServerConfig, backend: Backend) -> None:
     )
     server = grpc.server(executor)
     control_rpc.add_SambaControlServicer_to_server(service, server)
-    if conn_config.insecure:
-        server.add_insecure_port(conn_config.address)
-    else:
-        if not conn_config.server_key:
-            raise ValueError("missing server TLS key")
-        if not conn_config.server_cert:
-            raise ValueError("missing server TLS cert")
-        if conn_config.ca_cert:
-            creds = grpc.ssl_server_credentials(
-                [(conn_config.server_key, conn_config.server_cert)],
-                root_certificates=conn_config.ca_cert,
-                require_client_auth=True,
-            )
-        else:
-            creds = grpc.ssl_server_credentials(
-                [(conn_config.server_key, conn_config.server_cert)],
-            )
-        server.add_secure_port(conn_config.address, creds)
+    for conn in config.connections:
+        _add_port(server, conn)
     server.start()
     # hack for testing
     wait_fn = getattr(config, "wait", None)
