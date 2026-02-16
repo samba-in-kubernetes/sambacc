@@ -17,6 +17,7 @@
 #
 
 import argparse
+import json
 import logging
 import signal
 import sys
@@ -74,6 +75,45 @@ def _serve_args(parser: argparse.ArgumentParser) -> None:
         "--tls-ca-cert",
         help="CA Certificate",
     )
+    parser.add_argument(
+        "--extra-listener",
+        dest="extra_listeners",
+        type=_listener,
+        action="append",
+        help="Enable an additional listener (port)",
+    )
+
+
+def _listener_conn(
+    ctx: Context, fields: dict[str, typing.Any]
+) -> sambacc.grpc.config.ConnectionConfig:
+
+    for tls_key in ("server_key", "server_cert", "ca_cert"):
+        if tls_key in fields:
+            fields[tls_key] = _read(ctx, fields[tls_key])
+    return sambacc.grpc.config.ConnectionConfig(**fields)
+
+
+def _listener(value: str) -> dict[str, typing.Any]:
+    if not value:
+        raise ValueError("missing listener specification")
+    fields = {}
+    if (value[0], value[-1]) == ("{", "}"):
+        # complex mode: JSON input
+        # for anything but the simplest case we use an existing crummy
+        # mini-language rather than inventing our own crummy mini-language
+        fields = json.loads(value)
+    elif ";" in value:
+        # simple mode: just address and verification mode
+        fields["address"], fields["verification"] = value.split(";", 1)
+    else:
+        # simple mode: just address
+        fields["address"] = value
+    if "verification" in fields:
+        fields["verification"] = sambacc.grpc.config.ClientVerification(
+            fields["verification"]
+        )
+    return fields
 
 
 class Restart(Exception):
@@ -120,6 +160,8 @@ def _configure(ctx: Context) -> sambacc.grpc.config.ServerConfig:
         ctx.cli.allow_modify == _FORCE
         or (not conn_config.insecure and conn_config.ca_cert)
     )
+    for extra in ctx.cli.extra_listeners or []:
+        config.connections.append(_listener_conn(ctx, extra))
     return config
 
 
