@@ -27,6 +27,7 @@ from ..typelets import Self
 class ClientVerification(str, enum.Enum):
     INSECURE = "insecure"
     TLS = "tls"
+    TOKEN = "magic-token"
 
 
 class Level(enum.Enum):
@@ -67,7 +68,10 @@ class ConnectionConfig:
     # compat properties
     @property
     def insecure(self) -> bool:
-        return self.verification is ClientVerification.INSECURE
+        return self.verification in {
+            ClientVerification.INSECURE,
+            ClientVerification.TOKEN,
+        }
 
     @insecure.setter
     def insecure(self, value: bool) -> None:
@@ -92,3 +96,16 @@ class ServerConfig:
 
     def first_connection(self) -> ConnectionConfig:
         return self.connections[0]
+
+
+@dataclasses.dataclass
+class MagicTokenConfig:
+    env_var: str
+    header_key: str = "magic-token"
+
+    def can_verify(self, cv: ClientVerification) -> bool:
+        if not self.env_var:
+            raise ValueError("env_var invalid")
+        if not self.header_key:
+            raise ValueError("header_key invalid")
+        return cv is ClientVerification.TOKEN
