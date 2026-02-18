@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from typing import Optional
+from typing import Optional, Protocol
 
 import dataclasses
 import enum
@@ -29,6 +29,16 @@ class ClientVerification(str, enum.Enum):
     TLS = "tls"
 
 
+class Level(enum.Enum):
+    READ = 1
+    MODIFY = 2
+    DEBUG_READ = 3
+
+
+class ClientCheckerConfig(Protocol):
+    def can_verify(self, cv: ClientVerification) -> bool: ...
+
+
 @dataclasses.dataclass
 class ConnectionConfig:
     address: str = "localhost:54445"
@@ -36,6 +46,7 @@ class ConnectionConfig:
     server_key: Optional[bytes] = None
     server_cert: Optional[bytes] = None
     ca_cert: Optional[bytes] = None
+    checker_conf: Optional[ClientCheckerConfig] = None
 
     def describe(self) -> str:
         _kind = "tcp socket"
