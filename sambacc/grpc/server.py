@@ -37,7 +37,12 @@ import sambacc.grpc.backend as rbe
 import sambacc.grpc.generated.control_pb2 as pb
 import sambacc.grpc.generated.control_pb2_grpc as control_rpc
 
-from sambacc.grpc.config import ConnectionConfig, Level, ServerConfig
+from sambacc.grpc.config import (
+    ConnectionConfig,
+    Level,
+    MagicTokenConfig,
+    ServerConfig,
+)
 
 
 _logger = logging.getLogger(__name__)
@@ -221,6 +226,51 @@ class LevelClientChecker:
             ok,
         )
         return ok
+
+
+class TLSClientChecker:
+    def allowed_client(
+        self, level: Level, context: grpc.ServicerContext
+    ) -> bool:
+        actx = context.auth_context()
+        tstype = actx.get("transport_security_type")
+        if tstype and b"ssl" in tstype:
+            _logger.debug("Client is using (m)TLS")
+            return True
+        return False
+
+
+class MagicTokenClientChecker:
+    """Static ENV based token checker. *Do not use in production.*
+    For development and examples only.
+    """
+
+    def __init__(self, config: MagicTokenConfig) -> None:
+        import os
+
+        self._env_var = config.env_var
+        self._key = config.header_key
+
+        self.value = os.environ.get(self._env_var)
+        if not self.value:
+            _logger.warning(
+                "MagicTokenClientChecker enabled but %s not set",
+                self._env_var,
+            )
+            return
+        _logger.info("MAGIC: %s", self.value)
+
+    def allowed_client(
+        self, level: Level, context: grpc.ServicerContext
+    ) -> bool:
+        if not self.value:
+            return False
+        peer = context.peer()
+        imeta = context.invocation_metadata()
+        if (self._key, self.value) in imeta and peer.startswith("unix:"):
+            _logger.debug("Client has magic token")
+            return True
+        return False
 
 
 class ControlService(control_rpc.SambaControlServicer):
