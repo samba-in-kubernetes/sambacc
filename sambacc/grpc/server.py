@@ -430,6 +430,17 @@ def _add_port(server: grpc.Server, config: ConnectionConfig) -> None:
     server.add_secure_port(config.address, creds)
 
 
+def _checkers(config: ServerConfig) -> Iterator[ClientChecker]:
+    if (
+        not config.read_only
+        and len(config.connections)
+        and config.first_connection().address.startswith("unix:")
+    ):
+        yield LevelClientChecker(enable_all=True)
+        return
+    yield LevelClientChecker(Level.READ)
+
+
 def serve(config: ServerConfig, backend: Backend) -> None:
     if not config.connections:
         raise ValueError("no connections in server config")
@@ -437,7 +448,11 @@ def serve(config: ServerConfig, backend: Backend) -> None:
         "Starting gRPC server (%s mode)",
         "read-only" if config.read_only else "read-modify",
     )
-    service = ControlService(backend, read_only=config.read_only)
+    service = ControlService(
+        backend,
+        read_only=config.read_only,
+        client_checkers=list(_checkers(config)),
+    )
     executor = concurrent.futures.ThreadPoolExecutor(
         max_workers=config.max_workers
     )
