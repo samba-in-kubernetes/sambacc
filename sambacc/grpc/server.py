@@ -16,7 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from typing import Any, Callable, Iterator, Protocol, Optional, cast
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Iterator,
+    Optional,
+    Protocol,
+    cast,
+)
 
 import concurrent.futures
 import contextlib
@@ -29,7 +37,7 @@ import sambacc.grpc.backend as rbe
 import sambacc.grpc.generated.control_pb2 as pb
 import sambacc.grpc.generated.control_pb2_grpc as control_rpc
 
-from sambacc.grpc.config import ConnectionConfig, ServerConfig
+from sambacc.grpc.config import ConnectionConfig, Level, ServerConfig
 
 
 _logger = logging.getLogger(__name__)
@@ -65,13 +73,14 @@ class Backend(Protocol):
     def get_debug_level(self, server: rbe.ServerType) -> str: ...
 
 
+class ClientChecker(Protocol):
+    def allowed_client(
+        self, level: Level, context: grpc.ServicerContext
+    ) -> bool: ...
+
+
 @contextlib.contextmanager
-def _in_rpc(context: grpc.ServicerContext, allowed: bool) -> Iterator[None]:
-    if not allowed:
-        _logger.error("Blocking operation")
-        context.abort(
-            grpc.StatusCode.PERMISSION_DENIED, "Operation not permitted"
-        )
+def _catch_rpc(context: grpc.ServicerContext) -> Iterator[None]:
     try:
         yield
     except NotImplementedError as err:
@@ -83,6 +92,24 @@ def _in_rpc(context: grpc.ServicerContext, allowed: bool) -> Iterator[None]:
     except Exception:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.UNKNOWN, "Unexpected server error")
+
+
+@contextlib.contextmanager
+def _checked_rpc(
+    context: grpc.ServicerContext,
+    *,
+    name: str,
+    required_level: Level,
+    checker: ClientChecker,
+) -> Iterator[None]:
+    _logger.debug("RPC Called: %s", name)
+
+    if not checker.allowed_client(required_level, context):
+        _logger.error("Blocking client %s for %s rpc", context.peer(), name)
+        context.abort(grpc.StatusCode.UNAUTHENTICATED, "Client not permitted")
+
+    with _catch_rpc(context):
+        yield
 
 
 def _get_info(backend: Backend) -> pb.GeneralInfo:
@@ -177,39 +204,86 @@ def _server_type(process: pb.SMBProcess) -> rbe.ServerType:
         raise ValueError(f"invalid smb process type: {process!r}")
 
 
-class ControlService(control_rpc.SambaControlServicer):
-    def __init__(self, backend: Backend, *, read_only: bool = False):
-        self._backend = backend
-        self._read_only = read_only
-        self._ok_to_read = True
-        self._ok_to_modify = not read_only
+class LevelClientChecker:
+    def __init__(self, *levels: Level, enable_all: bool = False) -> None:
+        self._levels = set(Level) if enable_all else set(levels)
+        assert self._levels, "no levels set for LevelClientChecker"
 
-    @property
-    def _ok_to_diag(self) -> bool:
-        # Acts as lias for _ok_to_read.
-        return self._ok_to_read
+    def allowed_client(
+        self, level: Level, context: grpc.ServicerContext
+    ) -> bool:
+        ok = level in self._levels
+        _logger.debug(
+            "default client checker (for %s): %r in %s: %s",
+            context.peer(),
+            level,
+            self._levels,
+            ok,
+        )
+        return ok
+
+
+class ControlService(control_rpc.SambaControlServicer):
+    def __init__(
+        self,
+        backend: Backend,
+        *,
+        read_only: bool = False,
+        client_checkers: Optional[Collection[ClientChecker]] = None,
+    ):
+        self._backend = backend
+        self._allowed_levels = {Level.READ, Level.DEBUG_READ}
+        if not read_only:
+            self._allowed_levels.add(Level.MODIFY)
+        if client_checkers:
+            self._client_checkers = list(client_checkers)
+        else:
+            self._client_checkers = [
+                LevelClientChecker(enable_all=True),
+            ]
+
+    def allowed_client(
+        self, required_level: Level, context: grpc.ServicerContext
+    ) -> bool:
+        if required_level not in self._allowed_levels:
+            _logger.error(
+                "Rejecting operation for %s: %s level not allowed",
+                context.peer(),
+                required_level,
+            )
+            return False
+        return any(
+            c.allowed_client(required_level, context)
+            for c in self._client_checkers
+        )
 
     def Info(
         self, request: pb.InfoRequest, context: grpc.ServicerContext
     ) -> pb.GeneralInfo:
-        _logger.debug("RPC Called: Info")
-        with _in_rpc(context, self._ok_to_read):
+        with _checked_rpc(
+            context, name="Info", required_level=Level.READ, checker=self
+        ):
             info = _get_info(self._backend)
         return info
 
     def Status(
         self, request: pb.StatusRequest, context: grpc.ServicerContext
     ) -> pb.StatusInfo:
-        _logger.debug("RPC Called: Status")
-        with _in_rpc(context, self._ok_to_read):
+        with _checked_rpc(
+            context, name="Status", required_level=Level.READ, checker=self
+        ):
             info = _convert_status(self._backend.get_status())
         return info
 
     def CloseShare(
         self, request: pb.CloseShareRequest, context: grpc.ServicerContext
     ) -> pb.CloseShareInfo:
-        _logger.debug("RPC Called: CloseShare")
-        with _in_rpc(context, self._ok_to_modify):
+        with _checked_rpc(
+            context,
+            name="CloseShare",
+            required_level=Level.MODIFY,
+            checker=self,
+        ):
             self._backend.close_share(request.share_name, request.denied_users)
             info = pb.CloseShareInfo()
         return info
@@ -217,8 +291,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def KillClientConnection(
         self, request: pb.KillClientRequest, context: grpc.ServicerContext
     ) -> pb.KillClientInfo:
-        _logger.debug("RPC Called: KillClientConnection")
-        with _in_rpc(context, self._ok_to_modify):
+        with _checked_rpc(
+            context,
+            name="KillClientConnection",
+            required_level=Level.MODIFY,
+            checker=self,
+        ):
             self._backend.kill_client(request.ip_address)
             info = pb.KillClientInfo()
         return info
@@ -226,8 +304,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def ConfigDump(
         self, request: pb.ConfigDumpRequest, context: grpc.ServicerContext
     ) -> Iterator[pb.ConfigDumpItem]:
-        _logger.debug("RPC Called: ConfigDump")
-        with _in_rpc(context, self._ok_to_diag):
+        with _checked_rpc(
+            context,
+            name="ConfigDump",
+            required_level=Level.DEBUG_READ,
+            checker=self,
+        ):
             src = _config_source(cast(pb.ConfigFor, request.source))
             hash_alg = _pick_hash(cast(pb.HashAlg, request.hash), None)
             for dump_item in self._backend.config_dump(src, hash_alg):
@@ -250,8 +332,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def ConfigSummary(
         self, request: pb.ConfigSummaryRequest, context: grpc.ServicerContext
     ) -> pb.ConfigSummaryInfo:
-        _logger.debug("RPC Called: ConfigSummary")
-        with _in_rpc(context, self._ok_to_diag):
+        with _checked_rpc(
+            context,
+            name="ConfigSummary",
+            required_level=Level.DEBUG_READ,
+            checker=self,
+        ):
             src = _config_source(cast(pb.ConfigFor, request.source))
             hash_alg = _pick_hash(
                 cast(pb.HashAlg, request.hash), hashlib.sha256
@@ -272,8 +358,12 @@ class ControlService(control_rpc.SambaControlServicer):
         request: pb.ConfigSharesListRequest,
         context: grpc.ServicerContext,
     ) -> Iterator[pb.ConfigShareItem]:
-        _logger.debug("RPC Called: ConfigSharesList")
-        with _in_rpc(context, self._ok_to_diag):
+        with _checked_rpc(
+            context,
+            name="ConfigSharesList",
+            required_level=Level.DEBUG_READ,
+            checker=self,
+        ):
             src = _config_source(cast(pb.ConfigFor, request.source))
             for share in self._backend.config_share_list(src):
                 yield pb.ConfigShareItem(name=share.name)
@@ -281,8 +371,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def SetDebugLevel(
         self, request: pb.SetDebugLevelRequest, context: grpc.ServicerContext
     ) -> pb.DebugLevelInfo:
-        _logger.debug("RPC Called: SetDebugLevel")
-        with _in_rpc(context, self._ok_to_modify):
+        with _checked_rpc(
+            context,
+            name="SetDebugLevel",
+            required_level=Level.MODIFY,
+            checker=self,
+        ):
             server = _server_type(cast(pb.SMBProcess, request.process))
             debug_level = request.debug_level
             self._backend.set_debug_level(server, debug_level)
@@ -296,8 +390,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def GetDebugLevel(
         self, request: pb.GetDebugLevelRequest, context: grpc.ServicerContext
     ) -> pb.DebugLevelInfo:
-        _logger.debug("RPC Called: GetDebugLevel")
-        with _in_rpc(context, self._ok_to_read):
+        with _checked_rpc(
+            context,
+            name="GetDebugLevel",
+            required_level=Level.READ,
+            checker=self,
+        ):
             server = _server_type(cast(pb.SMBProcess, request.process))
             debug_level = self._backend.get_debug_level(server)
             info = pb.DebugLevelInfo(
