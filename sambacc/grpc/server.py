@@ -38,6 +38,7 @@ import sambacc.grpc.generated.control_pb2 as pb
 import sambacc.grpc.generated.control_pb2_grpc as control_rpc
 
 from sambacc.grpc.config import (
+    ClientVerification,
     ConnectionConfig,
     Level,
     MagicTokenConfig,
@@ -481,13 +482,39 @@ def _add_port(server: grpc.Server, config: ConnectionConfig) -> None:
 
 
 def _checkers(config: ServerConfig) -> Iterator[ClientChecker]:
-    if (
-        not config.read_only
-        and len(config.connections)
-        and config.first_connection().address.startswith("unix:")
-    ):
-        yield LevelClientChecker(enable_all=True)
-        return
+    """Set up checkers, which are executed in series because grpc
+    doesn't really give us a way to bind things to particular channels
+    so we just configure a mix of checkers based on our configs.
+
+    For ConnectionConfig objects that need additional configuration
+    for a checker it must provide a value in the checker_conf field.
+    """
+    ccmap = {
+        ClientVerification.TOKEN: MagicTokenClientChecker,
+        ClientVerification.TLS: TLSClientChecker,
+    }
+    unhandled = set()
+    for cc in config.connections:
+        # special care INSECURE
+        if (
+            cc.verification is ClientVerification.INSECURE
+            and not config.read_only
+        ):
+            yield LevelClientChecker(enable_all=True)
+            continue
+        # enable normal checkers
+        _checker = ccmap.get(cc.verification)
+        if not _checker:
+            unhandled.add(cc.verification)
+            continue
+        _args = []
+        if cc.checker_conf and cc.checker_conf.can_verify(cc.verification):
+            _args = [cc.checker_conf]
+        elif cc.checker_conf:
+            raise ValueError(f"incorrect config for {cc.verification}")
+        yield _checker(*_args)
+    if unhandled:
+        raise ValueError(f"unhandled verification method(s): {unhandled}")
     yield LevelClientChecker(Level.READ)
 
 
