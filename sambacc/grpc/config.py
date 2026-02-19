@@ -48,6 +48,16 @@ class ConnectionConfig:
     ca_cert: Optional[bytes] = None
     checker_conf: Optional[ClientCheckerConfig] = None
 
+    @classmethod
+    def from_dict(cls, config: dict) -> Self:
+        return cls(
+            **{
+                field.name: config[field.name]
+                for field in dataclasses.fields(cls)
+                if field.name in config
+            }
+        )
+
     def describe(self) -> str:
         _kind = "tcp socket"
         if self.address.startswith("unix:"):
