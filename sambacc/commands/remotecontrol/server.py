@@ -95,6 +95,22 @@ def _listener_conn(
         cfg.checker_conf = sambacc.grpc.config.MagicTokenConfig(
             env_var=fields.get("env_var", "MAGIC_TOKEN")
         )
+    elif cfg.verification is sambacc.grpc.config.ClientVerification.RADOS:
+        if "object_uri" not in fields:
+            # fall back on using the rados config object for sambacc
+            # if one is being used
+            for src in ctx.cli.config or []:
+                if src.startswith("rados://"):
+                    _logger.debug(
+                        "Assuming rados object %r for rados checker", src
+                    )
+                    fields["object_uri"] = src
+                    break
+        if "object_uri" not in fields:
+            raise ValueError("Missing required parameter: object_uri")
+        cfg.checker_conf = sambacc.grpc.config.RADOSCheckerConfig.from_dict(
+            fields
+        )
     return cfg
 
 
