@@ -87,11 +87,15 @@ def _serve_args(parser: argparse.ArgumentParser) -> None:
 def _listener_conn(
     ctx: Context, fields: dict[str, typing.Any]
 ) -> sambacc.grpc.config.ConnectionConfig:
-
     for tls_key in ("server_key", "server_cert", "ca_cert"):
         if tls_key in fields:
             fields[tls_key] = _read(ctx, fields[tls_key])
-    return sambacc.grpc.config.ConnectionConfig(**fields)
+    cfg = sambacc.grpc.config.ConnectionConfig.from_dict(fields)
+    if cfg.verification is sambacc.grpc.config.ClientVerification.TOKEN:
+        cfg.checker_conf = sambacc.grpc.config.MagicTokenConfig(
+            env_var=fields.get("env_var", "MAGIC_TOKEN")
+        )
+    return cfg
 
 
 def _listener(value: str) -> dict[str, typing.Any]:
