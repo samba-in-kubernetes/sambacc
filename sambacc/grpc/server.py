@@ -42,6 +42,7 @@ from sambacc.grpc.config import (
     ConnectionConfig,
     Level,
     MagicTokenConfig,
+    RADOSCheckerConfig,
     ServerConfig,
 )
 
@@ -274,6 +275,12 @@ class MagicTokenClientChecker:
         return False
 
 
+def _rados_checker(config: RADOSCheckerConfig) -> ClientChecker:
+    import sambacc.grpc.rados_checker
+
+    return sambacc.grpc.rados_checker.RADOSClientChecker(config)
+
+
 class ControlService(control_rpc.SambaControlServicer):
     def __init__(
         self,
@@ -489,9 +496,10 @@ def _checkers(config: ServerConfig) -> Iterator[ClientChecker]:
     For ConnectionConfig objects that need additional configuration
     for a checker it must provide a value in the checker_conf field.
     """
-    ccmap = {
+    ccmap: dict[ClientVerification, Callable] = {
         ClientVerification.TOKEN: MagicTokenClientChecker,
         ClientVerification.TLS: TLSClientChecker,
+        ClientVerification.RADOS: _rados_checker,
     }
     unhandled = set()
     for cc in config.connections:
@@ -503,7 +511,7 @@ def _checkers(config: ServerConfig) -> Iterator[ClientChecker]:
             yield LevelClientChecker(enable_all=True)
             continue
         # enable normal checkers
-        _checker = ccmap.get(cc.verification)
+        _checker: Optional[Callable] = ccmap.get(cc.verification)
         if not _checker:
             unhandled.add(cc.verification)
             continue
