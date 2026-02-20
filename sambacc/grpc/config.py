@@ -28,6 +28,7 @@ class ClientVerification(str, enum.Enum):
     INSECURE = "insecure"
     TLS = "tls"
     TOKEN = "magic-token"
+    RADOS = "rados-object"
 
 
 class Level(enum.Enum):
@@ -113,3 +114,26 @@ class MagicTokenConfig:
         if not self.header_key:
             raise ValueError("header_key invalid")
         return cv is ClientVerification.TOKEN
+
+
+@dataclasses.dataclass
+class RADOSCheckerConfig:
+    object_uri: str
+    header_user: str = "ceph-auth-user"
+    header_key: str = "ceph-auth-key"
+    conffile: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, config: dict) -> Self:
+        return cls(
+            **{
+                field.name: config[field.name]
+                for field in dataclasses.fields(cls)
+                if field.name in config
+            }
+        )
+
+    def can_verify(self, cv: ClientVerification) -> bool:
+        if not self.object_uri:
+            raise ValueError("object_uri invalid")
+        return cv is ClientVerification.RADOS
