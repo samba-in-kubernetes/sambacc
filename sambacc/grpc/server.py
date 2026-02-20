@@ -460,7 +460,7 @@ def _add_port(server: grpc.Server, config: ConnectionConfig) -> None:
     _logger.info(
         "Adding gRPC port on %s (%s)", config.address, config.describe()
     )
-    if config.insecure:
+    if not config.uses_tls:
         server.add_insecure_port(config.address)
         return
 

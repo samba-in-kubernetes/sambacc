@@ -65,6 +65,10 @@ class ConnectionConfig:
             _kind = "unix socket"
         return f"{_kind}/{self.verification.value}"
 
+    @property
+    def uses_tls(self) -> bool:
+        return self.verification is ClientVerification.TLS
+
     # compat properties
     @property
     def insecure(self) -> bool:
