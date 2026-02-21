@@ -17,6 +17,7 @@
 #
 
 import argparse
+import json
 import logging
 import signal
 import sys
@@ -24,6 +25,9 @@ import typing
 
 from ..cli import Context, Fail, commands
 from ..common import CommandContext
+
+import sambacc.grpc.config
+
 
 _logger = logging.getLogger(__name__)
 _MTLS = "mtls"
@@ -71,6 +75,65 @@ def _serve_args(parser: argparse.ArgumentParser) -> None:
         "--tls-ca-cert",
         help="CA Certificate",
     )
+    parser.add_argument(
+        "--extra-listener",
+        dest="extra_listeners",
+        type=_listener,
+        action="append",
+        help="Enable an additional listener (port)",
+    )
+
+
+def _listener_conn(
+    ctx: Context, fields: dict[str, typing.Any]
+) -> sambacc.grpc.config.ConnectionConfig:
+    for tls_key in ("server_key", "server_cert", "ca_cert"):
+        if tls_key in fields:
+            fields[tls_key] = _read(ctx, fields[tls_key])
+    cfg = sambacc.grpc.config.ConnectionConfig.from_dict(fields)
+    if cfg.verification is sambacc.grpc.config.ClientVerification.TOKEN:
+        cfg.checker_conf = sambacc.grpc.config.MagicTokenConfig(
+            env_var=fields.get("env_var", "MAGIC_TOKEN")
+        )
+    elif cfg.verification is sambacc.grpc.config.ClientVerification.RADOS:
+        if "object_uri" not in fields:
+            # fall back on using the rados config object for sambacc
+            # if one is being used
+            for src in ctx.cli.config or []:
+                if src.startswith("rados://"):
+                    _logger.debug(
+                        "Assuming rados object %r for rados checker", src
+                    )
+                    fields["object_uri"] = src
+                    break
+        if "object_uri" not in fields:
+            raise ValueError("Missing required parameter: object_uri")
+        cfg.checker_conf = sambacc.grpc.config.RADOSCheckerConfig.from_dict(
+            fields
+        )
+    return cfg
+
+
+def _listener(value: str) -> dict[str, typing.Any]:
+    if not value:
+        raise ValueError("missing listener specification")
+    fields = {}
+    if (value[0], value[-1]) == ("{", "}"):
+        # complex mode: JSON input
+        # for anything but the simplest case we use an existing crummy
+        # mini-language rather than inventing our own crummy mini-language
+        fields = json.loads(value)
+    elif ";" in value:
+        # simple mode: just address and verification mode
+        fields["address"], fields["verification"] = value.split(";", 1)
+    else:
+        # simple mode: just address
+        fields["address"] = value
+    if "verification" in fields:
+        fields["verification"] = sambacc.grpc.config.ClientVerification(
+            fields["verification"]
+        )
+    return fields
 
 
 class Restart(Exception):
@@ -97,29 +160,36 @@ def serve(ctx: Context) -> None:
             continue
 
 
-def _serve(ctx: Context) -> None:
-    import sambacc.grpc.backend
-    import sambacc.grpc.server
-
-    config = sambacc.grpc.server.ServerConfig()
-    config.insecure = bool(ctx.cli.insecure)
+def _configure(ctx: Context) -> sambacc.grpc.config.ServerConfig:
+    config = sambacc.grpc.config.ServerConfig.default()
+    conn_config = config.first_connection()
+    conn_config.insecure = bool(ctx.cli.insecure)
     if ctx.cli.address:
-        config.address = ctx.cli.address
+        conn_config.address = ctx.cli.address
     if not (ctx.cli.insecure or ctx.cli.tls_key):
         raise Fail("Specify --tls-key=... or --insecure")
     if not (ctx.cli.insecure or ctx.cli.tls_cert):
         raise Fail("Specify --tls-cert=... or --insecure")
     if ctx.cli.tls_key:
-        config.server_key = _read(ctx, ctx.cli.tls_key)
+        conn_config.server_key = _read(ctx, ctx.cli.tls_key)
     if ctx.cli.tls_cert:
-        config.server_cert = _read(ctx, ctx.cli.tls_cert)
+        conn_config.server_cert = _read(ctx, ctx.cli.tls_cert)
     if ctx.cli.tls_ca_cert:
-        config.ca_cert = _read(ctx, ctx.cli.tls_ca_cert)
+        conn_config.ca_cert = _read(ctx, ctx.cli.tls_ca_cert)
     config.read_only = not (
         ctx.cli.allow_modify == _FORCE
-        or (not config.insecure and config.ca_cert)
+        or (not conn_config.insecure and conn_config.ca_cert)
     )
+    for extra in ctx.cli.extra_listeners or []:
+        config.connections.append(_listener_conn(ctx, extra))
+    return config
 
+
+def _serve(ctx: Context) -> None:
+    import sambacc.grpc.backend
+    import sambacc.grpc.server
+
+    config = _configure(ctx)
     _reader = ctx if isinstance(ctx, CommandContext) else None
     backend = sambacc.grpc.backend.ControlBackend(
         ctx.instance_config, config_reader=_reader

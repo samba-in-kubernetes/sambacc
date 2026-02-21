@@ -16,7 +16,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from . import rados
+from .rados import enable_rados_opener
 
-enable_rados_opener = rados.enable_rados
 __all__ = ["enable_rados_opener"]

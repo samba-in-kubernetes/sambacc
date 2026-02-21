@@ -16,7 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-from typing import Any, Callable, Iterator, Protocol, Optional, cast
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Iterator,
+    Optional,
+    Protocol,
+    cast,
+)
 
 import concurrent.futures
 import contextlib
@@ -28,6 +36,16 @@ import grpc
 import sambacc.grpc.backend as rbe
 import sambacc.grpc.generated.control_pb2 as pb
 import sambacc.grpc.generated.control_pb2_grpc as control_rpc
+
+from sambacc.grpc.config import (
+    ClientVerification,
+    ConnectionConfig,
+    Level,
+    MagicTokenConfig,
+    RADOSCheckerConfig,
+    ServerConfig,
+)
+
 
 _logger = logging.getLogger(__name__)
 
@@ -62,13 +80,14 @@ class Backend(Protocol):
     def get_debug_level(self, server: rbe.ServerType) -> str: ...
 
 
+class ClientChecker(Protocol):
+    def allowed_client(
+        self, level: Level, context: grpc.ServicerContext
+    ) -> bool: ...
+
+
 @contextlib.contextmanager
-def _in_rpc(context: grpc.ServicerContext, allowed: bool) -> Iterator[None]:
-    if not allowed:
-        _logger.error("Blocking operation")
-        context.abort(
-            grpc.StatusCode.PERMISSION_DENIED, "Operation not permitted"
-        )
+def _catch_rpc(context: grpc.ServicerContext) -> Iterator[None]:
     try:
         yield
     except NotImplementedError as err:
@@ -80,6 +99,24 @@ def _in_rpc(context: grpc.ServicerContext, allowed: bool) -> Iterator[None]:
     except Exception:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.UNKNOWN, "Unexpected server error")
+
+
+@contextlib.contextmanager
+def _checked_rpc(
+    context: grpc.ServicerContext,
+    *,
+    name: str,
+    required_level: Level,
+    checker: ClientChecker,
+) -> Iterator[None]:
+    _logger.debug("RPC Called: %s", name)
+
+    if not checker.allowed_client(required_level, context):
+        _logger.error("Blocking client %s for %s rpc", context.peer(), name)
+        context.abort(grpc.StatusCode.UNAUTHENTICATED, "Client not permitted")
+
+    with _catch_rpc(context):
+        yield
 
 
 def _get_info(backend: Backend) -> pb.GeneralInfo:
@@ -174,39 +211,137 @@ def _server_type(process: pb.SMBProcess) -> rbe.ServerType:
         raise ValueError(f"invalid smb process type: {process!r}")
 
 
-class ControlService(control_rpc.SambaControlServicer):
-    def __init__(self, backend: Backend, *, read_only: bool = False):
-        self._backend = backend
-        self._read_only = read_only
-        self._ok_to_read = True
-        self._ok_to_modify = not read_only
+class LevelClientChecker:
+    def __init__(self, *levels: Level, enable_all: bool = False) -> None:
+        self._levels = set(Level) if enable_all else set(levels)
+        assert self._levels, "no levels set for LevelClientChecker"
 
-    @property
-    def _ok_to_diag(self) -> bool:
-        # Acts as lias for _ok_to_read.
-        return self._ok_to_read
+    def allowed_client(
+        self, level: Level, context: grpc.ServicerContext
+    ) -> bool:
+        ok = level in self._levels
+        _logger.debug(
+            "default client checker (for %s): %r in %s: %s",
+            context.peer(),
+            level,
+            self._levels,
+            ok,
+        )
+        return ok
+
+
+class TLSClientChecker:
+    def allowed_client(
+        self, level: Level, context: grpc.ServicerContext
+    ) -> bool:
+        actx = context.auth_context()
+        tstype = actx.get("transport_security_type")
+        if tstype and b"ssl" in tstype:
+            _logger.debug("Client is using (m)TLS")
+            return True
+        return False
+
+
+class MagicTokenClientChecker:
+    """Static ENV based token checker. *Do not use in production.*
+    For development and examples only.
+    """
+
+    def __init__(self, config: MagicTokenConfig) -> None:
+        import os
+
+        self._env_var = config.env_var
+        self._key = config.header_key
+
+        self.value = os.environ.get(self._env_var)
+        if not self.value:
+            _logger.warning(
+                "MagicTokenClientChecker enabled but %s not set",
+                self._env_var,
+            )
+            return
+        _logger.info("MAGIC: %s", self.value)
+
+    def allowed_client(
+        self, level: Level, context: grpc.ServicerContext
+    ) -> bool:
+        if not self.value:
+            return False
+        peer = context.peer()
+        imeta = context.invocation_metadata()
+        if (self._key, self.value) in imeta and peer.startswith("unix:"):
+            _logger.debug("Client has magic token")
+            return True
+        return False
+
+
+def _rados_checker(config: RADOSCheckerConfig) -> ClientChecker:
+    import sambacc.grpc.rados_checker
+
+    return sambacc.grpc.rados_checker.RADOSClientChecker(config)
+
+
+class ControlService(control_rpc.SambaControlServicer):
+    def __init__(
+        self,
+        backend: Backend,
+        *,
+        read_only: bool = False,
+        client_checkers: Optional[Collection[ClientChecker]] = None,
+    ):
+        self._backend = backend
+        self._allowed_levels = {Level.READ, Level.DEBUG_READ}
+        if not read_only:
+            self._allowed_levels.add(Level.MODIFY)
+        if client_checkers:
+            self._client_checkers = list(client_checkers)
+        else:
+            self._client_checkers = [
+                LevelClientChecker(enable_all=True),
+            ]
+
+    def allowed_client(
+        self, required_level: Level, context: grpc.ServicerContext
+    ) -> bool:
+        if required_level not in self._allowed_levels:
+            _logger.error(
+                "Rejecting operation for %s: %s level not allowed",
+                context.peer(),
+                required_level,
+            )
+            return False
+        return any(
+            c.allowed_client(required_level, context)
+            for c in self._client_checkers
+        )
 
     def Info(
         self, request: pb.InfoRequest, context: grpc.ServicerContext
     ) -> pb.GeneralInfo:
-        _logger.debug("RPC Called: Info")
-        with _in_rpc(context, self._ok_to_read):
+        with _checked_rpc(
+            context, name="Info", required_level=Level.READ, checker=self
+        ):
             info = _get_info(self._backend)
         return info
 
     def Status(
         self, request: pb.StatusRequest, context: grpc.ServicerContext
     ) -> pb.StatusInfo:
-        _logger.debug("RPC Called: Status")
-        with _in_rpc(context, self._ok_to_read):
+        with _checked_rpc(
+            context, name="Status", required_level=Level.READ, checker=self
+        ):
             info = _convert_status(self._backend.get_status())
         return info
 
     def CloseShare(
         self, request: pb.CloseShareRequest, context: grpc.ServicerContext
     ) -> pb.CloseShareInfo:
-        _logger.debug("RPC Called: CloseShare")
-        with _in_rpc(context, self._ok_to_modify):
+        with _checked_rpc(
+            context,
+            name="CloseShare",
+            required_level=Level.MODIFY,
+            checker=self,
+        ):
             self._backend.close_share(request.share_name, request.denied_users)
             info = pb.CloseShareInfo()
         return info
@@ -214,8 +349,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def KillClientConnection(
         self, request: pb.KillClientRequest, context: grpc.ServicerContext
     ) -> pb.KillClientInfo:
-        _logger.debug("RPC Called: KillClientConnection")
-        with _in_rpc(context, self._ok_to_modify):
+        with _checked_rpc(
+            context,
+            name="KillClientConnection",
+            required_level=Level.MODIFY,
+            checker=self,
+        ):
             self._backend.kill_client(request.ip_address)
             info = pb.KillClientInfo()
         return info
@@ -223,8 +362,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def ConfigDump(
         self, request: pb.ConfigDumpRequest, context: grpc.ServicerContext
     ) -> Iterator[pb.ConfigDumpItem]:
-        _logger.debug("RPC Called: ConfigDump")
-        with _in_rpc(context, self._ok_to_diag):
+        with _checked_rpc(
+            context,
+            name="ConfigDump",
+            required_level=Level.DEBUG_READ,
+            checker=self,
+        ):
             src = _config_source(cast(pb.ConfigFor, request.source))
             hash_alg = _pick_hash(cast(pb.HashAlg, request.hash), None)
             for dump_item in self._backend.config_dump(src, hash_alg):
@@ -247,8 +390,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def ConfigSummary(
         self, request: pb.ConfigSummaryRequest, context: grpc.ServicerContext
     ) -> pb.ConfigSummaryInfo:
-        _logger.debug("RPC Called: ConfigSummary")
-        with _in_rpc(context, self._ok_to_diag):
+        with _checked_rpc(
+            context,
+            name="ConfigSummary",
+            required_level=Level.DEBUG_READ,
+            checker=self,
+        ):
             src = _config_source(cast(pb.ConfigFor, request.source))
             hash_alg = _pick_hash(
                 cast(pb.HashAlg, request.hash), hashlib.sha256
@@ -269,8 +416,12 @@ class ControlService(control_rpc.SambaControlServicer):
         request: pb.ConfigSharesListRequest,
         context: grpc.ServicerContext,
     ) -> Iterator[pb.ConfigShareItem]:
-        _logger.debug("RPC Called: ConfigSharesList")
-        with _in_rpc(context, self._ok_to_diag):
+        with _checked_rpc(
+            context,
+            name="ConfigSharesList",
+            required_level=Level.DEBUG_READ,
+            checker=self,
+        ):
             src = _config_source(cast(pb.ConfigFor, request.source))
             for share in self._backend.config_share_list(src):
                 yield pb.ConfigShareItem(name=share.name)
@@ -278,8 +429,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def SetDebugLevel(
         self, request: pb.SetDebugLevelRequest, context: grpc.ServicerContext
     ) -> pb.DebugLevelInfo:
-        _logger.debug("RPC Called: SetDebugLevel")
-        with _in_rpc(context, self._ok_to_modify):
+        with _checked_rpc(
+            context,
+            name="SetDebugLevel",
+            required_level=Level.MODIFY,
+            checker=self,
+        ):
             server = _server_type(cast(pb.SMBProcess, request.process))
             debug_level = request.debug_level
             self._backend.set_debug_level(server, debug_level)
@@ -293,8 +448,12 @@ class ControlService(control_rpc.SambaControlServicer):
     def GetDebugLevel(
         self, request: pb.GetDebugLevelRequest, context: grpc.ServicerContext
     ) -> pb.DebugLevelInfo:
-        _logger.debug("RPC Called: GetDebugLevel")
-        with _in_rpc(context, self._ok_to_read):
+        with _checked_rpc(
+            context,
+            name="GetDebugLevel",
+            required_level=Level.READ,
+            checker=self,
+        ):
             server = _server_type(cast(pb.SMBProcess, request.process))
             debug_level = self._backend.get_debug_level(server)
             info = pb.DebugLevelInfo(
@@ -304,47 +463,88 @@ class ControlService(control_rpc.SambaControlServicer):
         return info
 
 
-class ServerConfig:
-    max_workers: int = 8
-    address: str = "localhost:54445"
-    read_only: bool = False
-    insecure: bool = True
-    server_key: Optional[bytes] = None
-    server_cert: Optional[bytes] = None
-    ca_cert: Optional[bytes] = None
+def _add_port(server: grpc.Server, config: ConnectionConfig) -> None:
+    _logger.info(
+        "Adding gRPC port on %s (%s)", config.address, config.describe()
+    )
+    if not config.uses_tls:
+        server.add_insecure_port(config.address)
+        return
+
+    if not config.server_key:
+        raise ValueError("missing server TLS key")
+    if not config.server_cert:
+        raise ValueError("missing server TLS cert")
+    if config.ca_cert:
+        creds = grpc.ssl_server_credentials(
+            [(config.server_key, config.server_cert)],
+            root_certificates=config.ca_cert,
+            require_client_auth=True,
+        )
+    else:
+        creds = grpc.ssl_server_credentials(
+            [(config.server_key, config.server_cert)],
+        )
+    server.add_secure_port(config.address, creds)
+
+
+def _checkers(config: ServerConfig) -> Iterator[ClientChecker]:
+    """Set up checkers, which are executed in series because grpc
+    doesn't really give us a way to bind things to particular channels
+    so we just configure a mix of checkers based on our configs.
+
+    For ConnectionConfig objects that need additional configuration
+    for a checker it must provide a value in the checker_conf field.
+    """
+    ccmap: dict[ClientVerification, Callable] = {
+        ClientVerification.TOKEN: MagicTokenClientChecker,
+        ClientVerification.TLS: TLSClientChecker,
+        ClientVerification.RADOS: _rados_checker,
+    }
+    unhandled = set()
+    for cc in config.connections:
+        # special care INSECURE
+        if (
+            cc.verification is ClientVerification.INSECURE
+            and not config.read_only
+        ):
+            yield LevelClientChecker(enable_all=True)
+            continue
+        # enable normal checkers
+        _checker: Optional[Callable] = ccmap.get(cc.verification)
+        if not _checker:
+            unhandled.add(cc.verification)
+            continue
+        _args = []
+        if cc.checker_conf and cc.checker_conf.can_verify(cc.verification):
+            _args = [cc.checker_conf]
+        elif cc.checker_conf:
+            raise ValueError(f"incorrect config for {cc.verification}")
+        yield _checker(*_args)
+    if unhandled:
+        raise ValueError(f"unhandled verification method(s): {unhandled}")
+    yield LevelClientChecker(Level.READ)
 
 
 def serve(config: ServerConfig, backend: Backend) -> None:
+    if not config.connections:
+        raise ValueError("no connections in server config")
     _logger.info(
-        "Starting gRPC server on %s (%s, %s)",
-        config.address,
-        "insecure" if config.insecure else "tls",
+        "Starting gRPC server (%s mode)",
         "read-only" if config.read_only else "read-modify",
     )
-    service = ControlService(backend, read_only=config.read_only)
+    service = ControlService(
+        backend,
+        read_only=config.read_only,
+        client_checkers=list(_checkers(config)),
+    )
     executor = concurrent.futures.ThreadPoolExecutor(
         max_workers=config.max_workers
     )
     server = grpc.server(executor)
     control_rpc.add_SambaControlServicer_to_server(service, server)
-    if config.insecure:
-        server.add_insecure_port(config.address)
-    else:
-        if not config.server_key:
-            raise ValueError("missing server TLS key")
-        if not config.server_cert:
-            raise ValueError("missing server TLS cert")
-        if config.ca_cert:
-            creds = grpc.ssl_server_credentials(
-                [(config.server_key, config.server_cert)],
-                root_certificates=config.ca_cert,
-                require_client_auth=True,
-            )
-        else:
-            creds = grpc.ssl_server_credentials(
-                [(config.server_key, config.server_cert)],
-            )
-        server.add_secure_port(config.address, creds)
+    for conn in config.connections:
+        _add_port(server, conn)
     server.start()
     # hack for testing
     wait_fn = getattr(config, "wait", None)
