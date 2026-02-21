@@ -61,6 +61,16 @@ class SambaControlStub(object):
                 request_serializer=control__pb2.GetDebugLevelRequest.SerializeToString,
                 response_deserializer=control__pb2.DebugLevelInfo.FromString,
                 )
+        self.CTDBStatus = channel.unary_unary(
+                '/SambaControl/CTDBStatus',
+                request_serializer=control__pb2.CTDBStatusRequest.SerializeToString,
+                response_deserializer=control__pb2.CTDBStatusInfo.FromString,
+                )
+        self.CTDBMoveIP = channel.unary_unary(
+                '/SambaControl/CTDBMoveIP',
+                request_serializer=control__pb2.CTDBMoveIPRequest.SerializeToString,
+                response_deserializer=control__pb2.CTDBMoveIPInfo.FromString,
+                )
 
 
 class SambaControlServicer(object):
@@ -133,6 +143,22 @@ class SambaControlServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CTDBStatus(self, request, context):
+        """---- ctdb stuff ----
+
+        CTDBStatus returns current ctdb status information.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CTDBMoveIP(self, request, context):
+        """CTDBMoveIP requrests that CTDB move an IP to a different node.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SambaControlServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -180,6 +206,16 @@ def add_SambaControlServicer_to_server(servicer, server):
                     servicer.GetDebugLevel,
                     request_deserializer=control__pb2.GetDebugLevelRequest.FromString,
                     response_serializer=control__pb2.DebugLevelInfo.SerializeToString,
+            ),
+            'CTDBStatus': grpc.unary_unary_rpc_method_handler(
+                    servicer.CTDBStatus,
+                    request_deserializer=control__pb2.CTDBStatusRequest.FromString,
+                    response_serializer=control__pb2.CTDBStatusInfo.SerializeToString,
+            ),
+            'CTDBMoveIP': grpc.unary_unary_rpc_method_handler(
+                    servicer.CTDBMoveIP,
+                    request_deserializer=control__pb2.CTDBMoveIPRequest.FromString,
+                    response_serializer=control__pb2.CTDBMoveIPInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -343,5 +379,39 @@ class SambaControl(object):
         return grpc.experimental.unary_unary(request, target, '/SambaControl/GetDebugLevel',
             control__pb2.GetDebugLevelRequest.SerializeToString,
             control__pb2.DebugLevelInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def CTDBStatus(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/CTDBStatus',
+            control__pb2.CTDBStatusRequest.SerializeToString,
+            control__pb2.CTDBStatusInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def CTDBMoveIP(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/CTDBMoveIP',
+            control__pb2.CTDBMoveIPRequest.SerializeToString,
+            control__pb2.CTDBMoveIPInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

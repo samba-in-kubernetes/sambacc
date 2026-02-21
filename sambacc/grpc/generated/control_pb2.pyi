@@ -554,3 +554,211 @@ class DebugLevelInfo(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["debug_level", b"debug_level", "process", b"process"]) -> None: ...
 
 global___DebugLevelInfo = DebugLevelInfo
+
+class CTDBStatusRequest(google.protobuf.message.Message):
+    """---- ctdb stuff ----
+
+    CTDBStatusRequest contains arguments for a CTDB Status request.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___CTDBStatusRequest = CTDBStatusRequest
+
+class CTDBNodeInfo(google.protobuf.message.Message):
+    """CTDBNodeInfo contains data related to a CTDB node."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    class FlagsEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        value: builtins.bool
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: builtins.bool = ...,
+        ) -> None: ...
+        def ClearField(self, field_name: typing_extensions.Literal["key", b"key", "value", b"value"]) -> None: ...
+
+    PNN_FIELD_NUMBER: builtins.int
+    ADDRESS_FIELD_NUMBER: builtins.int
+    PARTIALLY_ONLINE_FIELD_NUMBER: builtins.int
+    FLAGS_RAW_FIELD_NUMBER: builtins.int
+    FLAGS_FIELD_NUMBER: builtins.int
+    THIS_NODE_FIELD_NUMBER: builtins.int
+    pnn: builtins.int
+    address: builtins.str
+    partially_online: builtins.bool
+    flags_raw: builtins.int
+    @property
+    def flags(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.bool]: ...
+    this_node: builtins.bool
+    def __init__(
+        self,
+        *,
+        pnn: builtins.int = ...,
+        address: builtins.str = ...,
+        partially_online: builtins.bool = ...,
+        flags_raw: builtins.int = ...,
+        flags: collections.abc.Mapping[builtins.str, builtins.bool] | None = ...,
+        this_node: builtins.bool = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["address", b"address", "flags", b"flags", "flags_raw", b"flags_raw", "partially_online", b"partially_online", "pnn", b"pnn", "this_node", b"this_node"]) -> None: ...
+
+global___CTDBNodeInfo = CTDBNodeInfo
+
+class CTDBNodeStatus(google.protobuf.message.Message):
+    """CTDBNodeStatus contains data related to CTDB node statuses."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    NODE_COUNT_FIELD_NUMBER: builtins.int
+    DELETED_NODE_COUNT_FIELD_NUMBER: builtins.int
+    NODES_FIELD_NUMBER: builtins.int
+    node_count: builtins.int
+    deleted_node_count: builtins.int
+    @property
+    def nodes(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CTDBNodeInfo]: ...
+    def __init__(
+        self,
+        *,
+        node_count: builtins.int = ...,
+        deleted_node_count: builtins.int = ...,
+        nodes: collections.abc.Iterable[global___CTDBNodeInfo] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["deleted_node_count", b"deleted_node_count", "node_count", b"node_count", "nodes", b"nodes"]) -> None: ...
+
+global___CTDBNodeStatus = CTDBNodeStatus
+
+class VNNInfo(google.protobuf.message.Message):
+    """VNNInfo conatins data related to CTDB VNN."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    HASH_FIELD_NUMBER: builtins.int
+    LMASTER_FIELD_NUMBER: builtins.int
+    hash: builtins.int
+    lmaster: builtins.int
+    def __init__(
+        self,
+        *,
+        hash: builtins.int = ...,
+        lmaster: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["hash", b"hash", "lmaster", b"lmaster"]) -> None: ...
+
+global___VNNInfo = VNNInfo
+
+class CTDBVNNStatus(google.protobuf.message.Message):
+    """CTDBVNNStatus contains data related to CTDB VNN statuses."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    GENERATION_FIELD_NUMBER: builtins.int
+    SIZE_FIELD_NUMBER: builtins.int
+    VNN_MAP_FIELD_NUMBER: builtins.int
+    generation: builtins.int
+    size: builtins.int
+    @property
+    def vnn_map(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___VNNInfo]: ...
+    def __init__(
+        self,
+        *,
+        generation: builtins.int = ...,
+        size: builtins.int = ...,
+        vnn_map: collections.abc.Iterable[global___VNNInfo] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["generation", b"generation", "size", b"size", "vnn_map", b"vnn_map"]) -> None: ...
+
+global___CTDBVNNStatus = CTDBVNNStatus
+
+class CTDBIPLocation(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ADDRESS_FIELD_NUMBER: builtins.int
+    NODE_FIELD_NUMBER: builtins.int
+    address: builtins.str
+    node: builtins.str
+    def __init__(
+        self,
+        *,
+        address: builtins.str = ...,
+        node: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["address", b"address", "node", b"node"]) -> None: ...
+
+global___CTDBIPLocation = CTDBIPLocation
+
+class CTDBStatusInfo(google.protobuf.message.Message):
+    """CTDBStatusInfo contains the response for a CTDB Status request."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    NODE_STATUS_FIELD_NUMBER: builtins.int
+    VNN_STATUS_FIELD_NUMBER: builtins.int
+    RECOVERY_MODE_FIELD_NUMBER: builtins.int
+    RECOVERY_MODE_RAW_FIELD_NUMBER: builtins.int
+    LEADER_FIELD_NUMBER: builtins.int
+    IPS_FIELD_NUMBER: builtins.int
+    @property
+    def node_status(self) -> global___CTDBNodeStatus: ...
+    @property
+    def vnn_status(self) -> global___CTDBVNNStatus: ...
+    recovery_mode: builtins.str
+    recovery_mode_raw: builtins.int
+    leader: builtins.int
+    @property
+    def ips(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CTDBIPLocation]: ...
+    def __init__(
+        self,
+        *,
+        node_status: global___CTDBNodeStatus | None = ...,
+        vnn_status: global___CTDBVNNStatus | None = ...,
+        recovery_mode: builtins.str = ...,
+        recovery_mode_raw: builtins.int = ...,
+        leader: builtins.int = ...,
+        ips: collections.abc.Iterable[global___CTDBIPLocation] | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["node_status", b"node_status", "vnn_status", b"vnn_status"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["ips", b"ips", "leader", b"leader", "node_status", b"node_status", "recovery_mode", b"recovery_mode", "recovery_mode_raw", b"recovery_mode_raw", "vnn_status", b"vnn_status"]) -> None: ...
+
+global___CTDBStatusInfo = CTDBStatusInfo
+
+class CTDBMoveIPRequest(google.protobuf.message.Message):
+    """CTDBMoveIPRequest contains arguments for a CTDB Move IP request."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    IP_FIELD_NUMBER: builtins.int
+    NODE_FIELD_NUMBER: builtins.int
+    ip: builtins.str
+    node: builtins.str
+    def __init__(
+        self,
+        *,
+        ip: builtins.str = ...,
+        node: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["ip", b"ip", "node", b"node"]) -> None: ...
+
+global___CTDBMoveIPRequest = CTDBMoveIPRequest
+
+class CTDBMoveIPInfo(google.protobuf.message.Message):
+    """CTDBMoveIPInfo contains the response for a CTDB Move IP request."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___CTDBMoveIPInfo = CTDBMoveIPInfo
