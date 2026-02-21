@@ -480,6 +480,22 @@ def _add_port(server: grpc.Server, config: ConnectionConfig) -> None:
     server.add_secure_port(config.address, creds)
 
 
+def _add_reflection(server: grpc.Server) -> None:
+    try:
+        from grpc_reflection.v1alpha import reflection  # type: ignore[import]
+    except ImportError:
+        _logger.warning("Unable to import grpc reflection library")
+        return
+
+    reflection.enable_server_reflection(
+        (
+            pb.DESCRIPTOR.services_by_name["SambaControl"].full_name,
+            reflection.SERVICE_NAME,
+        ),
+        server,
+    )
+
+
 def _checkers(config: ServerConfig) -> Iterator[ClientChecker]:
     """Set up checkers, which are executed in series because grpc
     doesn't really give us a way to bind things to particular channels
@@ -535,6 +551,8 @@ def serve(config: ServerConfig, backend: Backend) -> None:
     )
     server = grpc.server(executor)
     control_rpc.add_SambaControlServicer_to_server(service, server)
+    if config.reflection:
+        _add_reflection(server)
     for conn in config.connections:
         _add_port(server, conn)
     server.start()
