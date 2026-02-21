@@ -90,6 +90,7 @@ class ServerConfig:
     max_workers: int
     read_only: bool
     connections: list[ConnectionConfig]
+    reflection: bool = True
 
     @classmethod
     def default(cls) -> Self:
