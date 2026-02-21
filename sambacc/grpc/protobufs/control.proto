@@ -191,6 +191,66 @@ message DebugLevelInfo {
     string debug_level = 2;
 }
 
+// ---- ctdb stuff ----
+
+// CTDBStatusRequest contains arguments for a CTDB Status request.
+message CTDBStatusRequest {}
+
+// CTDBNodeInfo contains data related to a CTDB node.
+message CTDBNodeInfo {
+    uint32 pnn = 1;
+    string address = 2;
+    bool partially_online = 3;
+    uint32 flags_raw = 4;
+    map<string, bool> flags = 5;
+    bool this_node = 6;
+}
+
+// CTDBNodeStatus contains data related to CTDB node statuses.
+message CTDBNodeStatus {
+    uint32 node_count = 1;
+    uint32 deleted_node_count = 2;
+    repeated CTDBNodeInfo nodes = 3;
+}
+
+// VNNInfo conatins data related to CTDB VNN.
+message VNNInfo {
+    int32 hash = 1;
+    int32 lmaster = 2;
+}
+
+// CTDBVNNStatus contains data related to CTDB VNN statuses.
+message CTDBVNNStatus {
+    int64 generation = 1;
+    uint32 size = 2;
+    repeated VNNInfo vnn_map = 3;
+}
+
+message CTDBIPLocation {
+    string address = 1;
+    string node = 2;
+}
+
+// CTDBStatusInfo contains the response for a CTDB Status request.
+message CTDBStatusInfo {
+    CTDBNodeStatus node_status = 1;
+    CTDBVNNStatus vnn_status = 2;
+    string recovery_mode = 3;
+    int64 recovery_mode_raw = 4;
+    int64 leader = 5;
+    repeated CTDBIPLocation ips = 6;
+}
+
+// CTDBMoveIPRequest contains arguments for a CTDB Move IP request.
+message CTDBMoveIPRequest {
+    string ip = 1;
+    string node = 2;
+}
+
+// CTDBMoveIPInfo contains the response for a CTDB Move IP request.
+message CTDBMoveIPInfo {}
+
+
 // --- define rpcs ---
 
 service SambaControl {
@@ -216,4 +276,11 @@ service SambaControl {
     rpc SetDebugLevel (SetDebugLevelRequest) returns (DebugLevelInfo);
     // GetDebugLevel attempts to get the debug level for an smb process.
     rpc GetDebugLevel (GetDebugLevelRequest) returns (DebugLevelInfo);
+
+    // ---- ctdb stuff ----
+
+    // CTDBStatus returns current ctdb status information.
+    rpc CTDBStatus (CTDBStatusRequest) returns (CTDBStatusInfo);
+    // CTDBMoveIP requrests that CTDB move an IP to a different node.
+    rpc CTDBMoveIP (CTDBMoveIPRequest) returns (CTDBMoveIPInfo);
 }
