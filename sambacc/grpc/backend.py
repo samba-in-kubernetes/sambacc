@@ -18,7 +18,7 @@
 
 from typing import Any, Callable, IO, Iterator, Optional, Protocol, Union
 
-from functools import partial
+from functools import cache, partial
 
 import contextlib
 import dataclasses
@@ -136,6 +136,127 @@ class Status:
     @classmethod
     def parse(cls, txt: Union[str, bytes]) -> Self:
         return cls.load(json.loads(txt))
+
+
+@dataclasses.dataclass
+class CTDBNode:
+    pnn: int
+    address: str
+    partially_online: bool
+    flags_raw: int
+    flags: dict[str, bool]
+    this_node: bool
+
+    @classmethod
+    def load(cls, json_object: dict[str, Any]) -> Self:
+        flags = {
+            str(k): bool(v) for k, v in json_object.get("flags", {}).items()
+        }
+        return cls(
+            pnn=json_object.get("pnn", -1),
+            address=json_object.get("address", ""),
+            partially_online=bool(json_object.get("partially_online")),
+            flags_raw=json_object.get("flags_raw", -1),
+            flags=flags,
+            this_node=bool(json_object.get("this_node")),
+        )
+
+
+@dataclasses.dataclass
+class CTDBNodeStatus:
+    node_count: int
+    deleted_node_count: int
+    nodes: list[CTDBNode]
+
+    @classmethod
+    def load(cls, json_object: dict[str, Any]) -> Self:
+        return cls(
+            node_count=json_object.get("node_count", -1),
+            deleted_node_count=json_object.get("deleted_node_count", -1),
+            nodes=[
+                CTDBNode.load(v) for v in json_object.get("nodes", {}).values()
+            ],
+        )
+
+
+@dataclasses.dataclass
+class CTDBVNNEntry:
+    hash: int
+    lmaster: int
+
+    @classmethod
+    def load(cls, json_object: dict[str, Any]) -> Self:
+        return cls(
+            hash=json_object.get("hash", -1),
+            lmaster=json_object.get("lmaster", -1),
+        )
+
+
+@dataclasses.dataclass
+class CTDBVNNStatus:
+    generation: int
+    size: int
+    vnn_map: list[CTDBVNNEntry]
+
+    @classmethod
+    def load(cls, json_object: dict[str, Any]) -> Self:
+        return cls(
+            generation=json_object.get("generation", -1),
+            size=json_object.get("size", -1),
+            vnn_map=[
+                CTDBVNNEntry.load(v) for v in json_object.get("vnn_map", [])
+            ],
+        )
+
+
+@dataclasses.dataclass
+class CTDBIPLocation:
+    address: str
+    node: str
+
+
+@dataclasses.dataclass
+class CTDBStatus:
+    node_status: CTDBNodeStatus
+    vnn_status: CTDBVNNStatus
+    recovery_mode: str
+    recovery_mode_raw: int
+    leader: int
+    ips: list[CTDBIPLocation]
+
+    @classmethod
+    def load(cls, json_object: dict[str, Any]) -> Self:
+        return cls(
+            node_status=CTDBNodeStatus.load(
+                json_object.get("node_status", {})
+            ),
+            vnn_status=CTDBVNNStatus.load(json_object.get("vnn_status", {})),
+            recovery_mode=json_object.get("recovery_mode", ""),
+            recovery_mode_raw=json_object.get("recovery_mode_raw", -1),
+            leader=json_object.get("leader", -1),
+            ips=[],
+        )
+
+    @classmethod
+    def parse(cls, txt: Union[str, bytes]) -> Self:
+        return cls.load(json.loads(txt))
+
+    def parse_ctdb_ip(self, txt: Union[str, bytes]) -> Self:
+        txt = txt.decode() if isinstance(txt, bytes) else txt
+        if txt.startswith("{"):
+            raise NotImplementedError("JSON ips not supported")
+        self.ips = []
+        for line in txt.splitlines():
+            lval = line.strip()
+            if not lval or lval.startswith("#"):
+                continue
+            if lval.startswith("Public IP"):
+                continue
+            parts = lval.split()
+            if len(parts) != 2:
+                raise ValueError(f"unexpected line in ip output: {line!r}")
+            self.ips.append(CTDBIPLocation(*parts))
+        return self
 
 
 class ConfigFor(str, enum.Enum):
@@ -426,3 +547,53 @@ class ControlBackend:
         res = subprocess.run(list(cmd), check=True, capture_output=True)
         output = res.stdout.decode().strip()
         return output if not _parser else _parser(output)
+
+    @cache
+    def has_ctdb_json(self) -> bool:
+        """Return true if ctdb command supports JSON output.
+        Result is cached.
+        """
+        cvj = sambacc.samba_cmds.ctdb["version", "--json"]
+        try:
+            subprocess.run(list(cvj), check=True)
+            return True
+        except subprocess.CalledProcessError as err:
+            _logger.debug("CTDB JSON support check failed: %r", err)
+            return False
+
+    def get_ctdb_status(self) -> CTDBStatus:
+        """Return CTDB Status."""
+        if not self.has_ctdb_json():
+            raise NotImplementedError("ctdb version too old")
+        # ctdb status
+        cj_status = sambacc.samba_cmds.ctdb["status", "--json"]
+        proc = subprocess.Popen(
+            list(cj_status),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"ctdb status error: {proc.returncode}: {stderr!r}"
+            )
+        status_obj = CTDBStatus.parse(stdout)
+        # ctdb ip
+        c_ip = sambacc.samba_cmds.ctdb["ip", "all"]
+        proc = subprocess.Popen(
+            list(c_ip),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"ctdb status error: {proc.returncode}: {stderr!r}"
+            )
+        status_obj.parse_ctdb_ip(stdout)
+        return status_obj
+
+    def ctdb_move_ip(self, addr: str, dest: str) -> None:
+        """Inovke the CTDB moveip command."""
+        cmd = sambacc.samba_cmds.ctdb["moveip", addr, dest]
+        subprocess.run(list(cmd), check=True)
