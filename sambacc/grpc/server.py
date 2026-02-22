@@ -34,6 +34,7 @@ import logging
 import grpc
 
 import sambacc.grpc.backend as rbe
+import sambacc.grpc.conversions as rcv
 import sambacc.grpc.generated.control_pb2 as pb
 import sambacc.grpc.generated.control_pb2_grpc as control_rpc
 
@@ -131,50 +132,6 @@ def _get_info(backend: Backend) -> pb.GeneralInfo:
             sambacc_version=_info.sambacc_version,
             container_version=_info.container_version,
         ),
-    )
-
-
-def _convert_crypto(
-    crypto: Optional[rbe.SessionCrypto],
-) -> Optional[pb.SessionCrypto]:
-    if not crypto:
-        return None
-    return pb.SessionCrypto(cipher=crypto.cipher, degree=crypto.degree)
-
-
-def _convert_session(session: rbe.Session) -> pb.SessionInfo:
-    info = pb.SessionInfo(
-        session_id=session.session_id,
-        username=session.username,
-        groupname=session.groupname,
-        remote_machine=session.remote_machine,
-        hostname=session.hostname,
-        session_dialect=session.session_dialect,
-        encryption=_convert_crypto(session.encryption),
-        signing=_convert_crypto(session.signing),
-    )
-    # python side takes -1 to mean not found uid/gid. in protobufs
-    # that would mean the fields are unset
-    if session.uid > 0:
-        info.uid = session.uid
-    if session.gid > 0:
-        info.gid = session.gid
-    return info
-
-
-def _convert_tcon(tcon: rbe.TreeConnection) -> pb.ConnInfo:
-    return pb.ConnInfo(
-        tcon_id=tcon.tcon_id,
-        session_id=tcon.session_id,
-        service_name=tcon.service_name,
-    )
-
-
-def _convert_status(status: rbe.Status) -> pb.StatusInfo:
-    return pb.StatusInfo(
-        server_timestamp=status.timestamp,
-        sessions=[_convert_session(s) for s in status.sessions],
-        tree_connections=[_convert_tcon(t) for t in status.tcons],
     )
 
 
@@ -330,7 +287,7 @@ class ControlService(control_rpc.SambaControlServicer):
         with _checked_rpc(
             context, name="Status", required_level=Level.READ, checker=self
         ):
-            info = _convert_status(self._backend.get_status())
+            info = rcv.status(self._backend.get_status())
         return info
 
     def CloseShare(
