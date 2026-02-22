@@ -64,3 +64,50 @@ def status(status: rbe.Status) -> pb.StatusInfo:
         sessions=[_convert_session(s) for s in status.sessions],
         tree_connections=[_convert_tcon(t) for t in status.tcons],
     )
+
+
+def _ctdb_node(node: rbe.CTDBNode) -> pb.CTDBNodeInfo:
+    return pb.CTDBNodeInfo(
+        pnn=node.pnn,
+        address=node.address,
+        partially_online=node.partially_online,
+        flags_raw=node.flags_raw,
+        flags=node.flags,
+        this_node=node.this_node,
+    )
+
+
+def _ctdb_node_status(ns: rbe.CTDBNodeStatus) -> pb.CTDBNodeStatus:
+    return pb.CTDBNodeStatus(
+        node_count=ns.node_count,
+        deleted_node_count=ns.deleted_node_count,
+        nodes=[_ctdb_node(n) for n in ns.nodes],
+    )
+
+
+def _ctdb_vnn_status(vs: rbe.CTDBVNNStatus) -> pb.CTDBVNNStatus:
+    return pb.CTDBVNNStatus(
+        generation=vs.generation,
+        size=vs.size,
+        vnn_map=[
+            pb.VNNInfo(hash=v.hash, lmaster=v.lmaster) for v in vs.vnn_map
+        ],
+    )
+
+
+def _ctdb_ip_location(loc: rbe.CTDBIPLocation) -> pb.CTDBIPLocation:
+    return pb.CTDBIPLocation(
+        address=loc.address,
+        node=loc.node,
+    )
+
+
+def ctdb_status(status: rbe.CTDBStatus) -> pb.CTDBStatusInfo:
+    return pb.CTDBStatusInfo(
+        node_status=_ctdb_node_status(status.node_status),
+        vnn_status=_ctdb_vnn_status(status.vnn_status),
+        recovery_mode=status.recovery_mode,
+        recovery_mode_raw=status.recovery_mode_raw,
+        leader=status.leader,
+        ips=[_ctdb_ip_location(loc) for loc in status.ips],
+    )
