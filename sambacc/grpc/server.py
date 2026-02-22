@@ -80,6 +80,10 @@ class Backend(Protocol):
 
     def get_debug_level(self, server: rbe.ServerType) -> str: ...
 
+    def get_ctdb_status(self) -> rbe.CTDBStatus: ...
+
+    def ctdb_move_ip(self, addr: str, dest: str) -> None: ...
+
 
 class ClientChecker(Protocol):
     def allowed_client(
@@ -417,6 +421,37 @@ class ControlService(control_rpc.SambaControlServicer):
                 process=request.process,
                 debug_level=debug_level,
             )
+        return info
+
+    def CTDBStatus(
+        self,
+        request: pb.CTDBStatusRequest,
+        context: grpc.ServicerContext,
+    ) -> pb.CTDBStatusInfo:
+        with _checked_rpc(
+            context,
+            name="CTDBStatus",
+            required_level=Level.READ,
+            checker=self,
+        ):
+            info = rcv.ctdb_status(self._backend.get_ctdb_status())
+        return info
+
+    def CTDBMoveIP(
+        self,
+        request: pb.CTDBMoveIPRequest,
+        context: grpc.ServicerContext,
+    ) -> pb.CTDBMoveIPInfo:
+        with _checked_rpc(
+            context,
+            name="CTDBMoveIP",
+            required_level=Level.MODIFY,
+            checker=self,
+        ):
+            address = request.address
+            node = request.node
+            self._backend.ctdb_move_ip(address, node)
+            info = pb.CTDBMoveIPInfo()
         return info
 
 
