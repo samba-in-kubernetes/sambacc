@@ -54,8 +54,16 @@ def _serve_args(parser: argparse.ArgumentParser) -> None:
     # security settings
     parser.add_argument(
         "--insecure",
-        action="store_true",
+        dest="verification",
+        const=sambacc.grpc.config.ClientVerification.INSECURE,
+        action="store_const",
         help="Disable TLS",
+    )
+    parser.add_argument(
+        "--verification",
+        dest="verification",
+        type=sambacc.grpc.config.ClientVerification,
+        help="Select client verification checks to be done",
     )
     parser.add_argument(
         "--allow-modify",
@@ -82,6 +90,14 @@ def _serve_args(parser: argparse.ArgumentParser) -> None:
         action="append",
         help="Enable an additional listener (port)",
     )
+    parser.add_argument(
+        "--listener-opts",
+        type=_json_object,
+        help=(
+            "(Advanced) Pass additional options for the primary"
+            " listener/checker as a JSON object"
+        ),
+    )
 
 
 def _listener_conn(
@@ -91,6 +107,15 @@ def _listener_conn(
         if tls_key in fields:
             fields[tls_key] = _read(ctx, fields[tls_key])
     cfg = sambacc.grpc.config.ConnectionConfig.from_dict(fields)
+    _setup_checker(ctx, cfg, fields)
+    return cfg
+
+
+def _setup_checker(
+    ctx: Context,
+    cfg: sambacc.grpc.config.ConnectionConfig,
+    fields: dict[str, typing.Any],
+) -> None:
     if cfg.verification is sambacc.grpc.config.ClientVerification.TOKEN:
         cfg.checker_conf = sambacc.grpc.config.MagicTokenConfig(
             env_var=fields.get("env_var", "MAGIC_TOKEN")
@@ -111,7 +136,14 @@ def _listener_conn(
         cfg.checker_conf = sambacc.grpc.config.RADOSCheckerConfig.from_dict(
             fields
         )
-    return cfg
+
+
+def _json_object(value: str) -> dict[str, typing.Any]:
+    if not value:
+        raise ValueError("missing listener specification")
+    if (value[0], value[-1]) == ("{", "}"):
+        return json.loads(value)
+    raise ValueError(f"{value!r} is not a JSON object")
 
 
 def _listener(value: str) -> dict[str, typing.Any]:
@@ -163,12 +195,15 @@ def serve(ctx: Context) -> None:
 def _configure(ctx: Context) -> sambacc.grpc.config.ServerConfig:
     config = sambacc.grpc.config.ServerConfig.default()
     conn_config = config.first_connection()
-    conn_config.insecure = bool(ctx.cli.insecure)
+    if ctx.cli.verification is not None:
+        conn_config.verification = ctx.cli.verification
+    else:
+        conn_config.insecure = False
     if ctx.cli.address:
         conn_config.address = ctx.cli.address
-    if not (ctx.cli.insecure or ctx.cli.tls_key):
+    if conn_config.uses_tls and not ctx.cli.tls_key:
         raise Fail("Specify --tls-key=... or --insecure")
-    if not (ctx.cli.insecure or ctx.cli.tls_cert):
+    if conn_config.uses_tls and not ctx.cli.tls_cert:
         raise Fail("Specify --tls-cert=... or --insecure")
     if ctx.cli.tls_key:
         conn_config.server_key = _read(ctx, ctx.cli.tls_key)
@@ -180,6 +215,7 @@ def _configure(ctx: Context) -> sambacc.grpc.config.ServerConfig:
         ctx.cli.allow_modify == _FORCE
         or (not conn_config.insecure and conn_config.ca_cert)
     )
+    _setup_checker(ctx, conn_config, ctx.cli.listener_opts or {})
     for extra in ctx.cli.extra_listeners or []:
         config.connections.append(_listener_conn(ctx, extra))
     return config
