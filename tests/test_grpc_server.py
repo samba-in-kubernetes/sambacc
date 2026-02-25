@@ -462,3 +462,106 @@ def test_get_debug_level_ctdb(mock_grpc_server):
     assert res.process == _pb.SMB_PROCESS_CTDB
     assert res.debug_level == "ERROR"
     assert mock_grpc_server.backend._counter["get_debug_level"] == 1
+
+
+ctdb_status1 = """
+{
+  "node_status": {
+    "node_count": 3,
+    "deleted_node_count": 0,
+    "nodes": {
+      "0": {
+        "pnn": 0,
+        "address": "192.168.76.202",
+        "partially_online": false,
+        "flags_raw": 0,
+        "flags_ok": true,
+        "flags": {
+          "disconnected": false,
+          "unknown": false,
+          "disabled": false,
+          "banned": false,
+          "unhealthy": false,
+          "deleted": false,
+          "stopped": false,
+          "inactive": false
+        },
+        "this_node": false
+      },
+      "1": {
+        "pnn": 1,
+        "address": "192.168.76.201",
+        "partially_online": false,
+        "flags_raw": 0,
+        "flags_ok": true,
+        "flags": {
+          "disconnected": false,
+          "unknown": false,
+          "disabled": false,
+          "banned": false,
+          "unhealthy": false,
+          "deleted": false,
+          "stopped": false,
+          "inactive": false
+        },
+        "this_node": false
+      },
+      "2": {
+        "pnn": 2,
+        "address": "192.168.76.200",
+        "partially_online": false,
+        "flags_raw": 0,
+        "flags_ok": true,
+        "flags": {
+          "disconnected": false,
+          "unknown": false,
+          "disabled": false,
+          "banned": false,
+          "unhealthy": false,
+          "deleted": false,
+          "stopped": false,
+          "inactive": false
+        },
+        "this_node": true
+      }
+    }
+  },
+  "vnn_status": {
+    "generation": 2139459491,
+    "size": 3,
+    "vnn_map": [
+      {
+        "hash": 0,
+        "lmaster": 0
+      },
+      {
+        "hash": 1,
+        "lmaster": 1
+      },
+      {
+        "hash": 2,
+        "lmaster": 2
+      }
+    ]
+  },
+  "recovery_mode": "NORMAL",
+  "recovery_mode_raw": 0,
+  "leader": 0
+}
+"""
+
+
+def test_ctdb_status_parse():
+    try:
+        import sambacc.grpc.conversions
+    except ImportError:
+        pytest.skip("can not import grpc conversions")
+
+    obj = backend.CTDBStatus.parse(ctdb_status1)
+    assert len(obj.node_status.nodes) == 3
+    assert len(obj.vnn_status.vnn_map) == 3
+
+    # test pb conversion too
+    pbobj = sambacc.grpc.conversions.ctdb_status(obj)
+    assert len(pbobj.node_status.nodes) == 3
+    assert len(pbobj.vnn_status.vnn_map) == 3
