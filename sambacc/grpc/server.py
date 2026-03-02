@@ -23,6 +23,7 @@ from typing import (
     Iterator,
     Optional,
     Protocol,
+    TypeVar,
     cast,
 )
 
@@ -49,6 +50,10 @@ from sambacc.grpc.config import (
 
 
 _logger = logging.getLogger(__name__)
+
+
+class InvalidValue(ValueError):
+    pass
 
 
 class Backend(Protocol):
@@ -98,6 +103,9 @@ def _catch_rpc(context: grpc.ServicerContext) -> Iterator[None]:
     except NotImplementedError as err:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.UNIMPLEMENTED, f"not implemented: {err}")
+    except InvalidValue as err:
+        _logger.error("invalid value: %s", err)
+        context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(err))
     except FileNotFoundError as err:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.NOT_FOUND, f"not found: {err}")
@@ -140,6 +148,8 @@ def _get_info(backend: Backend) -> pb.GeneralInfo:
 
 
 def _config_source(src_opt: pb.ConfigFor) -> rbe.ConfigFor:
+    if not src_opt:
+        raise InvalidValue("missing configuration source")
     opts: dict[Any, rbe.ConfigFor] = {
         pb.CONFIG_FOR_SAMBA: rbe.ConfigFor.SAMBA,
         pb.CONFIG_FOR_CTDB: rbe.ConfigFor.CTDB,
@@ -148,7 +158,16 @@ def _config_source(src_opt: pb.ConfigFor) -> rbe.ConfigFor:
     try:
         return opts[src_opt]
     except KeyError:
-        raise ValueError("invalid configuration source")
+        raise InvalidValue("invalid configuration source")
+
+
+T = TypeVar("T")
+
+
+def _require(value: T, name: str) -> T:
+    if not value:
+        raise InvalidValue(f"missing {name}")
+    return value
 
 
 def _pick_hash(
@@ -161,6 +180,8 @@ def _pick_hash(
 
 
 def _server_type(process: pb.SMBProcess) -> rbe.ServerType:
+    if not process:
+        raise InvalidValue("missing smb process type")
     opts: dict[Any, rbe.ServerType] = {
         pb.SMB_PROCESS_SMB: rbe.ServerType.SMB,
         pb.SMB_PROCESS_WINBIND: rbe.ServerType.WINBIND,
@@ -169,7 +190,7 @@ def _server_type(process: pb.SMBProcess) -> rbe.ServerType:
     try:
         return opts[process]
     except KeyError:
-        raise ValueError(f"invalid smb process type: {process!r}")
+        raise InvalidValue(f"invalid smb process type: {process!r}")
 
 
 class LevelClientChecker:
@@ -397,7 +418,7 @@ class ControlService(control_rpc.SambaControlServicer):
             checker=self,
         ):
             server = _server_type(cast(pb.SMBProcess, request.process))
-            debug_level = request.debug_level
+            debug_level = _require(request.debug_level, "debug_level")
             self._backend.set_debug_level(server, debug_level)
             # round trip for clarity
             info = pb.DebugLevelInfo(
@@ -448,9 +469,9 @@ class ControlService(control_rpc.SambaControlServicer):
             required_level=Level.MODIFY,
             checker=self,
         ):
-            address = request.address
-            node = request.node
-            self._backend.ctdb_move_ip(address, node)
+            ip = _require(request.ip, "ip")
+            node = _require(request.node, "node")
+            self._backend.ctdb_move_ip(ip, node)
             info = pb.CTDBMoveIPInfo()
         return info
 
