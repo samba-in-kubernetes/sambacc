@@ -62,9 +62,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Build test container
-        run: docker build -t sambacc:ci-${{ matrix.test_distro }} --build-arg=SAMBACC_BASE_IMAGE=${{ matrix.base_image }}  tests/container/ -f tests/container/Containerfile
+        run: podman build -t sambacc:ci-${{ matrix.test_distro }} --build-arg=SAMBACC_BASE_IMAGE=${{ matrix.base_image }}  tests/container/ -f tests/container/Containerfile
       - name: Run test container
-        run: docker run -v $PWD:/var/tmp/build/sambacc sambacc:ci-${{ matrix.test_distro }}
+        run: podman run -v $PWD:/var/tmp/build/sambacc sambacc:ci-${{ matrix.test_distro }}
 
   push:
     needs: [test]
@@ -73,8 +73,8 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: log in to quay.io
-        run: docker login -u "${{ secrets.QUAY_USER }}" -p "${{ secrets.QUAY_PASS }}" quay.io
+        run: podman login -u "${{ secrets.QUAY_USER }}" -p "${{ secrets.QUAY_PASS }}" quay.io
       - name: build container image
-        run: docker build -t quay.io/samba.org/sambacc:latest tests/container -f tests/container/Containerfile
+        run: podman build -t quay.io/samba.org/sambacc:latest tests/container -f tests/container/Containerfile
       - name: publish container image
-        run: docker push quay.io/samba.org/sambacc:latest
+        run: podman push quay.io/samba.org/sambacc:latest
