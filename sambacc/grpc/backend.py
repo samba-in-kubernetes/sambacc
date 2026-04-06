@@ -526,6 +526,7 @@ class ControlBackend:
 
     def set_debug_level(self, server: ServerType, debug_level: str) -> None:
         base_cmd = debug_level_command(server)
+        cmd: sambacc.samba_cmds.CommandArgs
         if base_cmd is sambacc.samba_cmds.smbcontrol:
             cmd = base_cmd[server.value, "debug", debug_level]
         elif base_cmd is sambacc.samba_cmds.ctdb:
@@ -537,6 +538,7 @@ class ControlBackend:
     def get_debug_level(self, server: ServerType) -> str:
         _parser = None
         base_cmd = debug_level_command(server)
+        cmd: sambacc.samba_cmds.CommandArgs
         if base_cmd is sambacc.samba_cmds.smbcontrol:
             cmd = base_cmd[server.value, "debuglevel"]
             _parser = _parse_debuglevel
