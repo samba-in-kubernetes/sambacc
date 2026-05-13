@@ -30,8 +30,9 @@ import sambacc.grpc.config
 
 
 _logger = logging.getLogger(__name__)
-_MTLS = "mtls"
-_FORCE = "force"
+_AUTO = "auto"  # allow modifications based on conn settings
+_MTLS = "mtls"  # allow modifications based on conn tls settings
+_FORCE = "force"  # allow all modifications
 
 
 def _serve_args(parser: argparse.ArgumentParser) -> None:
@@ -67,8 +68,8 @@ def _serve_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--allow-modify",
-        choices=(_MTLS, _FORCE),
-        default=_MTLS,
+        choices=(_AUTO, _MTLS, _FORCE),
+        default=_AUTO,
         help="Control modification mode",
     )
     parser.add_argument(
@@ -211,14 +212,34 @@ def _configure(ctx: Context) -> sambacc.grpc.config.ServerConfig:
         conn_config.server_cert = _read(ctx, ctx.cli.tls_cert)
     if ctx.cli.tls_ca_cert:
         conn_config.ca_cert = _read(ctx, ctx.cli.tls_ca_cert)
-    config.read_only = not (
-        ctx.cli.allow_modify == _FORCE
-        or (not conn_config.insecure and conn_config.ca_cert)
-    )
     _setup_checker(ctx, conn_config, ctx.cli.listener_opts or {})
     for extra in ctx.cli.extra_listeners or []:
         config.connections.append(_listener_conn(ctx, extra))
+    config.read_only = not _can_modify(ctx, config)
     return config
+
+
+def _can_modify(
+    ctx: Context, config: sambacc.grpc.config.ServerConfig
+) -> bool:
+    """Return true if this server should be allowed to make system
+    configuration/state modifications.
+    """
+    if ctx.cli.allow_modify == _FORCE:
+        return True
+    if ctx.cli.allow_modify == _MTLS:
+        # pre-unix or i-dont-trust-ceph-checker mode
+        return all(
+            cc.insecure or (cc.uses_tls and cc.ca_cert)
+            for cc in config.connections
+        )
+    _rados = sambacc.grpc.config.ClientVerification.RADOS
+    return all(
+        cc.insecure
+        or (cc.uses_tls and cc.ca_cert)
+        or (cc.uses_unix and cc.verification is _rados)
+        for cc in config.connections
+    )
 
 
 def _serve(ctx: Context) -> None:
