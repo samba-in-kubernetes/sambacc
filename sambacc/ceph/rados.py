@@ -456,7 +456,7 @@ def enable_rados_opener(
     cls._handlers.append(_RADOSHandler)
 
 
-_module = {}
+_module: dict[str, typing.Any] = {}
 
 
 def enable_rados_lib(*, ignore_error: bool = False) -> bool:
