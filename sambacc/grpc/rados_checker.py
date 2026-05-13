@@ -85,3 +85,9 @@ class RADOSClientChecker:
             _logger.debug("rados check failed: %r", err)
             return False
         return True
+
+    def __str__(self) -> str:
+        return (
+            "rados-checker"
+            f"<{self._config.header_user}, {self._config.header_key}>"
+        )

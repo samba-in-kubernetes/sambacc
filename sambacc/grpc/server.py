@@ -211,6 +211,10 @@ class LevelClientChecker:
         )
         return ok
 
+    def __str__(self) -> str:
+        levels = ", ".join(al.name for al in self._levels)
+        return f"level-checker<allow {levels}>"
+
 
 class TLSClientChecker:
     def allowed_client(
@@ -222,6 +226,9 @@ class TLSClientChecker:
             _logger.debug("Client is using (m)TLS")
             return True
         return False
+
+    def __str__(self) -> str:
+        return "tls-checker"
 
 
 class MagicTokenClientChecker:
@@ -256,6 +263,9 @@ class MagicTokenClientChecker:
             return True
         return False
 
+    def __str__(self) -> str:
+        return f"magic-token-checker<{self._key}>"
+
 
 def _rados_checker(config: RADOSCheckerConfig) -> ClientChecker:
     import sambacc.grpc.rados_checker
@@ -268,13 +278,13 @@ class ControlService(control_rpc.SambaControlServicer):
         self,
         backend: Backend,
         *,
-        read_only: bool = False,
+        access_levels: Optional[Collection[Level]] = None,
         client_checkers: Optional[Collection[ClientChecker]] = None,
     ):
         self._backend = backend
-        self._allowed_levels = {Level.READ, Level.DEBUG_READ}
-        if not read_only:
-            self._allowed_levels.add(Level.MODIFY)
+        if not access_levels:
+            access_levels = {Level.READ, Level.DEBUG_READ}
+        self._allowed_levels = access_levels
         if client_checkers:
             self._client_checkers = list(client_checkers)
         else:
@@ -555,17 +565,27 @@ def _checkers(config: ServerConfig) -> Iterator[ClientChecker]:
     yield LevelClientChecker(Level.READ)
 
 
+def _access(config: ServerConfig) -> set[Level]:
+    levels = {Level.READ, Level.DEBUG_READ, Level.MODIFY}
+    if config.read_only:
+        levels.discard(Level.MODIFY)
+    return levels
+
+
 def serve(config: ServerConfig, backend: Backend) -> None:
     if not config.connections:
         raise ValueError("no connections in server config")
+    access_levels = _access(config)
+    client_checkers = list(_checkers(config))
     _logger.info(
-        "Starting gRPC server (%s mode)",
-        "read-only" if config.read_only else "read-modify",
+        "Starting gRPC server (access: %s; checkers: %s)",
+        ", ".join(al.name for al in access_levels),
+        ", ".join(str(cc) for cc in client_checkers),
     )
     service = ControlService(
         backend,
-        read_only=config.read_only,
-        client_checkers=list(_checkers(config)),
+        access_levels=access_levels,
+        client_checkers=client_checkers,
     )
     executor = concurrent.futures.ThreadPoolExecutor(
         max_workers=config.max_workers
