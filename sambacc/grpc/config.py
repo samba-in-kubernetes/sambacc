@@ -62,13 +62,17 @@ class ConnectionConfig:
 
     def describe(self) -> str:
         _kind = "tcp socket"
-        if self.address.startswith("unix:"):
+        if self.uses_unix:
             _kind = "unix socket"
         return f"{_kind}/{self.verification.value}"
 
     @property
     def uses_tls(self) -> bool:
         return self.verification is ClientVerification.TLS
+
+    @property
+    def uses_unix(self) -> bool:
+        return self.address.startswith("unix:")
 
     # compat properties
     @property
