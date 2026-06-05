@@ -737,7 +737,7 @@ _SRC_TDB_FILES = [
     "passdb.tdb",
     "registry.tdb",
     "secrets.tdb",
-    "share_info.td",
+    "share_info.tdb",
     "winbindd_idmap.tdb",
 ]
 
