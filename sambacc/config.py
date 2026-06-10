@@ -162,6 +162,22 @@ def _check_config_valid(
                 raise
 
 
+def _merge(dst: dict, src: dict) -> None:
+    for key, value in src.items():
+        if key not in dst:
+            dst[key] = value
+            continue
+        dst_dict = isinstance(dst[key], dict)
+        src_dict = isinstance(value, dict)
+        if dst_dict and src_dict:
+            _merge(dst[key], value)
+            continue
+        if not dst_dict and not src_dict:
+            dst[key] = value
+            continue
+        raise ValueError(f"can not merge key {key!r} of {src!r} into {dst!r}")
+
+
 def read_config_files(
     fnames: list[str],
     *,
@@ -172,11 +188,11 @@ def read_config_files(
     At least one of the files from the fnames list must exist and contain
     a valid config. If none of the file names exist an error will be raised.
     """
-    # NOTE: Right now if more than one config exists they'll be "merged" but
-    # the merging is very simplistic right now. Mainly we expect that the
-    # users will be split from the main config (for security reasons) but
-    # it would be nicer to have a good merge algorithm handle everything
-    # smarter at some point.
+    # NOTE: If more than one config exists they'll be "merged" but the merging
+    # is very simplistic and ovewrites an entire top-level key's contents.  To
+    # be very backwards compatible this remains unchanged but we now support a
+    # "config:merged" key that does a recursive dict (only) merge - see
+    # GlobalConfig.load(...) for more details.
     opener = opener or FileOpener()
     gconfig = GlobalConfig()
     readfiles = set()
@@ -239,7 +255,10 @@ class GlobalConfig:
         _check_config_valid(
             data, _check_config_version(data), require_validation
         )
+        to_merge = data.pop("config:merge", None)
         self.data.update(data)
+        if to_merge:
+            _merge(self.data, to_merge)
 
     def get(self, ident: str) -> InstanceConfig:
         iconfig = self.data["configs"][ident]
