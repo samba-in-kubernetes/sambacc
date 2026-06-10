@@ -38,7 +38,17 @@ def _format_black(path):
     # the --preview arg allows black to break up long strings that
     # the general check would discover and complain about. Otherwise
     # we'd be forced to ignore the formatting on these .py files.
-    subprocess.run(["black", "-l78", "--preview", path], check=True)
+    subprocess.run(
+        [
+            "black",
+            "-l78",
+            "--preview",
+            "--enable-unstable-feature",
+            "string_processing",
+            path,
+        ],
+        check=True,
+    )
 
 
 def match(files):
