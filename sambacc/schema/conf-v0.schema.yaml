@@ -329,6 +329,29 @@ properties:
     type: object
     additionalProperties:
       type: string
+  "config:merge":
+    type: object
+    properties:
+      configs:
+        $ref: "#/properties/configs"
+      shares:
+        $ref: "#/properties/shares"
+      globals:
+        $ref: "#/properties/globals"
+      domain_settings:
+        $ref: "#/properties/domain_settings"
+      users:
+        $ref: "#/properties/users"
+      groups:
+        $ref: "#/properties/groups"
+      domain_users:
+        $ref: "#/properties/domain_users"
+      domain_groups:
+        $ref: "#/properties/domain_groups"
+      organizational_units:
+        $ref: "#/properties/organizational_units"
+      ctdb:
+        $ref: "#/properties/ctdb"
 additionalProperties: false
 required:
   - samba-container-config
