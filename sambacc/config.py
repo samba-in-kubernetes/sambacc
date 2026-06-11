@@ -189,7 +189,7 @@ def read_config_files(
     a valid config. If none of the file names exist an error will be raised.
     """
     # NOTE: If more than one config exists they'll be "merged" but the merging
-    # is very simplistic and ovewrites an entire top-level key's contents.  To
+    # is very simplistic and overwrite an entire top-level key's contents.  To
     # be very backwards compatible this remains unchanged but we now support a
     # "config:merged" key that does a recursive dict (only) merge - see
     # GlobalConfig.load(...) for more details.
