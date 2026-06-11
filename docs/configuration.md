@@ -316,6 +316,92 @@ A domain user entry is as follows:
   groups.
 
 
+## Special Section: config:merge
+
+The `config:merge` block exists to modify existing configuration blocks.
+Typically it will only be found in a configuration input that comes after
+the first input file/url.
+
+Normally, providing an additional configuration will overwrite any property
+that existed in the ones before it. A `config:merge` block is recursively
+merged with the previously defined configuration blocks. Keys within
+`config:merge` are the same top level keys documented above like "shares",
+"globals", "users", "domain_settings", and so on.
+
+For example if the first configuration JSON looks like:
+```json
+{
+  "samba-container-config": "v0",
+  "configs": {
+    "demo": {
+      "shares": [
+        "share"
+      ],
+      "globals": [
+        "default"
+      ],
+      "instance_name": "SAMBA"
+    }
+  },
+  "shares": {
+    "share": {
+      "options": {
+        "path": "/share",
+        "valid users": "sambauser, otheruser",
+        "x:important": "extremely"
+      }
+    }
+  },
+  "globals": {
+    "default": {
+      "options": {
+        "security": "user",
+        "server min protocol": "SMB2",
+        "load printers": "no",
+        "printing": "bsd",
+        "printcap name": "/dev/null",
+        "disable spoolss": "yes",
+        "guest ok": "no"
+      }
+    }
+  },
+  "_footer": 1
+}
+```
+
+A supplemental config using "config:merge" might look like:
+```json
+{
+  "samba-container-config": "v0",
+  "config:merge": {
+    "shares": {
+      "share": {
+        "options": {
+          "x:mondo": "yes",
+          "x:bondo": "always",
+          "valid users": "sambauser, otheruser, rick"
+        }
+      }
+    }
+  },
+  "_footer": 1
+}
+```
+
+When combined the smb.conf style result for the share config will look like:
+```
+[share]
+        path = /share
+        valid users = sambauser, otheruser, rick
+        x:important = extremely
+        x:mondo = yes
+        x:bondo = always
+```
+Having added the new example keys "x:mondo" and "x:bondo" from the 2nd
+configuration JSON and overwrote "valid users" while leaving the other
+existing share options alone.
+
+
 # YAML
 
 The [YAML](https://yaml.org/) format may be used to configure sambacc when
