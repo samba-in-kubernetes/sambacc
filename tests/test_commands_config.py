@@ -227,6 +227,10 @@ def test_update_config_ctdb_notleader(tmp_path, monkeypatch):
 
 
 def test_update_config_watch_waiter_expires(tmp_path, monkeypatch):
+    # Verifies that watch mode performs an initial registry sync on the first
+    # iteration even when the config file hasn't changed since the process
+    # started.  Subsequent iterations with no config change must not trigger
+    # additional writes (only the initial sync happens).
     cfg_path = str(tmp_path / "config")
     fake = tmp_path / "fake.sh"
     chkpath = tmp_path / ".executed"
@@ -250,7 +254,12 @@ def test_update_config_watch_waiter_expires(tmp_path, monkeypatch):
     )
     sambacc.commands.config.update_config(ctx)
 
-    assert not os.path.exists(chkpath)
+    # The initial iteration compares against None so the registry is always
+    # written once on startup, regardless of whether the config changed.
+    assert os.path.exists(chkpath)
+    chk = open(chkpath).readlines()
+    assert any(("net" in line) for line in chk)
+    assert any(("smbcontrol" in line) for line in chk)
     assert fake_waiter.count == 5
 
 

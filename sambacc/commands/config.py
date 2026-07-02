@@ -232,9 +232,12 @@ def update_config(ctx: Context) -> None:
     if ctx.cli.watch:
         _logger.info("will watch configuration source")
         waiter = best_waiter(ctx.cli.config)
+        # Pass None as initial_value so the first iteration always writes the
+        # current config to the samba registry, consistent with the non-watch
+        # code path which also passes None unconditionally.
         watch(
             waiter,
-            ctx.instance_config,
+            None,
             _get_config,
             trigger,
         )
