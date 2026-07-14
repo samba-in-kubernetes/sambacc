@@ -188,6 +188,7 @@ class RADOSObjectRef(typing.IO):
             self._closed = True
         if self._connected:
             self._conn.shutdown()
+            self._connected = False
 
     @property
     def closed(self) -> bool:
@@ -354,8 +355,18 @@ class ClusterMetaRADOSHandle:
     def __exit__(
         self, exc_type: ExcType, exc_val: ExcValue, exc_tb: ExcTraceback
     ) -> None:
-        if self._locked:
-            self._rados_obj._unlock(self._lock_name, self._cookie)
+        try:
+            if self._locked:
+                self._rados_obj._unlock(self._lock_name, self._cookie)
+        finally:
+            # Always release the underlying RADOS connection. open() builds a
+            # fresh, fully-connected RADOSObjectRef for every context and no
+            # caller retains it past the `with` block, so failing to close
+            # here leaks one librados client (and its ~dozen threads) per
+            # invocation -- e.g. once per poll in
+            # ctdb.monitor_cluster_meta_changes(). Runs even if _unlock (or
+            # the with-body) raised; close() is idempotent.
+            self._rados_obj.close()
         return
 
 
