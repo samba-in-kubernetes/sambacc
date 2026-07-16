@@ -18,8 +18,36 @@
 
 import sambacc.passdb_loader as passdb
 import sambacc.passwd_loader as ugl
+from sambacc import config
 
 from .cli import commands, setup_steps, Context
+
+
+def sync_sys_users(
+    iconfig: config.InstanceConfig,
+    passwd_path: str = "/etc/passwd",
+    group_path: str = "/etc/group",
+) -> None:
+    """Import users and groups from an InstanceConfig to the passwd and
+    group files.
+    """
+    etc_passwd_loader = ugl.PasswdFileLoader(passwd_path)
+    etc_group_loader = ugl.GroupFileLoader(group_path)
+    etc_passwd_loader.read()
+    etc_group_loader.read()
+    for u in iconfig.users():
+        etc_passwd_loader.add_user(u)
+    for g in iconfig.groups():
+        etc_group_loader.add_group(g)
+    etc_passwd_loader.write()
+    etc_group_loader.write()
+
+
+def sync_passdb_users(iconfig: config.InstanceConfig) -> None:
+    """Import users into samba's passdb."""
+    smb_passdb_loader = passdb.PassDBLoader()
+    for u in iconfig.users():
+        smb_passdb_loader.add_user(u)
 
 
 @commands.command(name="import-users")
@@ -36,23 +64,14 @@ def import_sys_users(ctx: Context) -> None:
     """Import users and groups from sambacc config to the passwd and
     group files.
     """
-    etc_passwd_loader = ugl.PasswdFileLoader(ctx.cli.etc_passwd_path)
-    etc_group_loader = ugl.GroupFileLoader(ctx.cli.etc_group_path)
-
-    etc_passwd_loader.read()
-    etc_group_loader.read()
-    for u in ctx.instance_config.users():
-        etc_passwd_loader.add_user(u)
-    for g in ctx.instance_config.groups():
-        etc_group_loader.add_group(g)
-    etc_passwd_loader.write()
-    etc_group_loader.write()
+    sync_sys_users(
+        ctx.instance_config,
+        ctx.cli.etc_passwd_path,
+        ctx.cli.etc_group_path,
+    )
 
 
 @setup_steps.command("users_passdb")
 def import_passdb_users(ctx: Context) -> None:
     """Import users into samba's passdb."""
-    smb_passdb_loader = passdb.PassDBLoader()
-    for u in ctx.instance_config.users():
-        smb_passdb_loader.add_user(u)
-    return
+    sync_passdb_users(ctx.instance_config)
