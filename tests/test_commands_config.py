@@ -138,11 +138,13 @@ class FakeWaiter:
         self.count += 1
 
 
-def _gen_fake_cmd(fake_path, chkpath, pnn="0"):
+def _gen_fake_cmd(fake_path, chkpath, pnn="0", fail_cmd=None):
     with open(fake_path, "w") as fh:
         fh.write("#!/bin/sh\n")
         fh.write(f'echo "$@" >> {chkpath}\n')
         fh.write(f'[ "$1" = ctdb ] && echo {pnn}" " ; \n')
+        if fail_cmd:
+            fh.write(f'[ "$1" = "{fail_cmd}" ] && exit 1\n')
         fh.write("exit 0\n")
     os.chmod(fake_path, 0o755)
 
@@ -170,6 +172,39 @@ def test_update_config_changed(tmp_path, monkeypatch):
     chk = open(chkpath).readlines()
     assert any(("net" in line) for line in chk)
     assert any(("smbcontrol" in line) for line in chk)
+
+
+def test_update_config_smbcontrol_fails(tmp_path, monkeypatch, caplog):
+    # If smbd isn't reachable or still starting up, smbcontrol exits
+    # non-zero. That must be logged, not raised, so it doesn't crash the
+    # config watch loop.
+    cfg_path = str(tmp_path / "config")
+    fake = tmp_path / "fake.sh"
+    chkpath = tmp_path / ".executed"
+    _gen_fake_cmd(fake, str(chkpath), fail_cmd="smbcontrol")
+    monkeypatch.setattr(sambacc.samba_cmds, "_GLOBAL_PREFIX", [str(fake)])
+
+    ctx = FakeContext.defaults(cfg_path)
+    with open(cfg_path, "w") as fh:
+        fh.write(config2)
+    monkeypatch.setattr(
+        sambacc.paths,
+        "ensure_share_dirs",
+        functools.partial(
+            sambacc.paths.ensure_share_dirs, root=str(tmp_path / "_root")
+        ),
+    )
+    with caplog.at_level("WARNING"):
+        sambacc.commands.config.update_config(ctx)
+
+    assert os.path.exists(chkpath)
+    chk = open(chkpath).readlines()
+    assert any(("net" in line) for line in chk)
+    assert any(("smbcontrol" in line) for line in chk)
+    assert any(
+        "smbcontrol could not notify smbd" in rec.message
+        for rec in caplog.records
+    )
 
 
 def test_update_config_changed_ctdb(tmp_path, monkeypatch):
