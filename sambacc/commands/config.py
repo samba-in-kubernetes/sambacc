@@ -109,7 +109,8 @@ def _update_config(
     boolean indicating if the instance configs differed.
     """
     # has the config changed?
-    changed = not current.same(previous, log_diff=_log_diff)
+    differences = current.compare(previous, log_diff=_log_diff)
+    changed = bool(differences)
     # ensure share paths exist
     if changed and ensure_paths:
         for share in current.shares():

@@ -46,6 +46,15 @@ JSONData = dict[str, typing.Any]
 # differences back to a a higher level.
 LogDiffFunc = typing.Callable[[str, typing.Any, typing.Any], None]
 
+
+class DifferenceFlag(enum.Enum):
+    GLOBALS = 1
+    INSTANCE = 2
+    KEYBRIDGE = 3
+    SHARES = 4
+    TYPE = 5
+
+
 # the standard location for samba's smb.conf
 SMB_CONF = "/etc/samba/smb.conf"
 CLUSTER_META_JSON = "/var/lib/ctdb/shared/ctdb-nodes.json"
@@ -392,39 +401,48 @@ class InstanceConfig:
         config = self.gconfig.data.get("keybridge", {}).get(name, {})
         return KeyBridgeConfig(config, name=name)
 
+    def compare(
+        self,
+        other: typing.Any,
+        *,
+        log_diff: typing.Optional[LogDiffFunc] = None,
+    ) -> set[DifferenceFlag]:
+        if not log_diff:
+            log_diff = _no_op_log_diff
+        if not isinstance(other, InstanceConfig):
+            log_diff("not an InstanceConfig", self, other)
+            return {DifferenceFlag.TYPE}
+        differences: set[DifferenceFlag] = set()
+        if self.iconfig != other.iconfig:
+            log_diff(
+                "instance config values differ", self.iconfig, other.iconfig
+            )
+            differences.add(DifferenceFlag.INSTANCE)
+        self_shares = _shares_data(self.gconfig, self.iconfig)
+        other_shares = _shares_data(other.gconfig, other.iconfig)
+        if self_shares != other_shares:
+            log_diff("shares values differ", self_shares, other_shares)
+            differences.add(DifferenceFlag.SHARES)
+        self_globals = _globals_data(self.gconfig, self.iconfig)
+        other_globals = _globals_data(other.gconfig, other.iconfig)
+        if self_globals != other_globals:
+            log_diff("globals values differ", self_globals, other_globals)
+            differences.add(DifferenceFlag.GLOBALS)
+        # keybridge values are be held outside of the iconfig/gconfig
+        self_kbridge = _kbridge_data(self.keybridge_config())
+        other_kbridge = _kbridge_data(other.keybridge_config())
+        if self_kbridge != other_kbridge:
+            log_diff("keybridge values differ", self_kbridge, other_kbridge)
+            differences.add(DifferenceFlag.KEYBRIDGE)
+        return differences
+
     def same(
         self,
         other: typing.Any,
         *,
         log_diff: typing.Optional[LogDiffFunc] = None,
     ) -> bool:
-        if not log_diff:
-            log_diff = _no_op_log_diff
-        if not isinstance(other, InstanceConfig):
-            log_diff("not an InstanceConfig", self, other)
-            return False
-        if self.iconfig != other.iconfig:
-            log_diff(
-                "instance config values differ", self.iconfig, other.iconfig
-            )
-            return False
-        self_shares = _shares_data(self.gconfig, self.iconfig)
-        other_shares = _shares_data(other.gconfig, other.iconfig)
-        if self_shares != other_shares:
-            log_diff("shares values differ", self_shares, other_shares)
-            return False
-        self_globals = _globals_data(self.gconfig, self.iconfig)
-        other_globals = _globals_data(other.gconfig, other.iconfig)
-        if self_globals != other_globals:
-            log_diff("globals values differ", self_globals, other_globals)
-            return False
-        # keybridge values are be held outside of the iconfig/gconfig
-        self_kbridge = _kbridge_data(self.keybridge_config())
-        other_kbridge = _kbridge_data(other.keybridge_config())
-        if self_kbridge != other_kbridge:
-            log_diff("keybridge values differ", self_kbridge, other_kbridge)
-            return False
-        return True
+        return not self.compare(other, log_diff=log_diff)
 
     def __eq__(self, other: typing.Any) -> bool:
         return self.same(other)
