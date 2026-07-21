@@ -127,9 +127,23 @@ def _update_config(
         loader.import_config(current)
     # notify smbd of changes
     if changed and notify_server:
-        subprocess.check_call(
-            list(samba_cmds.smbcontrol["smbd", "reload-config"])
-        )
+        try:
+            subprocess.check_call(
+                list(samba_cmds.smbcontrol["smbd", "reload-config"])
+            )
+        except subprocess.CalledProcessError as err:
+            # smbd may not be up yet (or restarting) and thus not
+            # reachable via smbcontrol. This is expected to resolve itself
+            # once smbd finishes starting, so don't let it crash the
+            # config watch loop.
+            _logger.warning(
+                "smbcontrol could not notify smbd of the updated"
+                " configuration (exit status %s); smbd may still be"
+                " starting up and will pick up the change once it is"
+                " running: %s",
+                err.returncode,
+                err,
+            )
     return current, changed
 
 
