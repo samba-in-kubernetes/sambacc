@@ -126,6 +126,13 @@ def _update_config(
         _logger.info("Updating samba configuration")
         loader = nc.NetCmdLoader()
         loader.import_config(current)
+    # update users and groups if they changed
+    if config.DifferenceFlag.USERS_GROUPS in differences:
+        _logger.info("Updating users and groups")
+        from .users import sync_sys_users, sync_passdb_users
+
+        sync_sys_users(current)
+        sync_passdb_users(current)
     # notify smbd of changes
     if changed and notify_server:
         try:

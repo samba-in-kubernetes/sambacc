@@ -53,6 +53,7 @@ class DifferenceFlag(enum.Enum):
     KEYBRIDGE = 3
     SHARES = 4
     TYPE = 5
+    USERS_GROUPS = 6
 
 
 # the standard location for samba's smb.conf
@@ -434,6 +435,11 @@ class InstanceConfig:
         if self_kbridge != other_kbridge:
             log_diff("keybridge values differ", self_kbridge, other_kbridge)
             differences.add(DifferenceFlag.KEYBRIDGE)
+        self_ug = _users_groups_data(self.gconfig)
+        other_ug = _users_groups_data(other.gconfig)
+        if self_ug != other_ug:
+            log_diff("users/groups values differ", self_ug, other_ug)
+            differences.add(DifferenceFlag.USERS_GROUPS)
         return differences
 
     def same(
@@ -862,6 +868,13 @@ def _kbridge_data(obj: typing.Optional[KeyBridgeConfig]) -> dict:
     values = dict(obj._kbconf)
     values["__name"] = obj._name
     return values
+
+
+def _users_groups_data(gconfig: GlobalConfig) -> dict:
+    return {
+        "users": gconfig.data.get("users", {}),
+        "groups": gconfig.data.get("groups", {}),
+    }
 
 
 def _safe_split_host_port(host: str, scheme: str = "https") -> tuple[str, int]:
