@@ -75,3 +75,19 @@ class NameServiceSwitchLoader(TextFileLoader):
         gidx = self.idx["group"]
         if "altfiles" not in self.lines[gidx]:
             self.lines[gidx] = "group:    files altfiles\n"
+
+
+NSSWITCH_PATHS = ["/etc/nsswitch.conf", "/usr/etc/nsswitch.conf"]
+NSSWITCH_DEST = "/etc/nsswitch.conf"
+
+
+def find(paths: typing.Optional[list[str]] = None) -> NameServiceSwitchLoader:
+    paths = paths or NSSWITCH_PATHS
+    for path in paths:
+        nss = NameServiceSwitchLoader(path)
+        try:
+            nss.read()
+            return nss
+        except FileNotFoundError:
+            pass
+    raise FileNotFoundError(f"Failed to open {' or '.join(paths)}")
