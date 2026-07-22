@@ -134,8 +134,8 @@ def _update_config(
 
         sync_sys_users(
             current,
-            ctx.cli.etc_passwd_path,
-            ctx.cli.etc_group_path,
+            ctx.cli.passwd_location,
+            ctx.cli.group_location,
         )
         sync_passdb_users(current)
     # notify smbd of changes

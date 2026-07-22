@@ -167,13 +167,13 @@ def env_to_cli(cli: argparse.Namespace) -> None:
     from_env(cli, "ceph_id", "SAMBACC_CEPH_ID", convert_value=ceph_id)
     from_env(
         cli,
-        "etc_passwd_path",
+        "passwd_location",
         "SAMBACC_PASSWD_LOCATION",
         convert_value=AltLocation.parse,
     )
     from_env(
         cli,
-        "etc_group_path",
+        "group_location",
         "SAMBACC_GROUP_LOCATION",
         convert_value=AltLocation.parse,
     )
@@ -230,16 +230,24 @@ def global_args(parser: Parser) -> None:
         ),
     )
     parser.add_argument(
-        "--etc-passwd-path",
+        "--passwd-location",
+        "--etc-passwd-path",  # deprecated alias
         default=AltLocation("/etc/passwd"),
         type=AltLocation.parse,
-        help="Specify a path for the passwd file.",
+        help=(
+            "Specify a path, or colon separated path-spec"
+            " <default>:<writable>[:<symlink>], for the passwd file."
+        ),
     )
     parser.add_argument(
-        "--etc-group-path",
+        "--group-location",
+        "--etc-group-path",  # deprecated alias
         default=AltLocation("/etc/group"),
         type=AltLocation.parse,
-        help="Specify a path for the group file.",
+        help=(
+            "Specify a path, or colon separated path-spec"
+            " <default>:<writable>[:<symlink>], for the group file."
+        ),
     )
     parser.add_argument(
         "--username",

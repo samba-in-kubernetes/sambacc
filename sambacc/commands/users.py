@@ -88,8 +88,8 @@ def import_sys_users(ctx: Context) -> None:
     """
     sync_sys_users(
         ctx.instance_config,
-        ctx.cli.etc_passwd_path,
-        ctx.cli.etc_group_path,
+        ctx.cli.passwd_location,
+        ctx.cli.group_location,
     )
 
 
