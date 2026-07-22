@@ -33,7 +33,7 @@ from sambacc import url_opener
 from sambacc.typelets import Self
 
 from . import skips
-from .cli import Parser, ceph_id
+from .cli import Parser, ceph_id, AltLocation
 
 DEFAULT_CONFIG = "/etc/samba/container/config.json"
 DEFAULT_JOIN_MARKER = "/var/lib/samba/container-join-marker.json"
@@ -165,6 +165,18 @@ def env_to_cli(cli: argparse.Namespace) -> None:
     from_env(cli, "samba_debug_level", "SAMBA_DEBUG_LEVEL")
     from_env(cli, "validate_config", "SAMBACC_VALIDATE_CONFIG")
     from_env(cli, "ceph_id", "SAMBACC_CEPH_ID", convert_value=ceph_id)
+    from_env(
+        cli,
+        "etc_passwd_path",
+        "SAMBACC_PASSWD_LOCATION",
+        convert_value=AltLocation.parse,
+    )
+    from_env(
+        cli,
+        "etc_group_path",
+        "SAMBACC_GROUP_LOCATION",
+        convert_value=AltLocation.parse,
+    )
 
 
 def pre_action(cli: argparse.Namespace) -> None:
@@ -219,12 +231,14 @@ def global_args(parser: Parser) -> None:
     )
     parser.add_argument(
         "--etc-passwd-path",
-        default="/etc/passwd",
+        default=AltLocation("/etc/passwd"),
+        type=AltLocation.parse,
         help="Specify a path for the passwd file.",
     )
     parser.add_argument(
         "--etc-group-path",
-        default="/etc/group",
+        default=AltLocation("/etc/group"),
+        type=AltLocation.parse,
         help="Specify a path for the group file.",
     )
     parser.add_argument(

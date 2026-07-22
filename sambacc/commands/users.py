@@ -16,23 +16,36 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+import typing
+
+import sambacc.nsswitch_loader as nsswitch
 import sambacc.passdb_loader as passdb
 import sambacc.passwd_loader as ugl
 from sambacc import config
+from sambacc import paths
 
-from .cli import commands, setup_steps, Context
+from .cli import commands, setup_steps, Context, AltLocation
 
 
 def sync_sys_users(
     iconfig: config.InstanceConfig,
-    passwd_path: str = "/etc/passwd",
-    group_path: str = "/etc/group",
+    passwd_location: AltLocation,
+    group_location: AltLocation,
+    nsswitch_location: typing.Optional[AltLocation] = None,
 ) -> None:
     """Import users and groups from an InstanceConfig to the passwd and
     group files.
     """
-    etc_passwd_loader = ugl.PasswdFileLoader(passwd_path)
-    etc_group_loader = ugl.GroupFileLoader(group_path)
+    if passwd_location.altfiles or group_location.altfiles:
+        if not nsswitch_location:
+            nsswitch_location = AltLocation(nsswitch.NSSWITCH_DEST)
+        nss = nsswitch.find()
+        if not nss.altfiles_enabled():
+            nss.ensure_altfiles_enabled()
+            nss.write(nsswitch_location.writable)
+
+    etc_passwd_loader = ugl.PasswdFileLoader(passwd_location.writable)
+    etc_group_loader = ugl.GroupFileLoader(group_location.writable)
     etc_passwd_loader.read()
     etc_group_loader.read()
     for u in iconfig.users():
@@ -41,6 +54,15 @@ def sync_sys_users(
         etc_group_loader.add_group(g)
     etc_passwd_loader.write()
     etc_group_loader.write()
+
+    # let os errors bubble up here. we want to stop if we can't create these
+    # necessary links
+    if passwd_location.link_path:
+        paths.ensure_symlink(
+            passwd_location.writable, passwd_location.link_path
+        )
+    if group_location.link_path:
+        paths.ensure_symlink(group_location.writable, group_location.link_path)
 
 
 def sync_passdb_users(iconfig: config.InstanceConfig) -> None:

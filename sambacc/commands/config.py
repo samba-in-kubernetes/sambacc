@@ -98,6 +98,7 @@ UpdateFunc = typing.Callable[..., UpdateResult]
 
 
 def _update_config(
+    ctx: Context,
     current: config.InstanceConfig,
     previous: typing.Optional[config.InstanceConfig],
     ensure_paths: bool = True,
@@ -131,7 +132,11 @@ def _update_config(
         _logger.info("Updating users and groups")
         from .users import sync_sys_users, sync_passdb_users
 
-        sync_sys_users(current)
+        sync_sys_users(
+            current,
+            ctx.cli.etc_passwd_path,
+            ctx.cli.etc_group_path,
+        )
         sync_passdb_users(current)
     # notify smbd of changes
     if changed and notify_server:
@@ -241,13 +246,14 @@ class Trigger:
 @commands.command(name="update-config", arg_func=_update_config_args)
 def update_config(ctx: Context) -> None:
     _get_config = functools.partial(_read_config, ctx)
+    _uconfig = functools.partial(_update_config, ctx)
     trigger = Trigger()
 
     if ctx.instance_config.with_ctdb:
         _logger.info("enabling ctdb support: will check for leadership")
-        trigger.add("samba", _exec_if_leader(ctx, _update_config))
+        trigger.add("samba", _exec_if_leader(ctx, _uconfig))
     else:
-        trigger.add("samba", _update_config)
+        trigger.add("samba", _uconfig)
     if pids_dir := ctx.cli.signal_pids_dir:
         trigger.add("pids", functools.partial(_signal_pids_dir, pids_dir))
 
