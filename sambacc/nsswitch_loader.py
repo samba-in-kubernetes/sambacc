@@ -62,3 +62,16 @@ class NameServiceSwitchLoader(TextFileLoader):
         gidx = self.idx["group"]
         if "winbind" not in self.lines[gidx]:
             self.lines[gidx] = "group:    files winbind\n"
+
+    def altfiles_enabled(self) -> bool:
+        pline = self.lines[self.idx["passwd"]]
+        gline = self.lines[self.idx["group"]]
+        return ("altfiles" in pline) and ("altfiles" in gline)
+
+    def ensure_altfiles_enabled(self) -> None:
+        pidx = self.idx["passwd"]
+        if "altfiles" not in self.lines[pidx]:
+            self.lines[pidx] = "passwd:    files altfiles\n"
+        gidx = self.idx["group"]
+        if "altfiles" not in self.lines[gidx]:
+            self.lines[gidx] = "group:    files altfiles\n"
