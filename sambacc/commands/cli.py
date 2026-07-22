@@ -28,6 +28,7 @@ from sambacc import leader
 from sambacc import permissions
 from sambacc import simple_waiter
 from sambacc.opener import Opener
+from sambacc.typelets import Self
 
 _INOTIFY_OK = True
 try:
@@ -283,6 +284,52 @@ def perms_handler(
     return permissions.InitPosixPermsHandler(
         path, config.status_xattr, options=config.options
     )
+
+
+class AltLocation:
+    def __init__(
+        self,
+        default_path: str,
+        mutable_path: str = "",
+        link_path: str = "",
+    ) -> None:
+        self.default_path = default_path
+        self.mutable_path = mutable_path
+        self.link_path = link_path
+
+    @property
+    def altfiles(self) -> bool:
+        return bool(self.mutable_path or self.link_path)
+
+    @property
+    def writable(self) -> str:
+        return self.mutable_path if self.mutable_path else self.default_path
+
+    @classmethod
+    def parse(cls, value: typing.Union[str, Self]) -> Self:
+        # hack to avoid nesting
+        if isinstance(value, cls):
+            return value
+        assert isinstance(value, str)
+        # no colons - assume simple path
+        if ":" not in value:
+            return cls(default_path=value)
+        # colon separated field - similar to container runtime -v (etc)
+        parts = value.split(":")
+        if not 2 <= len(parts) <= 3:
+            raise ValueError(f"invalid alt-location: {value!r}")
+        default_path = parts[0]
+        if parts[1].endswith("/"):
+            mutable_path = f'{parts[1]}{default_path.split("/")[-1]}'
+        else:
+            mutable_path = parts[1]
+        link_path = ""
+        if len(parts) == 3:
+            if parts[2].endswith("/"):
+                link_path = f'{parts[2]}{default_path.split("/")[-1]}'
+            else:
+                link_path = parts[2]
+        return cls(default_path, mutable_path, link_path)
 
 
 commands = CommandBuilder()
