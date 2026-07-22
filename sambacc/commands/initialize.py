@@ -33,11 +33,21 @@ _logger = logging.getLogger(__name__)
 
 @setup_steps.command("nsswitch")
 def _import_nsswitch(ctx: Context) -> None:
-    # should nsswitch validation/edit be conditional only on ads?
+    # for compatibility with older versions the 'nsswitch' setup action always
+    # enables winbind unconditionally
     nss = nsswitch.find()
     if not nss.winbind_enabled():
         nss.ensure_winbind_enabled()
         nss.write(nsswitch.NSSWITCH_DEST)
+
+
+@setup_steps.command("nsswitch_auto")
+def _auto_choose_nsswitch(ctx: Context) -> None:
+    # wrapper for the above 'nsswitch' setup action that is conditional on
+    # having ads security enabled in the samba config for this instance
+    if not ctx.instance_config.ads_security_configured:
+        return
+    _import_nsswitch(ctx)
 
 
 @setup_steps.command("smb_ctdb")
@@ -95,7 +105,7 @@ _default_setup_steps = [
     "users",
     "smb_ctdb",
     "users_passdb",
-    "nsswitch",
+    "nsswitch_auto",
 ]
 
 
