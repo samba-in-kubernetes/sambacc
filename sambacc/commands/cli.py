@@ -154,7 +154,10 @@ class CommandBuilder:
         def _wrapper(f):
             self._commands.append(
                 Command(
-                    name=name, cmd_func=f, arg_func=arg_func, cmd_help=cmd_help
+                    name=name,
+                    cmd_func=f,
+                    arg_func=arg_func,
+                    cmd_help=cmd_help,
                 )
             )
             return f
