@@ -90,7 +90,7 @@ class CommandContext:
 
 def split_entries(value: str) -> list[str]:
     """Split a env var up into separate strings. The string can be
-    an "old school" colon seperated list of values (like PATH).
+    an "old school" colon separated list of values (like PATH).
     Or, it can be JSON-formatted if it starts and ends with square
     brackets ('[...]'). Strings are the only permitted type within
     this JSON-formatted list.
