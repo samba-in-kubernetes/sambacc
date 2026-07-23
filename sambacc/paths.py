@@ -55,3 +55,24 @@ def ensure_share_dirs(path: str, root: str = "/") -> None:
         path = path[1:]
     path = os.path.join(root, path)
     os.makedirs(path, exist_ok=True)
+
+
+def ensure_symlink(src: str, dst: str, update: bool = True) -> None:
+    """Ensure that a given dst symlink exists and points at src.
+    If update is False, then a preexisting dst is not raised as an error.
+    """
+    try:
+        os.symlink(src, dst)
+        return
+    except FileExistsError:
+        # dst exists but we will ignore it if update is False
+        if not update:
+            return
+    lnk = os.readlink(dst)  # this will raise if dst is not a link
+    if lnk == src:
+        return
+    try:
+        os.unlink(dst)
+    except OSError:
+        pass
+    os.symlink(src, dst)  # raise if we fail to make a new symlink
