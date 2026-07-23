@@ -325,6 +325,12 @@ class InstanceConfig:
             yield uentry.vgroup()
 
     @property
+    def ads_security_configured(self) -> bool:
+        # TODO: refactor global_options so a lookup is more efficient
+        opts = dict(self.global_options())
+        return opts.get("security", "") == "ads"
+
+    @property
     def with_ctdb(self) -> bool:
         return CTDB in self.iconfig.get(FEATURES, [])
 

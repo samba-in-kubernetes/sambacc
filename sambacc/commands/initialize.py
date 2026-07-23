@@ -32,21 +32,43 @@ _logger = logging.getLogger(__name__)
 
 
 @setup_steps.command("nsswitch")
-def _import_nsswitch(ctx: Context) -> None:
-    # should nsswitch validation/edit be conditional only on ads?
-    paths = ["/etc/nsswitch.conf", "/usr/etc/nsswitch.conf"]
-    for path in paths:
-        nss = nsswitch.NameServiceSwitchLoader(path)
-        try:
-            nss.read()
-            if not nss.winbind_enabled():
-                nss.ensure_winbind_enabled()
-                nss.write("/etc/nsswitch.conf")
-            return
-        except FileNotFoundError:
-            pass
+def _enable_nsswitch_winbind(ctx: Context) -> None:
+    """Unconditionally enable winbind support for passwd, group in the
+    nsswitch.conf file.
+    """
+    # for compatibility with older versions the 'nsswitch' setup action always
+    # enables winbind unconditionally
+    nss = nsswitch.find()
+    if not nss.winbind_enabled():
+        nss.ensure_winbind_enabled()
+        nss.write(nsswitch.NSSWITCH_DEST)
 
-    raise FileNotFoundError(f"Failed to open {' or '.join(paths)}")
+
+@setup_steps.command("nsswitch_altfiles")
+def _enable_nsswitch_altfiles(ctx: Context) -> None:
+    """Unconditionally enable altfiles support for passwd, group in the
+    nsswitch.conf file.
+    """
+    nss = nsswitch.find()
+    if not nss.altfiles_enabled():
+        nss.ensure_altfiles_enabled()
+        nss.write(nsswitch.NSSWITCH_DEST)
+
+
+@setup_steps.command("nsswitch_auto")
+def _auto_choose_nsswitch(ctx: Context) -> None:
+    # wrapper for the above 'nsswitch' setup action that is conditional on
+    # other inputs such as having ads security enabled in the samba config or
+    # having alternate paths for passwd set.
+    if ctx.instance_config.ads_security_configured:
+        _logger.debug("configuring nsswitch.conf for winbind")
+        _enable_nsswitch_winbind(ctx)
+        return
+    if ctx.cli.passwd_location.altfiles or ctx.cli.group_location.altfiles:
+        _logger.debug("configuring nsswitch.conf for altfiles")
+        _enable_nsswitch_altfiles(ctx)
+        return
+    _logger.debug("no nsswitch.conf configuration needed")
 
 
 @setup_steps.command("smb_ctdb")
@@ -104,7 +126,7 @@ _default_setup_steps = [
     "users",
     "smb_ctdb",
     "users_passdb",
-    "nsswitch",
+    "nsswitch_auto",
 ]
 
 

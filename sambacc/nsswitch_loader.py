@@ -62,3 +62,32 @@ class NameServiceSwitchLoader(TextFileLoader):
         gidx = self.idx["group"]
         if "winbind" not in self.lines[gidx]:
             self.lines[gidx] = "group:    files winbind\n"
+
+    def altfiles_enabled(self) -> bool:
+        pline = self.lines[self.idx["passwd"]]
+        gline = self.lines[self.idx["group"]]
+        return ("altfiles" in pline) and ("altfiles" in gline)
+
+    def ensure_altfiles_enabled(self) -> None:
+        pidx = self.idx["passwd"]
+        if "altfiles" not in self.lines[pidx]:
+            self.lines[pidx] = "passwd:    files altfiles\n"
+        gidx = self.idx["group"]
+        if "altfiles" not in self.lines[gidx]:
+            self.lines[gidx] = "group:    files altfiles\n"
+
+
+NSSWITCH_PATHS = ["/etc/nsswitch.conf", "/usr/etc/nsswitch.conf"]
+NSSWITCH_DEST = "/etc/nsswitch.conf"
+
+
+def find(paths: typing.Optional[list[str]] = None) -> NameServiceSwitchLoader:
+    paths = paths or NSSWITCH_PATHS
+    for path in paths:
+        nss = NameServiceSwitchLoader(path)
+        try:
+            nss.read()
+            return nss
+        except FileNotFoundError:
+            pass
+    raise FileNotFoundError(f"Failed to open {' or '.join(paths)}")
