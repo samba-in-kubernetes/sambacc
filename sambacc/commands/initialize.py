@@ -19,6 +19,7 @@
 import logging
 import typing
 
+from sambacc.config import ShareOrigin
 from sambacc import ctdb
 from sambacc import paths
 import sambacc.nsswitch_loader as nsswitch
@@ -106,11 +107,13 @@ def _ctdb_etc_files(ctx: Context) -> None:
 @commands.command(name="ensure-share-paths")
 def ensure_share_paths(ctx: Context) -> None:
     """Ensure the paths defined by the configuration exist."""
-    # currently this is completely ignorant of things like vfs
-    # modules that might "virtualize" the share path. It just
+    # other than shares in the virtual origin, this is ignorant of things
+    # like vfs modules that might "virtualize" the share path. It just
     # assumes that the path in the configuration is an absolute
     # path in the file system.
     for share in ctx.instance_config.shares():
+        if share.meta().origin is ShareOrigin.VIRTUAL:
+            continue
         path = share.path()
         if not path:
             continue
