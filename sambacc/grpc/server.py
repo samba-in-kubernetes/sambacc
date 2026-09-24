@@ -88,6 +88,16 @@ class Backend(Protocol):
 
     def ctdb_move_ip(self, addr: str, dest: str) -> None: ...
 
+    def get_active_cluster_level(self) -> rbe.ClusterFunctionalLevel: ...
+
+    def get_cluster_level_details(self) -> rbe.ClusterLevelInfo: ...
+
+    def upgrade_cluster_level(
+        self, apply: bool = False
+    ) -> rbe.ClusterLevelUpgradeResult: ...
+
+    def cluster_level_features(self) -> rbe.ClusterLevelFeatures: ...
+
 
 class ClientChecker(Protocol):
     def allowed_client(
@@ -482,6 +492,69 @@ class ControlService(control_rpc.SambaControlServicer):
             node = _require(request.node, "node")
             self._backend.ctdb_move_ip(ip, node)
             info = pb.CTDBMoveIPInfo()
+        return info
+
+    def GetActiveClusterLevel(
+        self,
+        request: pb.GetActiveClusterLevelRequest,
+        context: grpc.ServicerContext,
+    ) -> pb.ClusterFunctionalLevel:
+        with _checked_rpc(
+            context,
+            name="GetActiveClusterLevel",
+            required_level=Level.READ,
+            checker=self,
+        ):
+            info = rcv.active_cluster_level(
+                self._backend.get_active_cluster_level()
+            )
+        return info
+
+    def GetClusterLevelDetails(
+        self,
+        request: pb.GetClusterLevelDetailsRequest,
+        context: grpc.ServicerContext,
+    ) -> pb.ClusterLevelInfo:
+        with _checked_rpc(
+            context,
+            name="GetClusterLevelDetails",
+            required_level=Level.READ,
+            checker=self,
+        ):
+            info = rcv.cluster_level_info(
+                self._backend.get_cluster_level_details()
+            )
+        return info
+
+    def UpgradeClusterLevel(
+        self,
+        request: pb.UpgradeClusterLevelRequest,
+        context: grpc.ServicerContext,
+    ) -> pb.UpgradeClusterLevelInfo:
+        with _checked_rpc(
+            context,
+            name="UpgradeClusterLevel",
+            required_level=Level.MODIFY,
+            checker=self,
+        ):
+            result = self._backend.upgrade_cluster_level(apply=request.apply)
+            info = rcv.cluster_level_upgrade_result(result)
+        return info
+
+    def GetClusterLevelFeatures(
+        self,
+        request: pb.ClusterLevelFeaturesRequest,
+        context: grpc.ServicerContext,
+    ) -> pb.ClusterLevelFeaturesInfo:
+        with _checked_rpc(
+            context,
+            name="GetClusterLevelFeatures",
+            required_level=Level.READ,
+            checker=self,
+        ):
+            info = rcv.cluster_level_features(
+                self._backend.cluster_level_features()
+            )
         return info
 
 
