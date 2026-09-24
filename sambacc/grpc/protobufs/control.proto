@@ -251,6 +251,86 @@ message CTDBMoveIPRequest {
 message CTDBMoveIPInfo {}
 
 
+// ---- cluster functional level (CFL) ----
+
+message GetActiveClusterLevelRequest {}
+
+message GetClusterLevelDetailsRequest {}
+
+// ClusterFunctionalLevel represents a CFL major.minor value.
+message ClusterFunctionalLevel {
+    uint32 major = 1;
+    uint32 minor = 2;
+}
+
+// ClusterLevelRange represents a range of minor versions supported for a
+// given major CFL version, as reported by one cluster node.
+message ClusterLevelRange {
+    uint32 major = 1;
+    uint32 minor_min = 2;
+    uint32 minor_max = 3;
+}
+
+// ClusterLevelNode contains the CFL ranges supported by one cluster node.
+message ClusterLevelNode {
+    uint32 pnn = 1;
+    repeated ClusterLevelRange supported_ranges = 2;
+}
+
+// ClusterLevelInfo contains the response for a GetClusterLevelDetails
+// request.
+// highest_level is set when a higher level exists, even if
+// upgrade_possible is false.
+message ClusterLevelInfo {
+    ClusterFunctionalLevel active_level = 1;
+    repeated ClusterLevelNode nodes = 2;
+    bool upgrade_possible = 3;
+    ClusterFunctionalLevel highest_level = 4;
+}
+
+// With apply=false (the default) the upgrade is a dry run: it reports
+// what would happen without committing a change.
+message UpgradeClusterLevelRequest {
+    bool apply = 1;
+}
+
+// ClusterLevelUpgradeStatus indicates the outcome of an UpgradeClusterLevel
+// request.
+enum ClusterLevelUpgradeStatus {
+    CLUSTER_LEVEL_UPGRADE_STATUS_UNKNOWN = 0;
+    CLUSTER_LEVEL_UPGRADE_STATUS_ALREADY_CURRENT = 1;
+    CLUSTER_LEVEL_UPGRADE_STATUS_DRY_RUN_OK = 2;
+    CLUSTER_LEVEL_UPGRADE_STATUS_UPGRADED = 3;
+    CLUSTER_LEVEL_UPGRADE_STATUS_ERROR = 4;
+}
+
+// UpgradeClusterLevelInfo contains the response for an UpgradeClusterLevel
+// request. old_level is only set when status is not ERROR.
+// new_level is only set when status is DRY_RUN_OK or UPGRADED.
+// error_vnn/error_status are only set when status is ERROR.
+// unknown_status holds the raw status string reported by samba and is only
+// set when status is UNKNOWN.
+message UpgradeClusterLevelInfo {
+    bool dry_run = 1;
+    ClusterLevelUpgradeStatus status = 2;
+    ClusterFunctionalLevel old_level = 3;
+    ClusterFunctionalLevel new_level = 4;
+    uint32 error_vnn = 5;
+    string error_status = 6;
+    string unknown_status = 7;
+}
+
+message ClusterLevelFeaturesRequest {}
+
+// What this one node can support.
+message ClusterLevelFeaturesInfo {
+    bool cluster_support = 1;
+    optional string ctdb_socket = 2;
+    optional uint32 ctdb_protocol = 3;
+    repeated ClusterLevelRange supported_ranges = 4;
+}
+
+
 // --- define rpcs ---
 
 service SambaControl {
@@ -283,4 +363,20 @@ service SambaControl {
     rpc CTDBStatus (CTDBStatusRequest) returns (CTDBStatusInfo);
     // CTDBMoveIP requrests that CTDB move an IP to a different node.
     rpc CTDBMoveIP (CTDBMoveIPRequest) returns (CTDBMoveIPInfo);
+
+    // ---- cluster functional level (CFL) ----
+
+    // GetActiveClusterLevel returns just the cluster's active Cluster
+    // Functional Level, with no per-node detail.
+    rpc GetActiveClusterLevel (GetActiveClusterLevelRequest) returns (ClusterFunctionalLevel);
+    // GetClusterLevelDetails returns the cluster's active Cluster Functional
+    // Level and per-node supported ranges.
+    rpc GetClusterLevelDetails (GetClusterLevelDetailsRequest) returns (ClusterLevelInfo);
+    // UpgradeClusterLevel attempts to raise the cluster's active Cluster
+    // Functional Level to this node's highest supported level. All nodes
+    // must report identical supported ranges for an upgrade to proceed.
+    rpc UpgradeClusterLevel (UpgradeClusterLevelRequest) returns (UpgradeClusterLevelInfo);
+    // GetClusterLevelFeatures returns this node's own Cluster Functional
+    // Level support info.
+    rpc GetClusterLevelFeatures (ClusterLevelFeaturesRequest) returns (ClusterLevelFeaturesInfo);
 }
