@@ -258,6 +258,151 @@ class CTDBStatus:
         return self
 
 
+@dataclasses.dataclass
+class ClusterFunctionalLevel:
+    major: int
+    minor: int
+
+    @classmethod
+    def parse_show(cls, txt: Union[str, bytes]) -> Self:
+        """Parse the JSON output of `net clusterlevel show --json`."""
+        txt = txt.decode() if isinstance(txt, bytes) else txt
+        data = json.loads(txt)
+        active_level_data = data["active_level"]
+        return cls(
+            major=active_level_data["major"],
+            minor=active_level_data["minor"],
+        )
+
+
+@dataclasses.dataclass
+class ClusterLevelRange:
+    major: int
+    minor_min: int
+    minor_max: int
+
+
+@dataclasses.dataclass
+class ClusterLevelNode:
+    pnn: int
+    supported_ranges: list[ClusterLevelRange]
+
+
+@dataclasses.dataclass
+class ClusterLevelInfo:
+    active_level: ClusterFunctionalLevel
+    nodes: list[ClusterLevelNode]
+    upgrade_possible: bool = False
+    highest_level: Optional[ClusterFunctionalLevel] = None
+
+    @classmethod
+    def parse_showall(cls, txt: Union[str, bytes]) -> Self:
+        """Parse the JSON output of `net clusterlevel showall --json`."""
+        txt = txt.decode() if isinstance(txt, bytes) else txt
+        data = json.loads(txt)
+
+        active_level_data = data["active_level"]
+        active_level = ClusterFunctionalLevel(
+            major=active_level_data["major"],
+            minor=active_level_data["minor"],
+        )
+
+        nodes = [
+            ClusterLevelNode(
+                pnn=node["pnn"],
+                supported_ranges=[
+                    ClusterLevelRange(
+                        major=r["major"],
+                        minor_min=r["minor_min"],
+                        minor_max=r["minor_max"],
+                    )
+                    for r in node.get("supported_ranges", [])
+                ],
+            )
+            for node in data.get("nodes", [])
+        ]
+
+        highest_level_data = data.get("highest_level")
+        highest_level = (
+            ClusterFunctionalLevel(
+                major=highest_level_data["major"],
+                minor=highest_level_data["minor"],
+            )
+            if highest_level_data is not None
+            else None
+        )
+
+        return cls(
+            active_level=active_level,
+            nodes=nodes,
+            upgrade_possible=data.get("upgrade_possible", False),
+            highest_level=highest_level,
+        )
+
+
+@dataclasses.dataclass
+class ClusterLevelUpgradeResult:
+    dry_run: bool
+    status: str
+    old_level: Optional[ClusterFunctionalLevel] = None
+    new_level: Optional[ClusterFunctionalLevel] = None
+    error_vnn: Optional[int] = None
+    error_status: Optional[str] = None
+
+    @classmethod
+    def parse_upgrade(cls, txt: Union[str, bytes]) -> Self:
+        """Parse the JSON output of `net clusterlevel upgrade --json`."""
+        txt = txt.decode() if isinstance(txt, bytes) else txt
+        data = json.loads(txt)
+
+        def _level(key: str) -> Optional[ClusterFunctionalLevel]:
+            level_data = data.get(key)
+            if level_data is None:
+                return None
+            return ClusterFunctionalLevel(
+                major=level_data["major"], minor=level_data["minor"]
+            )
+
+        return cls(
+            dry_run=data["dry_run"],
+            status=data["status"],
+            old_level=_level("old_level"),
+            new_level=_level("new_level"),
+            error_vnn=data.get("error_vnn"),
+            error_status=data.get("error_status"),
+        )
+
+
+@dataclasses.dataclass
+class ClusterLevelFeatures:
+    """Supported CFL features on this node."""
+
+    cluster_support: bool
+    supported_ranges: list[ClusterLevelRange]
+    ctdb_socket: Optional[str] = None
+    ctdb_protocol: Optional[int] = None
+
+    @classmethod
+    def parse_features(cls, txt: Union[str, bytes]) -> Self:
+        """Parse the JSON output of `net clusterlevel features --json`."""
+        txt = txt.decode() if isinstance(txt, bytes) else txt
+        data = json.loads(txt)
+
+        return cls(
+            cluster_support=data["cluster_support"],
+            ctdb_socket=data.get("ctdb_socket"),
+            ctdb_protocol=data.get("ctdb_protocol"),
+            supported_ranges=[
+                ClusterLevelRange(
+                    major=r["major"],
+                    minor_min=r["minor_min"],
+                    minor_max=r["minor_max"],
+                )
+                for r in data.get("supported_ranges", [])
+            ],
+        )
+
+
 class ConfigFor(str, enum.Enum):
     SAMBA = "samba"
     CTDB = "ctdb"
@@ -424,6 +569,25 @@ def config_stream(
         raise NotImplementedError(source)
     with fn() as stream:
         yield stream
+
+
+def _clusterlevel_error(stdout: bytes, stderr: bytes) -> str:
+    """Return a useful error message for a failed `net clusterlevel --json`
+    call. Samba reports some failures as a JSON object on stdout,
+    like {"error": "..."}, with nothing on stderr.
+    Fall back to stderr/stdout elsewhere.
+    """
+    try:
+        data = json.loads(stdout.decode())
+    except (ValueError, UnicodeDecodeError):
+        data = None
+    if isinstance(data, dict) and "error" in data:
+        return str(data["error"])
+    if stderr:
+        return stderr.decode(errors="replace")
+    if stdout:
+        return stdout.decode(errors="replace")
+    return "no output"
 
 
 class ControlBackend:
@@ -598,3 +762,76 @@ class ControlBackend:
         """Inovke the CTDB moveip command."""
         cmd = sambacc.samba_cmds.ctdb["moveip", addr, dest]
         subprocess.run(list(cmd), check=True)
+
+    def get_active_cluster_level(self) -> ClusterFunctionalLevel:
+        """Return the cluster's currently active Cluster Functional
+        Level (CFL).
+        """
+        cmd = sambacc.samba_cmds.net["clusterlevel", "show", "--json"]
+        proc = subprocess.Popen(
+            list(cmd),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"net clusterlevel show error: {proc.returncode}: "
+                f"{_clusterlevel_error(stdout, stderr)}"
+            )
+        return ClusterFunctionalLevel.parse_show(stdout)
+
+    def get_cluster_level_details(self) -> ClusterLevelInfo:
+        """Return the SMB cluster's Cluster Functional Level (CFL) info."""
+        cmd = sambacc.samba_cmds.net["clusterlevel", "showall", "--json"]
+        proc = subprocess.Popen(
+            list(cmd),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"net clusterlevel showall error: {proc.returncode}: "
+                f"{_clusterlevel_error(stdout, stderr)}"
+            )
+        return ClusterLevelInfo.parse_showall(stdout)
+
+    def upgrade_cluster_level(
+        self, apply: bool = False
+    ) -> ClusterLevelUpgradeResult:
+        """Attempt to raise the SMB cluster's Cluster Functional Level
+        (CFL). With apply=False it is a dry run.
+        """
+        args = ["clusterlevel", "upgrade", "--json"]
+        args.append("--apply" if apply else "--test")
+        cmd = sambacc.samba_cmds.net[tuple(args)]
+        proc = subprocess.Popen(
+            list(cmd),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = proc.communicate()
+        try:
+            return ClusterLevelUpgradeResult.parse_upgrade(stdout)
+        except (ValueError, KeyError) as err:
+            raise RuntimeError(
+                f"net clusterlevel upgrade error: {proc.returncode}: "
+                f"{_clusterlevel_error(stdout, stderr)}"
+            ) from err
+
+    def cluster_level_features(self) -> ClusterLevelFeatures:
+        """Return supported CFL features."""
+        cmd = sambacc.samba_cmds.net["clusterlevel", "features", "--json"]
+        proc = subprocess.Popen(
+            list(cmd),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"net clusterlevel features error: {proc.returncode}: "
+                f"{_clusterlevel_error(stdout, stderr)}"
+            )
+        return ClusterLevelFeatures.parse_features(stdout)
