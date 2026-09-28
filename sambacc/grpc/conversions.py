@@ -111,3 +111,78 @@ def ctdb_status(status: rbe.CTDBStatus) -> pb.CTDBStatusInfo:
         leader=status.leader,
         ips=[_ctdb_ip_location(loc) for loc in status.ips],
     )
+
+
+def _cluster_level(
+    level: Optional[rbe.ClusterFunctionalLevel],
+) -> Optional[pb.ClusterFunctionalLevel]:
+    if level is None:
+        return None
+    return pb.ClusterFunctionalLevel(major=level.major, minor=level.minor)
+
+
+def _cluster_level_range(r: rbe.ClusterLevelRange) -> pb.ClusterLevelRange:
+    return pb.ClusterLevelRange(
+        major=r.major, minor_min=r.minor_min, minor_max=r.minor_max
+    )
+
+
+def _cluster_level_node(n: rbe.ClusterLevelNode) -> pb.ClusterLevelNode:
+    return pb.ClusterLevelNode(
+        pnn=n.pnn,
+        supported_ranges=[_cluster_level_range(r) for r in n.supported_ranges],
+    )
+
+
+def active_cluster_level(
+    level: rbe.ClusterFunctionalLevel,
+) -> pb.ClusterFunctionalLevel:
+    return pb.ClusterFunctionalLevel(major=level.major, minor=level.minor)
+
+
+def cluster_level_info(info: rbe.ClusterLevelInfo) -> pb.ClusterLevelInfo:
+    return pb.ClusterLevelInfo(
+        active_level=_cluster_level(info.active_level),
+        nodes=[_cluster_level_node(n) for n in info.nodes],
+        upgrade_possible=info.upgrade_possible,
+        highest_level=_cluster_level(info.highest_level),
+    )
+
+
+_CLUSTER_LEVEL_UPGRADE_STATUS = {
+    "already_current": pb.CLUSTER_LEVEL_UPGRADE_STATUS_ALREADY_CURRENT,
+    "dry_run_ok": pb.CLUSTER_LEVEL_UPGRADE_STATUS_DRY_RUN_OK,
+    "upgraded": pb.CLUSTER_LEVEL_UPGRADE_STATUS_UPGRADED,
+    "error": pb.CLUSTER_LEVEL_UPGRADE_STATUS_ERROR,
+}
+
+
+def cluster_level_upgrade_result(
+    result: rbe.ClusterLevelUpgradeResult,
+) -> pb.UpgradeClusterLevelInfo:
+    status = _CLUSTER_LEVEL_UPGRADE_STATUS.get(
+        result.status, pb.CLUSTER_LEVEL_UPGRADE_STATUS_UNKNOWN
+    )
+    unknown = status == pb.CLUSTER_LEVEL_UPGRADE_STATUS_UNKNOWN
+    return pb.UpgradeClusterLevelInfo(
+        dry_run=result.dry_run,
+        status=status,
+        unknown_status=result.status if unknown else "",
+        old_level=_cluster_level(result.old_level),
+        new_level=_cluster_level(result.new_level),
+        error_vnn=result.error_vnn or 0,
+        error_status=result.error_status or "",
+    )
+
+
+def cluster_level_features(
+    features: rbe.ClusterLevelFeatures,
+) -> pb.ClusterLevelFeaturesInfo:
+    return pb.ClusterLevelFeaturesInfo(
+        cluster_support=features.cluster_support,
+        ctdb_socket=features.ctdb_socket,
+        ctdb_protocol=features.ctdb_protocol,
+        supported_ranges=[
+            _cluster_level_range(r) for r in features.supported_ranges
+        ],
+    )
