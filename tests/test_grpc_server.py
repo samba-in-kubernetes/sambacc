@@ -118,6 +118,15 @@ class MockBackend:
         )
         self._is_clustered = False
         self._status = backend.Status.parse(json1)
+        self._cluster_level = backend.ClusterLevelInfo.parse_showall(
+            clusterlevel_showall1
+        )
+        self._upgrade_result = backend.ClusterLevelUpgradeResult.parse_upgrade(
+            clusterlevel_upgrade_already_current
+        )
+        self._cluster_level_features = (
+            backend.ClusterLevelFeatures.parse_features(clusterlevel_features1)
+        )
         self._kaboom = None
 
     def get_versions(self) -> backend.Versions:
@@ -171,6 +180,30 @@ class MockBackend:
     def get_debug_level(self, server):
         self._counter["get_debug_level"] += 1
         return "ERROR" if server is backend.ServerType.CTDB else "10"
+
+    def get_active_cluster_level(self):
+        self._counter["get_active_cluster_level"] += 1
+        if self._kaboom:
+            raise self._kaboom
+        return self._cluster_level.active_level
+
+    def get_cluster_level_details(self):
+        self._counter["get_cluster_level_details"] += 1
+        if self._kaboom:
+            raise self._kaboom
+        return self._cluster_level
+
+    def upgrade_cluster_level(self, apply=False):
+        self._counter["upgrade_cluster_level"] += 1
+        if self._kaboom:
+            raise self._kaboom
+        return self._upgrade_result
+
+    def cluster_level_features(self):
+        self._counter["cluster_level_features"] += 1
+        if self._kaboom:
+            raise self._kaboom
+        return self._cluster_level_features
 
 
 @pytest.fixture()
@@ -243,6 +276,92 @@ def test_status(mock_grpc_server):
     assert rsp.sessions[0].signing
     assert rsp.sessions[0].signing.cipher == "AES-128-GMAC"
     assert rsp.sessions[0].signing.degree == "partial"
+
+
+def test_get_active_cluster_level(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.GetActiveClusterLevel(_pb.GetActiveClusterLevelRequest())
+
+    counter = mock_grpc_server.backend._counter
+    assert counter["get_active_cluster_level"] == 1
+    assert rsp.major == 1
+    assert rsp.minor == 0
+
+
+def test_get_cluster_level_details(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.GetClusterLevelDetails(
+            _pb.GetClusterLevelDetailsRequest()
+        )
+
+    counter = mock_grpc_server.backend._counter
+    assert counter["get_cluster_level_details"] == 1
+    assert rsp.active_level.major == 1
+    assert rsp.active_level.minor == 0
+    assert len(rsp.nodes) == 3
+    assert not rsp.upgrade_possible
+
+
+def test_upgrade_cluster_level(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.UpgradeClusterLevel(
+            _pb.UpgradeClusterLevelRequest(apply=False)
+        )
+
+    assert mock_grpc_server.backend._counter["upgrade_cluster_level"] == 1
+    assert rsp.dry_run
+    assert rsp.status == _pb.CLUSTER_LEVEL_UPGRADE_STATUS_ALREADY_CURRENT
+    assert rsp.unknown_status == ""
+    assert rsp.old_level.major == 1
+
+
+def test_upgrade_cluster_level_unknown_status(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    mock_grpc_server.backend._upgrade_result = (
+        backend.ClusterLevelUpgradeResult(dry_run=True, status="bogus")
+    )
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.UpgradeClusterLevel(
+            _pb.UpgradeClusterLevelRequest(apply=False)
+        )
+
+    assert rsp.status == _pb.CLUSTER_LEVEL_UPGRADE_STATUS_UNKNOWN
+    assert rsp.unknown_status == "bogus"
+
+
+def test_get_cluster_level_features(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        rsp = client.GetClusterLevelFeatures(_pb.ClusterLevelFeaturesRequest())
+
+    assert mock_grpc_server.backend._counter["cluster_level_features"] == 1
+    assert rsp.cluster_support
+    assert rsp.ctdb_socket == "/run/samba/ctdb/ctdbd.socket"
+    assert rsp.ctdb_protocol == 1
+    assert len(rsp.supported_ranges) == 1
 
 
 def test_close_share(mock_grpc_server):
@@ -565,3 +684,241 @@ def test_ctdb_status_parse():
     pbobj = sambacc.grpc.conversions.ctdb_status(obj)
     assert len(pbobj.node_status.nodes) == 3
     assert len(pbobj.vnn_status.vnn_map) == 3
+
+
+# real output for net clusterlevel show --json
+clusterlevel_show1 = """\
+{"active_level": {"major": 1, "minor": 0}}
+"""
+
+# cluster already at max level, no upgrade available
+clusterlevel_showall1 = """\
+{
+    "active_level": {"major": 1, "minor": 0},
+    "nodes": [
+        {"pnn": 0, "supported_ranges": [
+            {"major": 1, "minor_min": 0, "minor_max": 0}]},
+        {"pnn": 1, "supported_ranges": [
+            {"major": 1, "minor_min": 0, "minor_max": 0}]},
+        {"pnn": 2, "supported_ranges": [
+            {"major": 1, "minor_min": 0, "minor_max": 0}]}
+    ],
+    "upgrade_possible": false
+}
+"""
+
+# all nodes agree on a higher level -> upgrade possible
+clusterlevel_showall2_upgrade_possible = """\
+{
+    "active_level": {"major": 1, "minor": 0},
+    "nodes": [
+        {"pnn": 0, "supported_ranges": [
+            {"major": 2, "minor_min": 0, "minor_max": 0}]},
+        {"pnn": 1, "supported_ranges": [
+            {"major": 2, "minor_min": 0, "minor_max": 0}]}
+    ],
+    "upgrade_possible": true,
+    "highest_level": {"major": 2, "minor": 0}
+}
+"""
+
+# nodes disagree, a higher level exists but isn't possible yet
+clusterlevel_showall3_nodes_disagree = """\
+{
+    "active_level": {"major": 1, "minor": 0},
+    "nodes": [
+        {"pnn": 0, "supported_ranges": [
+            {"major": 2, "minor_min": 0, "minor_max": 0}]},
+        {"pnn": 1, "supported_ranges": [
+            {"major": 1, "minor_min": 0, "minor_max": 0}]}
+    ],
+    "upgrade_possible": false,
+    "highest_level": {"major": 2, "minor": 0}
+}
+"""
+
+# real output for cluster already at its highest level, --test (dry run)
+clusterlevel_upgrade_already_current = """\
+{"dry_run": true, "status": "already_current",
+ "old_level": {"major": 1, "minor": 0}}
+"""
+
+# dry run reporting what an actual upgrade would do
+clusterlevel_upgrade_dry_run_ok = """\
+{
+    "dry_run": true,
+    "status": "dry_run_ok",
+    "old_level": {"major": 1, "minor": 0},
+    "new_level": {"major": 2, "minor": 0}
+}
+"""
+
+# --apply actually committed the upgrade
+clusterlevel_upgrade_upgraded = """\
+{
+    "dry_run": false,
+    "status": "upgraded",
+    "old_level": {"major": 1, "minor": 0},
+    "new_level": {"major": 2, "minor": 0}
+}
+"""
+
+# upgrade attempted but failed on one node
+clusterlevel_upgrade_error = """\
+{
+    "dry_run": false,
+    "status": "error",
+    "error_vnn": 2,
+    "error_status": "NT_STATUS_UNSUCCESSFUL"
+}
+"""
+
+# real output for net clusterlevel features --json
+clusterlevel_features1 = """\
+{
+    "cluster_support": true,
+    "ctdb_socket": "/run/samba/ctdb/ctdbd.socket",
+    "ctdb_protocol": 1,
+    "supported_ranges": [
+        {"major": 1, "minor_min": 0, "minor_max": 0}
+    ]
+}
+"""
+
+
+def test_cluster_level_parse_show():
+    obj = backend.ClusterFunctionalLevel.parse_show(clusterlevel_show1)
+    assert obj == backend.ClusterFunctionalLevel(major=1, minor=0)
+
+
+def test_cluster_level_parse_showall():
+    try:
+        import sambacc.grpc.conversions
+    except ImportError:
+        pytest.skip("can not import grpc conversions")
+
+    obj = backend.ClusterLevelInfo.parse_showall(clusterlevel_showall1)
+    assert obj.active_level == backend.ClusterFunctionalLevel(major=1, minor=0)
+    assert len(obj.nodes) == 3
+    assert obj.nodes[0].pnn == 0
+    assert obj.nodes[0].supported_ranges == [
+        backend.ClusterLevelRange(major=1, minor_min=0, minor_max=0)
+    ]
+    assert not obj.upgrade_possible
+    assert obj.highest_level is None
+
+    # test pb conversion too
+    pbobj = sambacc.grpc.conversions.cluster_level_info(obj)
+    assert pbobj.active_level.major == 1
+    assert pbobj.active_level.minor == 0
+    assert len(pbobj.nodes) == 3
+    assert not pbobj.upgrade_possible
+
+
+def test_cluster_level_parse_showall_upgrade_possible():
+    obj = backend.ClusterLevelInfo.parse_showall(
+        clusterlevel_showall2_upgrade_possible
+    )
+    assert obj.active_level == backend.ClusterFunctionalLevel(major=1, minor=0)
+    assert len(obj.nodes) == 2
+    assert obj.upgrade_possible
+    assert obj.highest_level == backend.ClusterFunctionalLevel(
+        major=2, minor=0
+    )
+
+
+def test_cluster_level_parse_showall_nodes_disagree():
+    obj = backend.ClusterLevelInfo.parse_showall(
+        clusterlevel_showall3_nodes_disagree
+    )
+    assert obj.active_level == backend.ClusterFunctionalLevel(major=1, minor=0)
+    assert len(obj.nodes) == 2
+    # a higher level exists on some node, but not for all so not eligible yet
+    assert not obj.upgrade_possible
+    assert obj.highest_level == backend.ClusterFunctionalLevel(
+        major=2, minor=0
+    )
+
+
+def test_cluster_level_parse_showall_invalid_json():
+    with pytest.raises(ValueError):
+        backend.ClusterLevelInfo.parse_showall("garbage output\n")
+
+
+def test_cluster_level_parse_showall_no_active_level():
+    with pytest.raises(KeyError):
+        backend.ClusterLevelInfo.parse_showall('{"nodes": []}')
+
+
+def test_cluster_level_upgrade_parse_already_current():
+    obj = backend.ClusterLevelUpgradeResult.parse_upgrade(
+        clusterlevel_upgrade_already_current
+    )
+    assert obj.dry_run
+    assert obj.status == "already_current"
+    assert obj.old_level == backend.ClusterFunctionalLevel(major=1, minor=0)
+    assert obj.new_level is None
+    assert obj.error_vnn is None
+    assert obj.error_status is None
+
+
+def test_cluster_level_upgrade_parse_dry_run_ok():
+    obj = backend.ClusterLevelUpgradeResult.parse_upgrade(
+        clusterlevel_upgrade_dry_run_ok
+    )
+    assert obj.dry_run
+    assert obj.status == "dry_run_ok"
+    assert obj.old_level == backend.ClusterFunctionalLevel(major=1, minor=0)
+    assert obj.new_level == backend.ClusterFunctionalLevel(major=2, minor=0)
+
+
+def test_cluster_level_upgrade_parse_upgraded():
+    obj = backend.ClusterLevelUpgradeResult.parse_upgrade(
+        clusterlevel_upgrade_upgraded
+    )
+    assert not obj.dry_run
+    assert obj.status == "upgraded"
+    assert obj.old_level == backend.ClusterFunctionalLevel(major=1, minor=0)
+    assert obj.new_level == backend.ClusterFunctionalLevel(major=2, minor=0)
+
+
+def test_cluster_level_upgrade_parse_error():
+    obj = backend.ClusterLevelUpgradeResult.parse_upgrade(
+        clusterlevel_upgrade_error
+    )
+    assert not obj.dry_run
+    assert obj.status == "error"
+    assert obj.old_level is None
+    assert obj.new_level is None
+    assert obj.error_vnn == 2
+    assert obj.error_status == "NT_STATUS_UNSUCCESSFUL"
+
+
+def test_cluster_level_features_parse():
+    obj = backend.ClusterLevelFeatures.parse_features(clusterlevel_features1)
+    assert obj.cluster_support
+    assert obj.ctdb_socket == "/run/samba/ctdb/ctdbd.socket"
+    assert obj.ctdb_protocol == 1
+    assert obj.supported_ranges == [
+        backend.ClusterLevelRange(major=1, minor_min=0, minor_max=0)
+    ]
+
+
+def test_clusterlevel_json_error_on_stdout():
+    stdout = b'{"error":"Unable to connect to local ctdbd."}'
+    assert (
+        backend._clusterlevel_error(stdout, b"")
+        == "Unable to connect to local ctdbd."
+    )
+
+
+def test_clusterlevel_error_stderr_fallback():
+    assert backend._clusterlevel_error(b"", b"kaboom") == "kaboom"
+
+
+def test_clusterlevel_error_stdout_fallback():
+    assert backend._clusterlevel_error(b"not json", b"") == "not json"
+
+
+def test_clusterlevel_error_no_output():
+    assert backend._clusterlevel_error(b"", b"") == "no output"
