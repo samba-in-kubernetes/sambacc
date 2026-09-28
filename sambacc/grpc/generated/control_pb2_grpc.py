@@ -71,6 +71,26 @@ class SambaControlStub(object):
                 request_serializer=control__pb2.CTDBMoveIPRequest.SerializeToString,
                 response_deserializer=control__pb2.CTDBMoveIPInfo.FromString,
                 )
+        self.GetActiveClusterLevel = channel.unary_unary(
+                '/SambaControl/GetActiveClusterLevel',
+                request_serializer=control__pb2.GetActiveClusterLevelRequest.SerializeToString,
+                response_deserializer=control__pb2.ClusterFunctionalLevel.FromString,
+                )
+        self.GetClusterLevelDetails = channel.unary_unary(
+                '/SambaControl/GetClusterLevelDetails',
+                request_serializer=control__pb2.GetClusterLevelDetailsRequest.SerializeToString,
+                response_deserializer=control__pb2.ClusterLevelInfo.FromString,
+                )
+        self.UpgradeClusterLevel = channel.unary_unary(
+                '/SambaControl/UpgradeClusterLevel',
+                request_serializer=control__pb2.UpgradeClusterLevelRequest.SerializeToString,
+                response_deserializer=control__pb2.UpgradeClusterLevelInfo.FromString,
+                )
+        self.GetClusterLevelFeatures = channel.unary_unary(
+                '/SambaControl/GetClusterLevelFeatures',
+                request_serializer=control__pb2.ClusterLevelFeaturesRequest.SerializeToString,
+                response_deserializer=control__pb2.ClusterLevelFeaturesInfo.FromString,
+                )
 
 
 class SambaControlServicer(object):
@@ -159,6 +179,41 @@ class SambaControlServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetActiveClusterLevel(self, request, context):
+        """---- cluster functional level (CFL) ----
+
+        GetActiveClusterLevel returns just the cluster's active Cluster
+        Functional Level, with no per-node detail.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetClusterLevelDetails(self, request, context):
+        """GetClusterLevelDetails returns the cluster's active Cluster Functional
+        Level and per-node supported ranges.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpgradeClusterLevel(self, request, context):
+        """UpgradeClusterLevel attempts to raise the cluster's active Cluster
+        Functional Level to this node's highest supported level. All nodes
+        must report identical supported ranges for an upgrade to proceed.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetClusterLevelFeatures(self, request, context):
+        """GetClusterLevelFeatures returns this node's own Cluster Functional
+        Level support info.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SambaControlServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -216,6 +271,26 @@ def add_SambaControlServicer_to_server(servicer, server):
                     servicer.CTDBMoveIP,
                     request_deserializer=control__pb2.CTDBMoveIPRequest.FromString,
                     response_serializer=control__pb2.CTDBMoveIPInfo.SerializeToString,
+            ),
+            'GetActiveClusterLevel': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetActiveClusterLevel,
+                    request_deserializer=control__pb2.GetActiveClusterLevelRequest.FromString,
+                    response_serializer=control__pb2.ClusterFunctionalLevel.SerializeToString,
+            ),
+            'GetClusterLevelDetails': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetClusterLevelDetails,
+                    request_deserializer=control__pb2.GetClusterLevelDetailsRequest.FromString,
+                    response_serializer=control__pb2.ClusterLevelInfo.SerializeToString,
+            ),
+            'UpgradeClusterLevel': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpgradeClusterLevel,
+                    request_deserializer=control__pb2.UpgradeClusterLevelRequest.FromString,
+                    response_serializer=control__pb2.UpgradeClusterLevelInfo.SerializeToString,
+            ),
+            'GetClusterLevelFeatures': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetClusterLevelFeatures,
+                    request_deserializer=control__pb2.ClusterLevelFeaturesRequest.FromString,
+                    response_serializer=control__pb2.ClusterLevelFeaturesInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -413,5 +488,73 @@ class SambaControl(object):
         return grpc.experimental.unary_unary(request, target, '/SambaControl/CTDBMoveIP',
             control__pb2.CTDBMoveIPRequest.SerializeToString,
             control__pb2.CTDBMoveIPInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetActiveClusterLevel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/GetActiveClusterLevel',
+            control__pb2.GetActiveClusterLevelRequest.SerializeToString,
+            control__pb2.ClusterFunctionalLevel.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetClusterLevelDetails(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/GetClusterLevelDetails',
+            control__pb2.GetClusterLevelDetailsRequest.SerializeToString,
+            control__pb2.ClusterLevelInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UpgradeClusterLevel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/UpgradeClusterLevel',
+            control__pb2.UpgradeClusterLevelRequest.SerializeToString,
+            control__pb2.UpgradeClusterLevelInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetClusterLevelFeatures(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SambaControl/GetClusterLevelFeatures',
+            control__pb2.ClusterLevelFeaturesRequest.SerializeToString,
+            control__pb2.ClusterLevelFeaturesInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
