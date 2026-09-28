@@ -82,6 +82,30 @@ SMB_PROCESS_WINBIND: SMBProcess.ValueType  # 2
 SMB_PROCESS_CTDB: SMBProcess.ValueType  # 3
 global___SMBProcess = SMBProcess
 
+class _ClusterLevelUpgradeStatus:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _ClusterLevelUpgradeStatusEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ClusterLevelUpgradeStatus.ValueType], builtins.type):  # noqa: F821
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    CLUSTER_LEVEL_UPGRADE_STATUS_UNKNOWN: _ClusterLevelUpgradeStatus.ValueType  # 0
+    CLUSTER_LEVEL_UPGRADE_STATUS_ALREADY_CURRENT: _ClusterLevelUpgradeStatus.ValueType  # 1
+    CLUSTER_LEVEL_UPGRADE_STATUS_DRY_RUN_OK: _ClusterLevelUpgradeStatus.ValueType  # 2
+    CLUSTER_LEVEL_UPGRADE_STATUS_UPGRADED: _ClusterLevelUpgradeStatus.ValueType  # 3
+    CLUSTER_LEVEL_UPGRADE_STATUS_ERROR: _ClusterLevelUpgradeStatus.ValueType  # 4
+
+class ClusterLevelUpgradeStatus(_ClusterLevelUpgradeStatus, metaclass=_ClusterLevelUpgradeStatusEnumTypeWrapper):
+    """ClusterLevelUpgradeStatus indicates the outcome of an UpgradeClusterLevel
+    request.
+    """
+
+CLUSTER_LEVEL_UPGRADE_STATUS_UNKNOWN: ClusterLevelUpgradeStatus.ValueType  # 0
+CLUSTER_LEVEL_UPGRADE_STATUS_ALREADY_CURRENT: ClusterLevelUpgradeStatus.ValueType  # 1
+CLUSTER_LEVEL_UPGRADE_STATUS_DRY_RUN_OK: ClusterLevelUpgradeStatus.ValueType  # 2
+CLUSTER_LEVEL_UPGRADE_STATUS_UPGRADED: ClusterLevelUpgradeStatus.ValueType  # 3
+CLUSTER_LEVEL_UPGRADE_STATUS_ERROR: ClusterLevelUpgradeStatus.ValueType  # 4
+global___ClusterLevelUpgradeStatus = ClusterLevelUpgradeStatus
+
 class InfoRequest(google.protobuf.message.Message):
     """--- Info ---
     Provide version numbers and basic information about the samba
@@ -762,3 +786,220 @@ class CTDBMoveIPInfo(google.protobuf.message.Message):
     ) -> None: ...
 
 global___CTDBMoveIPInfo = CTDBMoveIPInfo
+
+class GetActiveClusterLevelRequest(google.protobuf.message.Message):
+    """---- cluster functional level (CFL) ----"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___GetActiveClusterLevelRequest = GetActiveClusterLevelRequest
+
+class GetClusterLevelDetailsRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___GetClusterLevelDetailsRequest = GetClusterLevelDetailsRequest
+
+class ClusterFunctionalLevel(google.protobuf.message.Message):
+    """ClusterFunctionalLevel represents a CFL major.minor value."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MAJOR_FIELD_NUMBER: builtins.int
+    MINOR_FIELD_NUMBER: builtins.int
+    major: builtins.int
+    minor: builtins.int
+    def __init__(
+        self,
+        *,
+        major: builtins.int = ...,
+        minor: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["major", b"major", "minor", b"minor"]) -> None: ...
+
+global___ClusterFunctionalLevel = ClusterFunctionalLevel
+
+class ClusterLevelRange(google.protobuf.message.Message):
+    """ClusterLevelRange represents a range of minor versions supported for a
+    given major CFL version, as reported by one cluster node.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MAJOR_FIELD_NUMBER: builtins.int
+    MINOR_MIN_FIELD_NUMBER: builtins.int
+    MINOR_MAX_FIELD_NUMBER: builtins.int
+    major: builtins.int
+    minor_min: builtins.int
+    minor_max: builtins.int
+    def __init__(
+        self,
+        *,
+        major: builtins.int = ...,
+        minor_min: builtins.int = ...,
+        minor_max: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["major", b"major", "minor_max", b"minor_max", "minor_min", b"minor_min"]) -> None: ...
+
+global___ClusterLevelRange = ClusterLevelRange
+
+class ClusterLevelNode(google.protobuf.message.Message):
+    """ClusterLevelNode contains the CFL ranges supported by one cluster node."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    PNN_FIELD_NUMBER: builtins.int
+    SUPPORTED_RANGES_FIELD_NUMBER: builtins.int
+    pnn: builtins.int
+    @property
+    def supported_ranges(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ClusterLevelRange]: ...
+    def __init__(
+        self,
+        *,
+        pnn: builtins.int = ...,
+        supported_ranges: collections.abc.Iterable[global___ClusterLevelRange] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["pnn", b"pnn", "supported_ranges", b"supported_ranges"]) -> None: ...
+
+global___ClusterLevelNode = ClusterLevelNode
+
+class ClusterLevelInfo(google.protobuf.message.Message):
+    """ClusterLevelInfo contains the response for a GetClusterLevelDetails
+    request.
+    highest_level is set when a higher level exists, even if
+    upgrade_possible is false.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ACTIVE_LEVEL_FIELD_NUMBER: builtins.int
+    NODES_FIELD_NUMBER: builtins.int
+    UPGRADE_POSSIBLE_FIELD_NUMBER: builtins.int
+    HIGHEST_LEVEL_FIELD_NUMBER: builtins.int
+    @property
+    def active_level(self) -> global___ClusterFunctionalLevel: ...
+    @property
+    def nodes(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ClusterLevelNode]: ...
+    upgrade_possible: builtins.bool
+    @property
+    def highest_level(self) -> global___ClusterFunctionalLevel: ...
+    def __init__(
+        self,
+        *,
+        active_level: global___ClusterFunctionalLevel | None = ...,
+        nodes: collections.abc.Iterable[global___ClusterLevelNode] | None = ...,
+        upgrade_possible: builtins.bool = ...,
+        highest_level: global___ClusterFunctionalLevel | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["active_level", b"active_level", "highest_level", b"highest_level"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["active_level", b"active_level", "highest_level", b"highest_level", "nodes", b"nodes", "upgrade_possible", b"upgrade_possible"]) -> None: ...
+
+global___ClusterLevelInfo = ClusterLevelInfo
+
+class UpgradeClusterLevelRequest(google.protobuf.message.Message):
+    """With apply=false (the default) the upgrade is a dry run: it reports
+    what would happen without committing a change.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    APPLY_FIELD_NUMBER: builtins.int
+    apply: builtins.bool
+    def __init__(
+        self,
+        *,
+        apply: builtins.bool = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["apply", b"apply"]) -> None: ...
+
+global___UpgradeClusterLevelRequest = UpgradeClusterLevelRequest
+
+class UpgradeClusterLevelInfo(google.protobuf.message.Message):
+    """UpgradeClusterLevelInfo contains the response for an UpgradeClusterLevel
+    request. old_level is only set when status is not ERROR.
+    new_level is only set when status is DRY_RUN_OK or UPGRADED.
+    error_vnn/error_status are only set when status is ERROR.
+    unknown_status holds the raw status string reported by samba and is only
+    set when status is UNKNOWN.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    DRY_RUN_FIELD_NUMBER: builtins.int
+    STATUS_FIELD_NUMBER: builtins.int
+    OLD_LEVEL_FIELD_NUMBER: builtins.int
+    NEW_LEVEL_FIELD_NUMBER: builtins.int
+    ERROR_VNN_FIELD_NUMBER: builtins.int
+    ERROR_STATUS_FIELD_NUMBER: builtins.int
+    UNKNOWN_STATUS_FIELD_NUMBER: builtins.int
+    dry_run: builtins.bool
+    status: global___ClusterLevelUpgradeStatus.ValueType
+    @property
+    def old_level(self) -> global___ClusterFunctionalLevel: ...
+    @property
+    def new_level(self) -> global___ClusterFunctionalLevel: ...
+    error_vnn: builtins.int
+    error_status: builtins.str
+    unknown_status: builtins.str
+    def __init__(
+        self,
+        *,
+        dry_run: builtins.bool = ...,
+        status: global___ClusterLevelUpgradeStatus.ValueType = ...,
+        old_level: global___ClusterFunctionalLevel | None = ...,
+        new_level: global___ClusterFunctionalLevel | None = ...,
+        error_vnn: builtins.int = ...,
+        error_status: builtins.str = ...,
+        unknown_status: builtins.str = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["new_level", b"new_level", "old_level", b"old_level"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["dry_run", b"dry_run", "error_status", b"error_status", "error_vnn", b"error_vnn", "new_level", b"new_level", "old_level", b"old_level", "status", b"status", "unknown_status", b"unknown_status"]) -> None: ...
+
+global___UpgradeClusterLevelInfo = UpgradeClusterLevelInfo
+
+class ClusterLevelFeaturesRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    def __init__(
+        self,
+    ) -> None: ...
+
+global___ClusterLevelFeaturesRequest = ClusterLevelFeaturesRequest
+
+class ClusterLevelFeaturesInfo(google.protobuf.message.Message):
+    """What this one node can support."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CLUSTER_SUPPORT_FIELD_NUMBER: builtins.int
+    CTDB_SOCKET_FIELD_NUMBER: builtins.int
+    CTDB_PROTOCOL_FIELD_NUMBER: builtins.int
+    SUPPORTED_RANGES_FIELD_NUMBER: builtins.int
+    cluster_support: builtins.bool
+    ctdb_socket: builtins.str
+    ctdb_protocol: builtins.int
+    @property
+    def supported_ranges(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ClusterLevelRange]: ...
+    def __init__(
+        self,
+        *,
+        cluster_support: builtins.bool = ...,
+        ctdb_socket: builtins.str | None = ...,
+        ctdb_protocol: builtins.int | None = ...,
+        supported_ranges: collections.abc.Iterable[global___ClusterLevelRange] | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_ctdb_protocol", b"_ctdb_protocol", "_ctdb_socket", b"_ctdb_socket", "ctdb_protocol", b"ctdb_protocol", "ctdb_socket", b"ctdb_socket"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_ctdb_protocol", b"_ctdb_protocol", "_ctdb_socket", b"_ctdb_socket", "cluster_support", b"cluster_support", "ctdb_protocol", b"ctdb_protocol", "ctdb_socket", b"ctdb_socket", "supported_ranges", b"supported_ranges"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_ctdb_protocol", b"_ctdb_protocol"]) -> typing_extensions.Literal["ctdb_protocol"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_ctdb_socket", b"_ctdb_socket"]) -> typing_extensions.Literal["ctdb_socket"] | None: ...
+
+global___ClusterLevelFeaturesInfo = ClusterLevelFeaturesInfo

@@ -15,7 +15,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcontrol.proto\"\r\n\x0bInfoRequest\"/\n\tSambaInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x11\n\tclustered\x18\x02 \x01(\x08\"H\n\x12SambaContainerInfo\x12\x17\n\x0fsambacc_version\x18\x01 \x01(\t\x12\x19\n\x11\x63ontainer_version\x18\x02 \x01(\t\"Z\n\x0bGeneralInfo\x12\x1e\n\nsamba_info\x18\x01 \x01(\x0b\x32\n.SambaInfo\x12+\n\x0e\x63ontainer_info\x18\x02 \x01(\x0b\x32\x13.SambaContainerInfo\"\x0f\n\rStatusRequest\"/\n\rSessionCrypto\x12\x0e\n\x06\x63ipher\x18\x01 \x01(\t\x12\x0e\n\x06\x64\x65gree\x18\x02 \x01(\t\"\xe8\x01\n\x0bSessionInfo\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x11\n\tgroupname\x18\x03 \x01(\t\x12\x16\n\x0eremote_machine\x18\x04 \x01(\t\x12\x10\n\x08hostname\x18\x05 \x01(\t\x12\x17\n\x0fsession_dialect\x18\x06 \x01(\t\x12\x0b\n\x03uid\x18\x07 \x01(\r\x12\x0b\n\x03gid\x18\x08 \x01(\r\x12\"\n\nencryption\x18\t \x01(\x0b\x32\x0e.SessionCrypto\x12\x1f\n\x07signing\x18\n \x01(\x0b\x32\x0e.SessionCrypto\"E\n\x08\x43onnInfo\x12\x0f\n\x07tcon_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x14\n\x0cservice_name\x18\x03 \x01(\t\"k\n\nStatusInfo\x12\x18\n\x10server_timestamp\x18\x01 \x01(\t\x12\x1e\n\x08sessions\x18\x02 \x03(\x0b\x32\x0c.SessionInfo\x12#\n\x10tree_connections\x18\x03 \x03(\x0b\x32\t.ConnInfo\"=\n\x11\x43loseShareRequest\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65nied_users\x18\x02 \x01(\x08\"\x10\n\x0e\x43loseShareInfo\"\'\n\x11KillClientRequest\x12\x12\n\nip_address\x18\x01 \x01(\t\"\x10\n\x0eKillClientInfo\"J\n\x14\x43onfigSummaryRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x16\n\x04hash\x18\x02 \x01(\x0e\x32\x08.HashAlg\"=\n\x0c\x43onfigDigest\x12\x16\n\x04hash\x18\x01 \x01(\x0e\x32\x08.HashAlg\x12\x15\n\rconfig_digest\x18\x02 \x01(\t\"N\n\x11\x43onfigSummaryInfo\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x1d\n\x06\x64igest\x18\x02 \x01(\x0b\x32\r.ConfigDigest\"G\n\x11\x43onfigDumpRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x16\n\x04hash\x18\x02 \x01(\x0e\x32\x08.HashAlg\"2\n\nConfigLine\x12\x13\n\x0bline_number\x18\x01 \x01(\x03\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\"[\n\x0e\x43onfigDumpItem\x12\x1b\n\x04line\x18\x01 \x01(\x0b\x32\x0b.ConfigLineH\x00\x12\x1f\n\x06\x64igest\x18\x02 \x01(\x0b\x32\r.ConfigDigestH\x00\x42\x0b\n\tdump_item\"5\n\x17\x43onfigSharesListRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\"\x1f\n\x0f\x43onfigShareItem\x12\x0c\n\x04name\x18\x01 \x01(\t\"I\n\x14SetDebugLevelRequest\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\x12\x13\n\x0b\x64\x65\x62ug_level\x18\x02 \x01(\t\"4\n\x14GetDebugLevelRequest\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\"C\n\x0e\x44\x65\x62ugLevelInfo\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\x12\x13\n\x0b\x64\x65\x62ug_level\x18\x02 \x01(\t\"\x13\n\x11\x43TDBStatusRequest\"\xc3\x01\n\x0c\x43TDBNodeInfo\x12\x0b\n\x03pnn\x18\x01 \x01(\r\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\x12\x18\n\x10partially_online\x18\x03 \x01(\x08\x12\x11\n\tflags_raw\x18\x04 \x01(\r\x12\'\n\x05\x66lags\x18\x05 \x03(\x0b\x32\x18.CTDBNodeInfo.FlagsEntry\x12\x11\n\tthis_node\x18\x06 \x01(\x08\x1a,\n\nFlagsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x08:\x02\x38\x01\"^\n\x0e\x43TDBNodeStatus\x12\x12\n\nnode_count\x18\x01 \x01(\r\x12\x1a\n\x12\x64\x65leted_node_count\x18\x02 \x01(\r\x12\x1c\n\x05nodes\x18\x03 \x03(\x0b\x32\r.CTDBNodeInfo\"(\n\x07VNNInfo\x12\x0c\n\x04hash\x18\x01 \x01(\x05\x12\x0f\n\x07lmaster\x18\x02 \x01(\x05\"L\n\rCTDBVNNStatus\x12\x12\n\ngeneration\x18\x01 \x01(\x03\x12\x0c\n\x04size\x18\x02 \x01(\r\x12\x19\n\x07vnn_map\x18\x03 \x03(\x0b\x32\x08.VNNInfo\"/\n\x0e\x43TDBIPLocation\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\t\"\xba\x01\n\x0e\x43TDBStatusInfo\x12$\n\x0bnode_status\x18\x01 \x01(\x0b\x32\x0f.CTDBNodeStatus\x12\"\n\nvnn_status\x18\x02 \x01(\x0b\x32\x0e.CTDBVNNStatus\x12\x15\n\rrecovery_mode\x18\x03 \x01(\t\x12\x19\n\x11recovery_mode_raw\x18\x04 \x01(\x03\x12\x0e\n\x06leader\x18\x05 \x01(\x03\x12\x1c\n\x03ips\x18\x06 \x03(\x0b\x32\x0f.CTDBIPLocation\"-\n\x11\x43TDBMoveIPRequest\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\t\"\x10\n\x0e\x43TDBMoveIPInfo*f\n\tConfigFor\x12\x16\n\x12\x43ONFIG_FOR_MISSING\x10\x00\x12\x14\n\x10\x43ONFIG_FOR_SAMBA\x10\x01\x12\x13\n\x0f\x43ONFIG_FOR_CTDB\x10\x02\x12\x16\n\x12\x43ONFIG_FOR_SAMBACC\x10\x03*2\n\x07HashAlg\x12\x12\n\x0eHASH_ALG_UNSET\x10\x00\x12\x13\n\x0fHASH_ALG_SHA256\x10\x01*i\n\nSMBProcess\x12\x17\n\x13SMB_PROCESS_MISSING\x10\x00\x12\x13\n\x0fSMB_PROCESS_SMB\x10\x01\x12\x17\n\x13SMB_PROCESS_WINBIND\x10\x02\x12\x14\n\x10SMB_PROCESS_CTDB\x10\x03\x32\xd4\x04\n\x0cSambaControl\x12\"\n\x04Info\x12\x0c.InfoRequest\x1a\x0c.GeneralInfo\x12%\n\x06Status\x12\x0e.StatusRequest\x1a\x0b.StatusInfo\x12\x31\n\nCloseShare\x12\x12.CloseShareRequest\x1a\x0f.CloseShareInfo\x12;\n\x14KillClientConnection\x12\x12.KillClientRequest\x1a\x0f.KillClientInfo\x12\x33\n\nConfigDump\x12\x12.ConfigDumpRequest\x1a\x0f.ConfigDumpItem0\x01\x12:\n\rConfigSummary\x12\x15.ConfigSummaryRequest\x1a\x12.ConfigSummaryInfo\x12@\n\x10\x43onfigSharesList\x12\x18.ConfigSharesListRequest\x1a\x10.ConfigShareItem0\x01\x12\x37\n\rSetDebugLevel\x12\x15.SetDebugLevelRequest\x1a\x0f.DebugLevelInfo\x12\x37\n\rGetDebugLevel\x12\x15.GetDebugLevelRequest\x1a\x0f.DebugLevelInfo\x12\x31\n\nCTDBStatus\x12\x12.CTDBStatusRequest\x1a\x0f.CTDBStatusInfo\x12\x31\n\nCTDBMoveIP\x12\x12.CTDBMoveIPRequest\x1a\x0f.CTDBMoveIPInfob\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcontrol.proto\"\r\n\x0bInfoRequest\"/\n\tSambaInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x11\n\tclustered\x18\x02 \x01(\x08\"H\n\x12SambaContainerInfo\x12\x17\n\x0fsambacc_version\x18\x01 \x01(\t\x12\x19\n\x11\x63ontainer_version\x18\x02 \x01(\t\"Z\n\x0bGeneralInfo\x12\x1e\n\nsamba_info\x18\x01 \x01(\x0b\x32\n.SambaInfo\x12+\n\x0e\x63ontainer_info\x18\x02 \x01(\x0b\x32\x13.SambaContainerInfo\"\x0f\n\rStatusRequest\"/\n\rSessionCrypto\x12\x0e\n\x06\x63ipher\x18\x01 \x01(\t\x12\x0e\n\x06\x64\x65gree\x18\x02 \x01(\t\"\xe8\x01\n\x0bSessionInfo\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x11\n\tgroupname\x18\x03 \x01(\t\x12\x16\n\x0eremote_machine\x18\x04 \x01(\t\x12\x10\n\x08hostname\x18\x05 \x01(\t\x12\x17\n\x0fsession_dialect\x18\x06 \x01(\t\x12\x0b\n\x03uid\x18\x07 \x01(\r\x12\x0b\n\x03gid\x18\x08 \x01(\r\x12\"\n\nencryption\x18\t \x01(\x0b\x32\x0e.SessionCrypto\x12\x1f\n\x07signing\x18\n \x01(\x0b\x32\x0e.SessionCrypto\"E\n\x08\x43onnInfo\x12\x0f\n\x07tcon_id\x18\x01 \x01(\t\x12\x12\n\nsession_id\x18\x02 \x01(\t\x12\x14\n\x0cservice_name\x18\x03 \x01(\t\"k\n\nStatusInfo\x12\x18\n\x10server_timestamp\x18\x01 \x01(\t\x12\x1e\n\x08sessions\x18\x02 \x03(\x0b\x32\x0c.SessionInfo\x12#\n\x10tree_connections\x18\x03 \x03(\x0b\x32\t.ConnInfo\"=\n\x11\x43loseShareRequest\x12\x12\n\nshare_name\x18\x01 \x01(\t\x12\x14\n\x0c\x64\x65nied_users\x18\x02 \x01(\x08\"\x10\n\x0e\x43loseShareInfo\"\'\n\x11KillClientRequest\x12\x12\n\nip_address\x18\x01 \x01(\t\"\x10\n\x0eKillClientInfo\"J\n\x14\x43onfigSummaryRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x16\n\x04hash\x18\x02 \x01(\x0e\x32\x08.HashAlg\"=\n\x0c\x43onfigDigest\x12\x16\n\x04hash\x18\x01 \x01(\x0e\x32\x08.HashAlg\x12\x15\n\rconfig_digest\x18\x02 \x01(\t\"N\n\x11\x43onfigSummaryInfo\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x1d\n\x06\x64igest\x18\x02 \x01(\x0b\x32\r.ConfigDigest\"G\n\x11\x43onfigDumpRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\x12\x16\n\x04hash\x18\x02 \x01(\x0e\x32\x08.HashAlg\"2\n\nConfigLine\x12\x13\n\x0bline_number\x18\x01 \x01(\x03\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\"[\n\x0e\x43onfigDumpItem\x12\x1b\n\x04line\x18\x01 \x01(\x0b\x32\x0b.ConfigLineH\x00\x12\x1f\n\x06\x64igest\x18\x02 \x01(\x0b\x32\r.ConfigDigestH\x00\x42\x0b\n\tdump_item\"5\n\x17\x43onfigSharesListRequest\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ConfigFor\"\x1f\n\x0f\x43onfigShareItem\x12\x0c\n\x04name\x18\x01 \x01(\t\"I\n\x14SetDebugLevelRequest\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\x12\x13\n\x0b\x64\x65\x62ug_level\x18\x02 \x01(\t\"4\n\x14GetDebugLevelRequest\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\"C\n\x0e\x44\x65\x62ugLevelInfo\x12\x1c\n\x07process\x18\x01 \x01(\x0e\x32\x0b.SMBProcess\x12\x13\n\x0b\x64\x65\x62ug_level\x18\x02 \x01(\t\"\x13\n\x11\x43TDBStatusRequest\"\xc3\x01\n\x0c\x43TDBNodeInfo\x12\x0b\n\x03pnn\x18\x01 \x01(\r\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\x12\x18\n\x10partially_online\x18\x03 \x01(\x08\x12\x11\n\tflags_raw\x18\x04 \x01(\r\x12\'\n\x05\x66lags\x18\x05 \x03(\x0b\x32\x18.CTDBNodeInfo.FlagsEntry\x12\x11\n\tthis_node\x18\x06 \x01(\x08\x1a,\n\nFlagsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x08:\x02\x38\x01\"^\n\x0e\x43TDBNodeStatus\x12\x12\n\nnode_count\x18\x01 \x01(\r\x12\x1a\n\x12\x64\x65leted_node_count\x18\x02 \x01(\r\x12\x1c\n\x05nodes\x18\x03 \x03(\x0b\x32\r.CTDBNodeInfo\"(\n\x07VNNInfo\x12\x0c\n\x04hash\x18\x01 \x01(\x05\x12\x0f\n\x07lmaster\x18\x02 \x01(\x05\"L\n\rCTDBVNNStatus\x12\x12\n\ngeneration\x18\x01 \x01(\x03\x12\x0c\n\x04size\x18\x02 \x01(\r\x12\x19\n\x07vnn_map\x18\x03 \x03(\x0b\x32\x08.VNNInfo\"/\n\x0e\x43TDBIPLocation\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\t\"\xba\x01\n\x0e\x43TDBStatusInfo\x12$\n\x0bnode_status\x18\x01 \x01(\x0b\x32\x0f.CTDBNodeStatus\x12\"\n\nvnn_status\x18\x02 \x01(\x0b\x32\x0e.CTDBVNNStatus\x12\x15\n\rrecovery_mode\x18\x03 \x01(\t\x12\x19\n\x11recovery_mode_raw\x18\x04 \x01(\x03\x12\x0e\n\x06leader\x18\x05 \x01(\x03\x12\x1c\n\x03ips\x18\x06 \x03(\x0b\x32\x0f.CTDBIPLocation\"-\n\x11\x43TDBMoveIPRequest\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\t\"\x10\n\x0e\x43TDBMoveIPInfo\"\x1e\n\x1cGetActiveClusterLevelRequest\"\x1f\n\x1dGetClusterLevelDetailsRequest\"6\n\x16\x43lusterFunctionalLevel\x12\r\n\x05major\x18\x01 \x01(\r\x12\r\n\x05minor\x18\x02 \x01(\r\"H\n\x11\x43lusterLevelRange\x12\r\n\x05major\x18\x01 \x01(\r\x12\x11\n\tminor_min\x18\x02 \x01(\r\x12\x11\n\tminor_max\x18\x03 \x01(\r\"M\n\x10\x43lusterLevelNode\x12\x0b\n\x03pnn\x18\x01 \x01(\r\x12,\n\x10supported_ranges\x18\x02 \x03(\x0b\x32\x12.ClusterLevelRange\"\xad\x01\n\x10\x43lusterLevelInfo\x12-\n\x0c\x61\x63tive_level\x18\x01 \x01(\x0b\x32\x17.ClusterFunctionalLevel\x12 \n\x05nodes\x18\x02 \x03(\x0b\x32\x11.ClusterLevelNode\x12\x18\n\x10upgrade_possible\x18\x03 \x01(\x08\x12.\n\rhighest_level\x18\x04 \x01(\x0b\x32\x17.ClusterFunctionalLevel\"+\n\x1aUpgradeClusterLevelRequest\x12\r\n\x05\x61pply\x18\x01 \x01(\x08\"\xef\x01\n\x17UpgradeClusterLevelInfo\x12\x0f\n\x07\x64ry_run\x18\x01 \x01(\x08\x12*\n\x06status\x18\x02 \x01(\x0e\x32\x1a.ClusterLevelUpgradeStatus\x12*\n\told_level\x18\x03 \x01(\x0b\x32\x17.ClusterFunctionalLevel\x12*\n\tnew_level\x18\x04 \x01(\x0b\x32\x17.ClusterFunctionalLevel\x12\x11\n\terror_vnn\x18\x05 \x01(\r\x12\x14\n\x0c\x65rror_status\x18\x06 \x01(\t\x12\x16\n\x0eunknown_status\x18\x07 \x01(\t\"\x1d\n\x1b\x43lusterLevelFeaturesRequest\"\xb9\x01\n\x18\x43lusterLevelFeaturesInfo\x12\x17\n\x0f\x63luster_support\x18\x01 \x01(\x08\x12\x18\n\x0b\x63tdb_socket\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x1a\n\rctdb_protocol\x18\x03 \x01(\rH\x01\x88\x01\x01\x12,\n\x10supported_ranges\x18\x04 \x03(\x0b\x32\x12.ClusterLevelRangeB\x0e\n\x0c_ctdb_socketB\x10\n\x0e_ctdb_protocol*f\n\tConfigFor\x12\x16\n\x12\x43ONFIG_FOR_MISSING\x10\x00\x12\x14\n\x10\x43ONFIG_FOR_SAMBA\x10\x01\x12\x13\n\x0f\x43ONFIG_FOR_CTDB\x10\x02\x12\x16\n\x12\x43ONFIG_FOR_SAMBACC\x10\x03*2\n\x07HashAlg\x12\x12\n\x0eHASH_ALG_UNSET\x10\x00\x12\x13\n\x0fHASH_ALG_SHA256\x10\x01*i\n\nSMBProcess\x12\x17\n\x13SMB_PROCESS_MISSING\x10\x00\x12\x13\n\x0fSMB_PROCESS_SMB\x10\x01\x12\x17\n\x13SMB_PROCESS_WINBIND\x10\x02\x12\x14\n\x10SMB_PROCESS_CTDB\x10\x03*\xf7\x01\n\x19\x43lusterLevelUpgradeStatus\x12(\n$CLUSTER_LEVEL_UPGRADE_STATUS_UNKNOWN\x10\x00\x12\x30\n,CLUSTER_LEVEL_UPGRADE_STATUS_ALREADY_CURRENT\x10\x01\x12+\n\'CLUSTER_LEVEL_UPGRADE_STATUS_DRY_RUN_OK\x10\x02\x12)\n%CLUSTER_LEVEL_UPGRADE_STATUS_UPGRADED\x10\x03\x12&\n\"CLUSTER_LEVEL_UPGRADE_STATUS_ERROR\x10\x04\x32\x94\x07\n\x0cSambaControl\x12\"\n\x04Info\x12\x0c.InfoRequest\x1a\x0c.GeneralInfo\x12%\n\x06Status\x12\x0e.StatusRequest\x1a\x0b.StatusInfo\x12\x31\n\nCloseShare\x12\x12.CloseShareRequest\x1a\x0f.CloseShareInfo\x12;\n\x14KillClientConnection\x12\x12.KillClientRequest\x1a\x0f.KillClientInfo\x12\x33\n\nConfigDump\x12\x12.ConfigDumpRequest\x1a\x0f.ConfigDumpItem0\x01\x12:\n\rConfigSummary\x12\x15.ConfigSummaryRequest\x1a\x12.ConfigSummaryInfo\x12@\n\x10\x43onfigSharesList\x12\x18.ConfigSharesListRequest\x1a\x10.ConfigShareItem0\x01\x12\x37\n\rSetDebugLevel\x12\x15.SetDebugLevelRequest\x1a\x0f.DebugLevelInfo\x12\x37\n\rGetDebugLevel\x12\x15.GetDebugLevelRequest\x1a\x0f.DebugLevelInfo\x12\x31\n\nCTDBStatus\x12\x12.CTDBStatusRequest\x1a\x0f.CTDBStatusInfo\x12\x31\n\nCTDBMoveIP\x12\x12.CTDBMoveIPRequest\x1a\x0f.CTDBMoveIPInfo\x12O\n\x15GetActiveClusterLevel\x12\x1d.GetActiveClusterLevelRequest\x1a\x17.ClusterFunctionalLevel\x12K\n\x16GetClusterLevelDetails\x12\x1e.GetClusterLevelDetailsRequest\x1a\x11.ClusterLevelInfo\x12L\n\x13UpgradeClusterLevel\x12\x1b.UpgradeClusterLevelRequest\x1a\x18.UpgradeClusterLevelInfo\x12R\n\x17GetClusterLevelFeatures\x12\x1c.ClusterLevelFeaturesRequest\x1a\x19.ClusterLevelFeaturesInfob\x06proto3')
 
 _CONFIGFOR = DESCRIPTOR.enum_types_by_name['ConfigFor']
 ConfigFor = enum_type_wrapper.EnumTypeWrapper(_CONFIGFOR)
@@ -23,6 +23,8 @@ _HASHALG = DESCRIPTOR.enum_types_by_name['HashAlg']
 HashAlg = enum_type_wrapper.EnumTypeWrapper(_HASHALG)
 _SMBPROCESS = DESCRIPTOR.enum_types_by_name['SMBProcess']
 SMBProcess = enum_type_wrapper.EnumTypeWrapper(_SMBPROCESS)
+_CLUSTERLEVELUPGRADESTATUS = DESCRIPTOR.enum_types_by_name['ClusterLevelUpgradeStatus']
+ClusterLevelUpgradeStatus = enum_type_wrapper.EnumTypeWrapper(_CLUSTERLEVELUPGRADESTATUS)
 CONFIG_FOR_MISSING = 0
 CONFIG_FOR_SAMBA = 1
 CONFIG_FOR_CTDB = 2
@@ -33,6 +35,11 @@ SMB_PROCESS_MISSING = 0
 SMB_PROCESS_SMB = 1
 SMB_PROCESS_WINBIND = 2
 SMB_PROCESS_CTDB = 3
+CLUSTER_LEVEL_UPGRADE_STATUS_UNKNOWN = 0
+CLUSTER_LEVEL_UPGRADE_STATUS_ALREADY_CURRENT = 1
+CLUSTER_LEVEL_UPGRADE_STATUS_DRY_RUN_OK = 2
+CLUSTER_LEVEL_UPGRADE_STATUS_UPGRADED = 3
+CLUSTER_LEVEL_UPGRADE_STATUS_ERROR = 4
 
 
 _INFOREQUEST = DESCRIPTOR.message_types_by_name['InfoRequest']
@@ -69,6 +76,16 @@ _CTDBIPLOCATION = DESCRIPTOR.message_types_by_name['CTDBIPLocation']
 _CTDBSTATUSINFO = DESCRIPTOR.message_types_by_name['CTDBStatusInfo']
 _CTDBMOVEIPREQUEST = DESCRIPTOR.message_types_by_name['CTDBMoveIPRequest']
 _CTDBMOVEIPINFO = DESCRIPTOR.message_types_by_name['CTDBMoveIPInfo']
+_GETACTIVECLUSTERLEVELREQUEST = DESCRIPTOR.message_types_by_name['GetActiveClusterLevelRequest']
+_GETCLUSTERLEVELDETAILSREQUEST = DESCRIPTOR.message_types_by_name['GetClusterLevelDetailsRequest']
+_CLUSTERFUNCTIONALLEVEL = DESCRIPTOR.message_types_by_name['ClusterFunctionalLevel']
+_CLUSTERLEVELRANGE = DESCRIPTOR.message_types_by_name['ClusterLevelRange']
+_CLUSTERLEVELNODE = DESCRIPTOR.message_types_by_name['ClusterLevelNode']
+_CLUSTERLEVELINFO = DESCRIPTOR.message_types_by_name['ClusterLevelInfo']
+_UPGRADECLUSTERLEVELREQUEST = DESCRIPTOR.message_types_by_name['UpgradeClusterLevelRequest']
+_UPGRADECLUSTERLEVELINFO = DESCRIPTOR.message_types_by_name['UpgradeClusterLevelInfo']
+_CLUSTERLEVELFEATURESREQUEST = DESCRIPTOR.message_types_by_name['ClusterLevelFeaturesRequest']
+_CLUSTERLEVELFEATURESINFO = DESCRIPTOR.message_types_by_name['ClusterLevelFeaturesInfo']
 InfoRequest = _reflection.GeneratedProtocolMessageType('InfoRequest', (_message.Message,), {
   'DESCRIPTOR' : _INFOREQUEST,
   '__module__' : 'control_pb2'
@@ -308,18 +325,90 @@ CTDBMoveIPInfo = _reflection.GeneratedProtocolMessageType('CTDBMoveIPInfo', (_me
   })
 _sym_db.RegisterMessage(CTDBMoveIPInfo)
 
+GetActiveClusterLevelRequest = _reflection.GeneratedProtocolMessageType('GetActiveClusterLevelRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETACTIVECLUSTERLEVELREQUEST,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:GetActiveClusterLevelRequest)
+  })
+_sym_db.RegisterMessage(GetActiveClusterLevelRequest)
+
+GetClusterLevelDetailsRequest = _reflection.GeneratedProtocolMessageType('GetClusterLevelDetailsRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETCLUSTERLEVELDETAILSREQUEST,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:GetClusterLevelDetailsRequest)
+  })
+_sym_db.RegisterMessage(GetClusterLevelDetailsRequest)
+
+ClusterFunctionalLevel = _reflection.GeneratedProtocolMessageType('ClusterFunctionalLevel', (_message.Message,), {
+  'DESCRIPTOR' : _CLUSTERFUNCTIONALLEVEL,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:ClusterFunctionalLevel)
+  })
+_sym_db.RegisterMessage(ClusterFunctionalLevel)
+
+ClusterLevelRange = _reflection.GeneratedProtocolMessageType('ClusterLevelRange', (_message.Message,), {
+  'DESCRIPTOR' : _CLUSTERLEVELRANGE,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:ClusterLevelRange)
+  })
+_sym_db.RegisterMessage(ClusterLevelRange)
+
+ClusterLevelNode = _reflection.GeneratedProtocolMessageType('ClusterLevelNode', (_message.Message,), {
+  'DESCRIPTOR' : _CLUSTERLEVELNODE,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:ClusterLevelNode)
+  })
+_sym_db.RegisterMessage(ClusterLevelNode)
+
+ClusterLevelInfo = _reflection.GeneratedProtocolMessageType('ClusterLevelInfo', (_message.Message,), {
+  'DESCRIPTOR' : _CLUSTERLEVELINFO,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:ClusterLevelInfo)
+  })
+_sym_db.RegisterMessage(ClusterLevelInfo)
+
+UpgradeClusterLevelRequest = _reflection.GeneratedProtocolMessageType('UpgradeClusterLevelRequest', (_message.Message,), {
+  'DESCRIPTOR' : _UPGRADECLUSTERLEVELREQUEST,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:UpgradeClusterLevelRequest)
+  })
+_sym_db.RegisterMessage(UpgradeClusterLevelRequest)
+
+UpgradeClusterLevelInfo = _reflection.GeneratedProtocolMessageType('UpgradeClusterLevelInfo', (_message.Message,), {
+  'DESCRIPTOR' : _UPGRADECLUSTERLEVELINFO,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:UpgradeClusterLevelInfo)
+  })
+_sym_db.RegisterMessage(UpgradeClusterLevelInfo)
+
+ClusterLevelFeaturesRequest = _reflection.GeneratedProtocolMessageType('ClusterLevelFeaturesRequest', (_message.Message,), {
+  'DESCRIPTOR' : _CLUSTERLEVELFEATURESREQUEST,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:ClusterLevelFeaturesRequest)
+  })
+_sym_db.RegisterMessage(ClusterLevelFeaturesRequest)
+
+ClusterLevelFeaturesInfo = _reflection.GeneratedProtocolMessageType('ClusterLevelFeaturesInfo', (_message.Message,), {
+  'DESCRIPTOR' : _CLUSTERLEVELFEATURESINFO,
+  '__module__' : 'control_pb2'
+  # @@protoc_insertion_point(class_scope:ClusterLevelFeaturesInfo)
+  })
+_sym_db.RegisterMessage(ClusterLevelFeaturesInfo)
+
 _SAMBACONTROL = DESCRIPTOR.services_by_name['SambaControl']
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _CTDBNODEINFO_FLAGSENTRY._options = None
   _CTDBNODEINFO_FLAGSENTRY._serialized_options = b'8\001'
-  _CONFIGFOR._serialized_start=2329
-  _CONFIGFOR._serialized_end=2431
-  _HASHALG._serialized_start=2433
-  _HASHALG._serialized_end=2483
-  _SMBPROCESS._serialized_start=2485
-  _SMBPROCESS._serialized_end=2590
+  _CONFIGFOR._serialized_start=3285
+  _CONFIGFOR._serialized_end=3387
+  _HASHALG._serialized_start=3389
+  _HASHALG._serialized_end=3439
+  _SMBPROCESS._serialized_start=3441
+  _SMBPROCESS._serialized_end=3546
+  _CLUSTERLEVELUPGRADESTATUS._serialized_start=3549
+  _CLUSTERLEVELUPGRADESTATUS._serialized_end=3796
   _INFOREQUEST._serialized_start=17
   _INFOREQUEST._serialized_end=30
   _SAMBAINFO._serialized_start=32
@@ -388,6 +477,26 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _CTDBMOVEIPREQUEST._serialized_end=2309
   _CTDBMOVEIPINFO._serialized_start=2311
   _CTDBMOVEIPINFO._serialized_end=2327
-  _SAMBACONTROL._serialized_start=2593
-  _SAMBACONTROL._serialized_end=3189
+  _GETACTIVECLUSTERLEVELREQUEST._serialized_start=2329
+  _GETACTIVECLUSTERLEVELREQUEST._serialized_end=2359
+  _GETCLUSTERLEVELDETAILSREQUEST._serialized_start=2361
+  _GETCLUSTERLEVELDETAILSREQUEST._serialized_end=2392
+  _CLUSTERFUNCTIONALLEVEL._serialized_start=2394
+  _CLUSTERFUNCTIONALLEVEL._serialized_end=2448
+  _CLUSTERLEVELRANGE._serialized_start=2450
+  _CLUSTERLEVELRANGE._serialized_end=2522
+  _CLUSTERLEVELNODE._serialized_start=2524
+  _CLUSTERLEVELNODE._serialized_end=2601
+  _CLUSTERLEVELINFO._serialized_start=2604
+  _CLUSTERLEVELINFO._serialized_end=2777
+  _UPGRADECLUSTERLEVELREQUEST._serialized_start=2779
+  _UPGRADECLUSTERLEVELREQUEST._serialized_end=2822
+  _UPGRADECLUSTERLEVELINFO._serialized_start=2825
+  _UPGRADECLUSTERLEVELINFO._serialized_end=3064
+  _CLUSTERLEVELFEATURESREQUEST._serialized_start=3066
+  _CLUSTERLEVELFEATURESREQUEST._serialized_end=3095
+  _CLUSTERLEVELFEATURESINFO._serialized_start=3098
+  _CLUSTERLEVELFEATURESINFO._serialized_end=3283
+  _SAMBACONTROL._serialized_start=3799
+  _SAMBACONTROL._serialized_end=4715
 # @@protoc_insertion_point(module_scope)
