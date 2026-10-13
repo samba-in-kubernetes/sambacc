@@ -300,7 +300,37 @@ SCHEMA = {
                 "properties": {
                     "realm": {"type": "string"},
                     "short_domain": {"type": "string"},
-                    "admin_password": {"type": "string"},
+                    "admin_password": {
+                        "description": (
+                            "The administrator password for the AD DC"
+                            " domain.\nCan be specified as a plain string, or"
+                            " as an object to source\nthe password from a"
+                            " file or environment variable.\n"
+                        ),
+                        "oneOf": [
+                            {"type": "string"},
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "description": (
+                                            "Path to a file containing the"
+                                            " admin password."
+                                        ),
+                                    },
+                                    "env": {
+                                        "type": "string",
+                                        "description": (
+                                            "Name of an environment variable"
+                                            " containing the admin password."
+                                        ),
+                                    },
+                                },
+                                "additionalProperties": False,
+                            },
+                        ],
+                    },
                     "interfaces": {
                         "type": "object",
                         "properties": {

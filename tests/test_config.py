@@ -1423,3 +1423,118 @@ def test_yaml_configs_validation(yaml_str, ok):
                 require_validation=True,
                 config_format=sambacc.config.ConfigFormat.YAML,
             )
+
+
+class TestAdminPasswordResolution:
+    """Tests for admin_password resolution from string, file, and env."""
+
+    def test_string_password(self):
+        drec = {"realm": "TEST.REALM", "admin_password": "Secret123"}
+        dc = sambacc.config.DomainConfig(drec, "dc1")
+        assert dc.admin_password == "Secret123"
+
+    def test_string_password_empty(self):
+        drec = {"realm": "TEST.REALM"}
+        dc = sambacc.config.DomainConfig(drec, "dc1")
+        assert dc.admin_password == ""
+
+    def test_file_password(self, tmp_path):
+        pwfile = tmp_path / "admin_pass.txt"
+        pwfile.write_text("FileP@ssw0rd\n")
+        drec = {"realm": "TEST.REALM", "admin_password": {"file": str(pwfile)}}
+        dc = sambacc.config.DomainConfig(drec, "dc1")
+        assert dc.admin_password == "FileP@ssw0rd"
+
+    def test_file_password_strips_whitespace(self, tmp_path):
+        pwfile = tmp_path / "admin_pass.txt"
+        pwfile.write_text("  TrimmedP@ss  \n\n")
+        drec = {"realm": "TEST.REALM", "admin_password": {"file": str(pwfile)}}
+        dc = sambacc.config.DomainConfig(drec, "dc1")
+        assert dc.admin_password == "TrimmedP@ss"
+
+    def test_file_password_not_found(self):
+        drec = {
+            "realm": "TEST.REALM",
+            "admin_password": {"file": "/nonexistent/path/password.txt"},
+        }
+        with pytest.raises(FileNotFoundError):
+            sambacc.config.DomainConfig(drec, "dc1")
+
+    def test_env_password(self, monkeypatch):
+        monkeypatch.setenv("TEST_ADMIN_PASS", "EnvP@ssw0rd")
+        drec = {
+            "realm": "TEST.REALM",
+            "admin_password": {"env": "TEST_ADMIN_PASS"},
+        }
+        dc = sambacc.config.DomainConfig(drec, "dc1")
+        assert dc.admin_password == "EnvP@ssw0rd"
+
+    def test_env_password_unset(self):
+        drec = {
+            "realm": "TEST.REALM",
+            "admin_password": {"env": "UNSET_ENV_VAR_12345"},
+        }
+        dc = sambacc.config.DomainConfig(drec, "dc1")
+        assert dc.admin_password == ""
+
+    def test_invalid_type_falls_back_to_empty(self):
+        drec = {"realm": "TEST.REALM", "admin_password": 12345}
+        dc = sambacc.config.DomainConfig(drec, "dc1")
+        assert dc.admin_password == ""
+
+    def test_full_config_with_file_password(self, tmp_path):
+        pwfile = tmp_path / "admin_pass.txt"
+        pwfile.write_text("ConfigFileP@ss")
+        config_str = f"""
+{{
+  "samba-container-config": "v0",
+  "configs": {{
+    "demo": {{
+      "instance_features": ["addc"],
+      "domain_settings": "sink",
+      "instance_name": "dc1"
+    }}
+  }},
+  "domain_settings": {{
+    "sink": {{
+      "realm": "DOMAIN1.SINK.TEST",
+      "short_domain": "DOMAIN1",
+      "admin_password": {{"file": "{pwfile}"}}
+    }}
+  }}
+}}
+"""
+        cfg = sambacc.config.GlobalConfig()
+        fh = io.BytesIO(config_str.encode("utf8"))
+        cfg.load(fh)
+        iconfig = cfg.get("demo")
+        dc = iconfig.domain()
+        assert dc.admin_password == "ConfigFileP@ss"
+
+    def test_full_config_with_env_password(self, monkeypatch):
+        monkeypatch.setenv("MY_ADMIN_PW", "FromEnvP@ss")
+        config_str = """
+{
+  "samba-container-config": "v0",
+  "configs": {
+    "demo": {
+      "instance_features": ["addc"],
+      "domain_settings": "sink",
+      "instance_name": "dc1"
+    }
+  },
+  "domain_settings": {
+    "sink": {
+      "realm": "DOMAIN1.SINK.TEST",
+      "short_domain": "DOMAIN1",
+      "admin_password": {"env": "MY_ADMIN_PW"}
+    }
+  }
+}
+"""
+        cfg = sambacc.config.GlobalConfig()
+        fh = io.BytesIO(config_str.encode("utf8"))
+        cfg.load(fh)
+        iconfig = cfg.get("demo")
+        dc = iconfig.domain()
+        assert dc.admin_password == "FromEnvP@ss"

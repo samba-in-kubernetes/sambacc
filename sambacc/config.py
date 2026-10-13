@@ -22,6 +22,7 @@ import binascii
 import enum
 import errno
 import json
+import os
 import sys
 import typing
 import urllib
@@ -645,11 +646,25 @@ class GroupEntry:
         return (self.groupname, "x", str(self.gid), ",".join(self.members))
 
 
+def _resolve_admin_password(value: typing.Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        if "file" in value:
+            with open(value["file"], "r") as fh:
+                return fh.read().strip()
+        if "env" in value:
+            return os.environ.get(value["env"], "")
+    return ""
+
+
 class DomainConfig:
     def __init__(self, drec: dict, instance_name: str):
         self.realm = drec["realm"]
         self.short_domain = drec.get("short_domain", "")
-        self.admin_password = drec.get("admin_password", "")
+        self.admin_password = _resolve_admin_password(
+            drec.get("admin_password", "")
+        )
         self.interface_config = DCInterfaceConfig(drec.get("interfaces", {}))
         self.dcname = instance_name
 
