@@ -253,6 +253,21 @@ def test_info_error(mock_grpc_server):
     assert mock_grpc_server.backend._counter["get_versions"] == 1
 
 
+def test_runtime_error(mock_grpc_server):
+    import grpc
+    import sambacc.grpc.generated.control_pb2_grpc as _rpc
+    import sambacc.grpc.generated.control_pb2 as _pb
+
+    mock_grpc_server.backend._kaboom = RuntimeError("ctdb not healthy")
+    with grpc.insecure_channel(mock_grpc_server.address) as channel:
+        client = _rpc.SambaControlStub(channel)
+        with pytest.raises(grpc.RpcError) as excinfo:
+            client.Info(_pb.InfoRequest())
+
+    assert excinfo.value.code() == grpc.StatusCode.FAILED_PRECONDITION
+    assert "ctdb not healthy" in excinfo.value.details()
+
+
 def test_status(mock_grpc_server):
     import grpc
     import sambacc.grpc.generated.control_pb2_grpc as _rpc
