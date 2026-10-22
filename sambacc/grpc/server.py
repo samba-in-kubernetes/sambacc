@@ -118,6 +118,9 @@ def _catch_rpc(context: grpc.ServicerContext) -> Iterator[None]:
     except FileNotFoundError as err:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.NOT_FOUND, f"not found: {err}")
+    except RuntimeError as err:
+        _logger.exception("runtime error: %s", err)
+        context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(err))
     except Exception:
         _logger.exception("exception in rpc call")
         context.abort(grpc.StatusCode.UNKNOWN, "Unexpected server error")
