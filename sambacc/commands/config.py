@@ -34,6 +34,7 @@ from sambacc.simple_waiter import watch
 from sambacc.typelets import Self
 import sambacc.netcmd_loader as nc
 import sambacc.paths as paths
+from sambacc.smbconf_api import InstanceConfigStore
 
 from .cli import (
     Context,
@@ -46,6 +47,34 @@ from .cli import (
 from .users import sync_sys_users, sync_passdb_users
 
 _logger = logging.getLogger(__name__)
+
+
+def _import_config(iconfig: config.InstanceConfig) -> None:
+    """Import samba configuration using the best available backend.
+
+    Attempts to use the libsmbconf Python bindings (SMBConf) directly,
+    falling back to the ``net conf import`` CLI tool if the bindings are
+    not available.
+    """
+    try:
+        from sambacc.smbconf_samba import SMBConf
+
+        sconf = SMBConf.from_registry()
+        sconf.import_smbconf(InstanceConfigStore(iconfig))
+        return
+    except ImportError:
+        _logger.info(
+            "samba smbconf python bindings not available,"
+            " falling back to net conf import"
+        )
+    except Exception as exc:
+        _logger.warning(
+            "samba smbconf import failed (%s),"
+            " falling back to net conf import",
+            exc,
+        )
+    loader = nc.NetCmdLoader()
+    loader.import_config(iconfig)
 
 
 def _log_diff(desc: str, v1: typing.Any, v2: typing.Any) -> None:
@@ -69,8 +98,7 @@ def import_config(ctx: Context) -> None:
     # there are some expectations about what dirs exist and perms
     paths.ensure_samba_dirs()
 
-    loader = nc.NetCmdLoader()
-    loader.import_config(ctx.instance_config)
+    _import_config(ctx.instance_config)
 
 
 def _update_config_args(parser: argparse.ArgumentParser) -> None:
@@ -191,8 +219,7 @@ def _samba_config(chctx: ChangeContext) -> ChangeContext:
     if not chctx.changed:
         return chctx
     _logger.info("Updating samba configuration")
-    loader = nc.NetCmdLoader()
-    loader.import_config(chctx.current)
+    _import_config(chctx.current)
     try:
         subprocess.check_call(
             list(samba_cmds.smbcontrol["smbd", "reload-config"])
