@@ -111,6 +111,7 @@ class ChangeContext:
     previous: typing.Optional[config.InstanceConfig] = None
     differences: typing.Optional[set[config.DifferenceFlag]] = None
     applied: int = 0
+    retry: bool = False
 
     @property
     def changed(self) -> bool:
@@ -119,6 +120,9 @@ class ChangeContext:
     @property
     def updated(self) -> bool:
         return bool(self.applied)
+
+    def set_retry(self) -> Self:
+        return dataclasses.replace(self, retry=True)
 
     def _all_differences(self) -> set[config.DifferenceFlag]:
         return set() if self.differences is None else self.differences
@@ -281,7 +285,7 @@ def _when_leader(cb: ChangeCheck, chctx: ChangeContext) -> ChangeContext:
     with best_leader_locator(chctx.current) as ll:
         if not ll.is_leader():
             _logger.info("skipping %s. node not leader", cbname)
-            return chctx
+            return chctx.set_retry()
         _logger.info("executing %s. node is leader", cbname)
         return cb(chctx)
     return chctx
@@ -310,8 +314,10 @@ class Trigger:
         self,
         current: config.InstanceConfig,
         previous: typing.Optional[config.InstanceConfig],
-    ) -> tuple[config.InstanceConfig, bool]:
+    ) -> tuple[typing.Optional[config.InstanceConfig], bool]:
         rctx = self.apply(ChangeContext(current=current, previous=previous))
+        if rctx.retry:
+            return None, False
         return current, rctx.updated
 
 
