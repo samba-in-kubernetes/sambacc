@@ -16,11 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+from collections.abc import Iterable
 import logging
-import typing
 
 from sambacc.config import ShareOrigin
 from sambacc import ctdb
+from sambacc import krbconf
 from sambacc import paths
 import sambacc.nsswitch_loader as nsswitch
 
@@ -123,6 +124,13 @@ def ensure_share_paths(ctx: Context) -> None:
         perms_handler(share.permissions_config(), path).update()
 
 
+@setup_steps.command("krb5_ad_algos")
+@commands.command(name="ensure-krb5-ad-algos")
+def ensure_krb5_ad_algos(ctx: Context) -> None:
+    """Ensure that needed algorithms for AD are present in krb5 config."""
+    krbconf.ensure_krb5_ad_algos()
+
+
 _default_setup_steps = [
     "config",
     "share_paths",
@@ -140,10 +148,15 @@ def setup_step_names():
 
 @commands.command(name="init")
 def init_container(
-    ctx: Context, steps: typing.Optional[typing.Iterable[str]] = None
+    ctx: Context,
+    steps: Iterable[str] | None = None,
+    extra_steps: Iterable[str] | None = None,
 ) -> None:
     """Initialize the entire container environment."""
     steps = _default_setup_steps if steps is None else list(steps)
     cmds = setup_steps.dict()
     for step_name in steps:
         cmds[step_name].cmd_func(ctx)
+    for step_name in extra_steps or []:
+        if step_name not in steps:  # avoid repeats
+            cmds[step_name].cmd_func(ctx)
