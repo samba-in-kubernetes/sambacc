@@ -457,10 +457,10 @@ users:
 
 # TOML
 
-The [TOML](https://toml.io/en/) format may be used to configure sambacc when
-used on Python 3.11 or later or when the tomli library is available. The TOML
-format may seem similar to the INI-style format used by Samba.  The TOML
-configuration is effectively converted to JSON internally when processed. All
+The [TOML](https://toml.io/en/) format may be used to configure sambacc without
+installing any additional libraries. The format may seem similar to the
+INI-style format used by Samba. The TOML configuration is effectively converted
+to JSON internally when processed. All
 of the documentation applying to the JSON based configuration applies but in a
 somewhat easier to read and write format. The filename must end with `.toml` for
 sambacc to parse the file as TOML.

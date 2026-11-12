@@ -20,17 +20,11 @@ remember/redefine.
 """
 
 from types import TracebackType
-import sys
+from typing import Self
 import typing
+
+__all__ = ["ExcType", "ExcValue", "ExcTraceback", "Self"]
 
 ExcType = typing.Optional[typing.Type[BaseException]]
 ExcValue = typing.Optional[BaseException]
 ExcTraceback = typing.Optional[TracebackType]
-
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-elif typing.TYPE_CHECKING:
-    from typing_extensions import Self
-else:
-    Self = typing.Any
