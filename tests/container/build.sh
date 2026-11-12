@@ -134,9 +134,6 @@ task_sys_deps() {
     )
 
     case "${use_distro}" in
-        fedora|el9,centos)
-            pkgs+=(python3.9)
-        ;;&
         # common for all centos
         *,centos)
             "${dnf_cmd}" install -y epel-release
