@@ -19,7 +19,7 @@ URL:            https://github.com/samba-in-kubernetes/sambacc
 Source:         %{bname}-%{pversion}.tar.gz
 
 BuildArch:      noarch
-BuildRequires:  python3-devel
+BuildRequires:  python3-devel >= 3.12
 # we need python3-samba as a build dependency in order to run
 # the test suite
 BuildRequires:  python3-samba
@@ -40,16 +40,12 @@ Summary: %{summary}
 # Distro requires that are technically optional for the lib
 Requires: python3-samba
 Requires: python3-pyxattr
-%if 0%{?fedora} >= 37 || 0%{?rhel} >= 9
-# Enable extras other than validation as the dependency needed
-# is too old on centos/rhel 9.
+%if 0%{?fedora} >= 37 || 0%{?rhel} >= 10
 Recommends: %{name}+toml
 Recommends: %{name}+yaml
 Recommends: %{name}+rados
 Recommends: %{name}+grpc
 Recommends: %{name}+keybridge
-%endif
-%if 0%{?fedora} >= 37
 Recommends: %{name}+validation
 %endif
 

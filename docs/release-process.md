@@ -19,7 +19,7 @@ follow the commands below, which are based on the github workflows at the
 time this document was written:
 
 ```
-podman build --build-arg=SAMBACC_BASE_IMAGE=quay.io/centos/centos:stream9 -t sambacc:temp-centos9 tests/container/ -f tests/container/Containerfile
+podman build --build-arg=SAMBACC_BASE_IMAGE=quay.io/centos/centos:stream10 -t sambacc:temp-centos10 tests/container/ -f tests/container/Containerfile
 podman build --build-arg=SAMBACC_BASE_IMAGE=registry.fedoraproject.org/fedora:37 -t sambacc:temp-fc37 tests/container/ -f tests/container/Containerfile
 podman build --build-arg=SAMBACC_BASE_IMAGE=registry.fedoraproject.org/fedora:38 -t sambacc:temp-fc38 tests/container/ -f tests/container/Containerfile
 
@@ -27,7 +27,7 @@ podman build --build-arg=SAMBACC_BASE_IMAGE=registry.fedoraproject.org/fedora:38
 mybuild=$PWD/_builds/v03
 mkdir -p $mybuild
 # perform a combined test & build, that stores build artifacts under $mybuild/$SAMBACC_DISTNAME
-podman run -v $PWD:/var/tmp/build/sambacc -v $mybuild:/srv/dist -e SAMBACC_DISTNAME=centos9 sambacc:temp-centos9
+podman run -v $PWD:/var/tmp/build/sambacc -v $mybuild:/srv/dist -e SAMBACC_DISTNAME=centos10 sambacc:temp-centos10
 podman run -v $PWD:/var/tmp/build/sambacc -v $mybuild:/srv/dist -e SAMBACC_DISTNAME=fc37 sambacc:temp-fc37
 podman run -v $PWD:/var/tmp/build/sambacc -v $mybuild:/srv/dist -e SAMBACC_DISTNAME=fc38 sambacc:temp-fc38
 

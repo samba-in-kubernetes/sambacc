@@ -9,7 +9,7 @@ queue_rules:
       - check-success=check-commits
       - check-success=test (fedora-latest)
       - check-success=test (fedora-previous)
-      - check-success=test (centos-stream9)
+      - check-success=test (centos-stream10)
       - check-success=dpulls
     merge_method: rebase
     update_method: rebase
@@ -30,7 +30,7 @@ pull_request_rules:
       - check-success=check-commits
       - check-success=test (fedora-latest)
       - check-success=test (fedora-previous)
-      - check-success=test (centos-stream9)
+      - check-success=test (centos-stream10)
       - check-success=dpulls
       - "-draft"
       # Contributors should set the 'do-not-merge' label if they don't want

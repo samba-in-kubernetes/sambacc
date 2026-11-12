@@ -97,6 +97,9 @@ Contributions and feedback would be very much appreciated.
 
 ## Install
 
+Python 3.12 or newer is required. CI covers CentOS Stream 10 and the latest two
+stable Fedora releases. CentOS Stream/RHEL 9 is no longer supported.
+
 The sambacc library, samba-container command, and samba-dc-container are
 written assuming the software is being run within an OCI container environment.
 While there's nothing stopping you from trying to install it on something else
