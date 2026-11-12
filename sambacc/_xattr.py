@@ -44,7 +44,7 @@ def get(
     name: str,
     *,
     nofollow: bool = False,
-    namespace: Namespace = None
+    namespace: Namespace = None,
 ) -> bytes:
     """Get an xattr from the target item and name.
     See docs for PyXattr module for details.
@@ -64,7 +64,7 @@ def set(
     *,
     flags: typing.Optional[int] = None,
     nofollow: bool = False,
-    namespace: Namespace = None
+    namespace: Namespace = None,
 ) -> None:
     """Set an xattr. See docs for PyXattr module for details."""
     import xattr  # type: ignore

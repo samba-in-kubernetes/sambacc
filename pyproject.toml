@@ -15,6 +15,7 @@ version = "{version}"
 # time.
 
 [tool.black]
+target-version = ["py312"]
 line-length = 79
 quiet = true
 
