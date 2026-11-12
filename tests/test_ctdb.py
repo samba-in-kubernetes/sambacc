@@ -84,14 +84,12 @@ def test_pnn_in_nodes(tmpdir):
     assert not result
 
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
                 {"node": "10.0.0.11", "pnn": 1, "state": "new"}
             ]}
-        """
-        )
+        """)
     result = ctdb.pnn_in_nodes(0, nodes_json, real_path)
     assert result
     result = ctdb.pnn_in_nodes(1, nodes_json, real_path)
@@ -117,12 +115,10 @@ def test_manage_nodes(tmpdir, monkeypatch):
 
     # node not present - can not update
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
             ]}
-        """
-        )
+        """)
     with pytest.raises(_Stop):
         ctdb.manage_nodes(
             0, nodes_json=nodes_json, real_path=real_path, pause_func=once
@@ -130,13 +126,11 @@ def test_manage_nodes(tmpdir, monkeypatch):
 
     # node present, not in nodes - can not update
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"identity":"a", "node": "10.0.0.10", "pnn": 0, "state": "new"}
             ]}
-        """
-        )
+        """)
     with pytest.raises(_Stop):
         ctdb.manage_nodes(
             0, nodes_json=nodes_json, real_path=real_path, pause_func=once
@@ -144,14 +138,12 @@ def test_manage_nodes(tmpdir, monkeypatch):
 
     # node present, in nodes - nothing to do
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"identity":"a", "node": "10.0.0.10", "pnn": 0,
                  "state": "ready"}
             ]}
-        """
-        )
+        """)
     with open(real_path, "w") as fh:
         fh.write("10.0.0.10\n")
     with pytest.raises(_Stop):
@@ -161,16 +153,14 @@ def test_manage_nodes(tmpdir, monkeypatch):
 
     # node present, in nodes - new node in json
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"identity":"a", "node": "10.0.0.10", "pnn": 0,
                  "state": "ready"},
                 {"identity":"b", "node": "10.0.0.11", "pnn": 1,
                  "state": "new"}
             ]}
-        """
-        )
+        """)
     with open(real_path, "w") as fh:
         fh.write("10.0.0.10\n")
     with pytest.raises(_Stop):
@@ -184,16 +174,14 @@ def test_manage_nodes(tmpdir, monkeypatch):
 
     # invalid state - nodes file and nodes json out of whack
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"identity":"a", "node": "10.0.0.10", "pnn": 0,
                  "state": "ready"},
                 {"identity":"b", "node": "10.0.0.11", "pnn": 1,
                  "state": "new"}
             ]}
-        """
-        )
+        """)
     with open(real_path, "w") as fh:
         fh.write("10.0.0.10\n")
         fh.write("10.0.0.12\n")
@@ -205,16 +193,14 @@ def test_manage_nodes(tmpdir, monkeypatch):
 
     # node present but json file shows update incomplete
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"identity":"a", "node": "10.0.0.10", "pnn": 0,
                  "state": "ready"},
                 {"identity":"b", "node": "10.0.0.11", "pnn": 1,
                  "state": "new"}
             ]}
-        """
-        )
+        """)
     with open(real_path, "w") as fh:
         fh.write("10.0.0.10\n")
         fh.write("10.0.0.11\n")
@@ -232,16 +218,14 @@ def test_manage_nodes(tmpdir, monkeypatch):
     assert jdata["nodes"][1]["state"] == "ready"
 
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"identity":"a", "node": "10.0.0.10", "pnn": 0,
                  "state": "ready"},
                 {"identity":"b", "node": "10.0.1.11", "pnn": 1,
                  "state": "changed"}
             ]}
-        """
-        )
+        """)
     with open(real_path, "w") as fh:
         fh.write("10.0.0.10\n")
         fh.write("10.0.0.11\n")
@@ -282,14 +266,12 @@ def test_manage_nodes_refresh_fails(tmpdir, monkeypatch):
 
     # node needs to be added
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
                 {"node": "10.0.0.11", "pnn": 1, "state": "new"}
             ]}
-        """
-        )
+        """)
     with open(real_path, "w") as fh:
         fh.write("10.0.0.10\n")
     with pytest.raises(Exception):
@@ -315,14 +297,12 @@ def test_manage_nodes_invalid_state(tmpdir):
 
     # node is ready but missing from nodes file
     with open(nodes_json, "w") as fh:
-        fh.write(
-            """
+        fh.write("""
             {"nodes": [
                 {"node": "10.0.0.10", "pnn": 0, "state": "ready"},
                 {"node": "10.0.0.11", "pnn": 1, "state": "ready"}
             ]}
-        """
-        )
+        """)
     with open(real_path, "w") as fh:
         fh.write("10.0.0.10\n")
     with pytest.raises(ValueError):
