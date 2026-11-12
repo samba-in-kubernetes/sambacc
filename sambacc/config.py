@@ -22,7 +22,7 @@ import binascii
 import enum
 import errno
 import json
-import sys
+import tomllib
 import typing
 import urllib
 
@@ -88,25 +88,8 @@ class ConfigFormatUnsupported(Exception):
     pass
 
 
-if sys.version_info >= (3, 11):
-
-    def _load_toml(source: typing.IO) -> JSONData:
-        try:
-            import tomllib
-        except ImportError:
-            raise ConfigFormatUnsupported(ConfigFormat.TOML)
-        return tomllib.load(source)
-
-else:
-
-    def _load_toml(source: typing.IO) -> JSONData:
-        try:
-            import tomli
-        except ImportError:
-            raise ConfigFormatUnsupported(ConfigFormat.TOML)
-        if typing.TYPE_CHECKING:
-            assert isinstance(source, typing.BinaryIO)
-        return tomli.load(source)
+def _load_toml(source: typing.IO) -> JSONData:
+    return tomllib.load(source)
 
 
 def _load_yaml(source: typing.IO) -> JSONData:

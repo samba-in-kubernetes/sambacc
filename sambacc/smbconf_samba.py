@@ -16,7 +16,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-import sys
 import types
 import importlib
 import typing
@@ -37,12 +36,6 @@ def _s3param() -> types.ModuleType:
     return importlib.import_module("samba.samba3.param")
 
 
-if sys.version_info >= (3, 11):
-    from typing import Self as _Self
-else:
-    _Self = typing.TypeVar("_Self", bound="SMBConf")
-
-
 class SMBConf:
     """SMBConf wraps the samba smbconf library, supporting reading from and,
     when possible, writing to samba configuration backends.  The SMBConf type
@@ -56,16 +49,16 @@ class SMBConf:
         self._smbconf = smbconf
 
     @classmethod
-    def from_file(cls: typing.Type[_Self], path: str) -> _Self:
+    def from_file(cls, path: str) -> typing.Self:
         """Open a smb.conf style configuration from the specified path."""
         return cls(_smbconf().init_txt(path))
 
     @classmethod
     def from_registry(
-        cls: typing.Type[_Self],
+        cls,
         configfile: str = "/etc/samba/smb.conf",
         key: typing.Optional[str] = None,
-    ) -> _Self:
+    ) -> typing.Self:
         """Open samba's registry backend for configuration parameters."""
         s3_lp = _s3param().get_context()
         s3_lp.load(configfile)
@@ -76,10 +69,7 @@ class SMBConf:
         """True if using a read-write backend."""
         return self._smbconf.is_writeable()
 
-    # the extraneous `self: _Self` type makes mypy on python <3.11 happy.
-    # otherwise it complains: `A function returning TypeVar should receive at
-    # least one argument containing the same TypeVar`
-    def __enter__(self: _Self) -> _Self:
+    def __enter__(self) -> typing.Self:
         self._smbconf.transaction_start()
         return self
 
