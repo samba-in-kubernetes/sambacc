@@ -18,6 +18,7 @@
 
 import contextlib
 import logging
+import os
 import signal
 import time
 import typing
@@ -78,6 +79,9 @@ def _run_container_args(parser):
             "Specify one or more setup step names to preconfigure the"
             " container environment before the server process is started."
             " The special 'init-all' name will perform all known setup steps."
+            " Additional steps may be appended to this list via the"
+            " SAMBACC_EXTRA_SETUP env variable."
+            " When using SAMBACC_EXTRA_SETUP separate step names with commas."
         ),
     )
     _wait_for_choices = _wait_for_conditions.keys()
@@ -131,6 +135,32 @@ def _timeout(timeout: int) -> typing.Iterator[None]:
     signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
 
+def _extra_setup_steps() -> list[str]:
+    """Return setup steps from the comma separated SAMBACC_EXTRA_SETUP."""
+    value = os.environ.get("SAMBACC_EXTRA_SETUP", "")
+    steps = [s.strip() for s in value.split(",") if s.strip()]
+    valid = list(setup_step_names())
+    for step in steps:
+        if step not in valid:
+            raise Fail(f"invalid step in SAMBACC_EXTRA_SETUP: {step}")
+    return steps
+
+
+def _perform_setup(ctx: Context) -> None:
+    extra_steps = _extra_setup_steps()
+    # running servers expect to make use of ctdb whenever it is configured
+    ctx.expects_ctdb = True
+    if ctx.cli.no_init:
+        # TODO: drop this along with --no-init and move to a opt-in
+        # rather than opt-out form of pre-run setup
+        return
+    steps: list[str] | None = None
+    if ctx.cli.setup:
+        steps = list(ctx.cli.setup)
+        steps = None if INIT_ALL in steps else steps
+    init_container(ctx, steps=steps, extra_steps=extra_steps)
+
+
 @commands.command(name="run", arg_func=_run_container_args)
 def run_container(ctx: Context) -> None:
     """Run a specified server process."""
@@ -143,15 +173,7 @@ def run_container(ctx: Context) -> None:
             while not all(c.met(ctx) for c in conditions):
                 time.sleep(1)
 
-    # running servers expect to make use of ctdb whenever it is configured
-    ctx.expects_ctdb = True
-    if not ctx.cli.no_init and not ctx.cli.setup:
-        # TODO: drop this along with --no-init and move to a opt-in
-        # rather than opt-out form of pre-run setup
-        init_container(ctx)
-    elif ctx.cli.setup:
-        steps = list(ctx.cli.setup)
-        init_container(ctx, steps=(None if INIT_ALL in steps else steps))
+    _perform_setup(ctx)
 
     paths.ensure_samba_dirs()
     if ctx.cli.target == "smbd":
