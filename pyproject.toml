@@ -2,6 +2,62 @@
 requires = ["setuptools>=68", "wheel", "setuptools_scm>=6.0"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "sambacc"
+authors = [{name = "John Mulligan", email = "phlogistonjohn@asynchrono.us"}]
+description = "Samba Container Configurator"
+requires-python = ">=3.12"
+# NOTE: this style of license value is deprecated and will generate a warning
+# on newer setuptools versions. However we need to keep this as the version of
+# setuptools on EL10 requires this form. This may suddenly break in the future
+# but I couldn't find a good setuptools maximum version to prevent it. So just
+# keep an eye out for failures on fc46 for example.
+# See also: https://setuptools.pypa.io/en/latest/userguide/license_migration.html
+license = {text = "GPL-3.0"}
+readme = {file = "README.md", content-type = "text/markdown"}
+dynamic = ["version"]
+
+[project.urls]
+source = "https://github.com/samba-in-kubernetes/sambacc"
+
+[project.optional-dependencies]
+validation = ["jsonschema>=4.10"]
+yaml = ["PyYAML>=5.4"]
+toml = []
+rados = ["rados"]
+grpc = ["grpcio-reflection", "grpcio>=1.48", "protobuf>=3.19"]
+keybridge = ["PyKMIP", "varlink"]
+
+[project.scripts]
+samba-container = "sambacc.commands.main:main"
+samba-dc-container = "sambacc.commands.dcmain:main"
+samba-remote-control = "sambacc.commands.remotecontrol.main:main"
+samba-satellite = "sambacc.commands.satellite.__main__:main"
+
+[tool.setuptools]
+packages = [
+    "sambacc",
+    "sambacc.ceph",
+    "sambacc.commands",
+    "sambacc.commands.remotecontrol",
+    "sambacc.commands.satellite",
+    "sambacc.grpc",
+    "sambacc.grpc.generated",
+    "sambacc.grpc.protobufs",
+    "sambacc.kmip",
+    "sambacc.schema",
+    "sambacc.varlink",
+    "sambacc.varlink.interfaces",
+]
+
+[tool.setuptools.data-files]
+"share/sambacc/examples" = [
+  "examples/ctdb.json",
+  "examples/example1.json",
+  "examples/minimal.json",
+  "examples/addc.json",
+]
+
 [tool.setuptools_scm]
 fallback_version = "0.1"
 write_to = "sambacc/_version.py"
