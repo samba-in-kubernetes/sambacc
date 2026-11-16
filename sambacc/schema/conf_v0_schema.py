@@ -426,6 +426,28 @@ SCHEMA = {
         },
         "ctdb": {
             "type": "object",
+            "properties": {
+                "public_addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "address": {"type": "string"},
+                            "interfaces": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                            },
+                        },
+                        "required": ["address", "interfaces"],
+                        "additionalProperties": False,
+                    },
+                },
+                "ctdb_port": {"type": "integer"},
+                "conf_file_includes": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+            },
             "additionalProperties": {"type": "string"},
         },
         "config:merge": {
