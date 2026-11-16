@@ -252,6 +252,13 @@ SCHEMA = {
                         ),
                         "type": "string",
                     },
+                    "keybridge_config": {
+                        "description": (
+                            "Name of the keybridge server configuration to"
+                            " use."
+                        ),
+                        "type": "string",
+                    },
                 },
                 "additionalProperties": False,
             },
@@ -450,6 +457,49 @@ SCHEMA = {
             },
             "additionalProperties": {"type": "string"},
         },
+        "keybridge": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "properties": {
+                    "scopes": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "hostnames": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
+                                "port": {"type": "integer"},
+                                "tls_paths": {
+                                    "type": "object",
+                                    "properties": {
+                                        "cert": {"type": "string"},
+                                        "key": {"type": "string"},
+                                        "ca_cert": {"type": "string"},
+                                    },
+                                    "additionalProperties": False,
+                                },
+                            },
+                            "required": ["name"],
+                            "additionalProperties": False,
+                        },
+                    },
+                    "verify_peer": {
+                        "type": "object",
+                        "properties": {
+                            "check_pid": {"type": "string"},
+                            "check_uid": {"type": "string"},
+                            "check_gid": {"type": "string"},
+                        },
+                        "additionalProperties": False,
+                    },
+                },
+                "additionalProperties": False,
+            },
+        },
         "config:merge": {
             "type": "object",
             "properties": {
@@ -465,6 +515,7 @@ SCHEMA = {
                     "$ref": "#/properties/organizational_units"
                 },
                 "ctdb": {"$ref": "#/properties/ctdb"},
+                "keybridge": {"$ref": "#/properties/keybridge"},
             },
         },
     },

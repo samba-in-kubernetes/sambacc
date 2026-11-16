@@ -235,6 +235,10 @@
           "domain_settings": {
             "description": "The name of the domain settings. Only used with 'ADDC' feature flag.\n",
             "type": "string"
+          },
+          "keybridge_config": {
+            "description": "Name of the keybridge server configuration to use.",
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -419,6 +423,69 @@
         "type": "string"
       }
     },
+    "keybridge": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "hostnames": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "port": {
+                  "type": "integer"
+                },
+                "tls_paths": {
+                  "type": "object",
+                  "properties": {
+                    "cert": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "ca_cert": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "verify_peer": {
+            "type": "object",
+            "properties": {
+              "check_pid": {
+                "type": "string"
+              },
+              "check_uid": {
+                "type": "string"
+              },
+              "check_gid": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "config:merge": {
       "type": "object",
       "properties": {
@@ -451,6 +518,9 @@
         },
         "ctdb": {
           "$ref": "#/properties/ctdb"
+        },
+        "keybridge": {
+          "$ref": "#/properties/keybridge"
         }
       }
     }
