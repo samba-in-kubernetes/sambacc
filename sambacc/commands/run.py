@@ -27,12 +27,11 @@ from sambacc import samba_cmds
 import sambacc.paths as paths
 
 from .cli import commands, Context, Fail
-from .initialize import init_container, setup_step_names
+from .initialize import setup_step_names, setup_container, SetupBehavior
 from .join import join
 
 _logger = logging.getLogger(__name__)
 
-INIT_ALL = "init-all"
 SMBD = "smbd"
 WINBINDD = "winbindd"
 CTDBD = "ctdbd"
@@ -63,25 +62,28 @@ _wait_for_conditions = {"ctdb": WaitForCTDBCondition}
 
 def _run_container_args(parser):
     parser.add_argument(
-        "--no-init",
-        action="store_true",
+        "--setup-behavior",
+        choices=[str(b) for b in SetupBehavior],
         help=(
-            "(DEPRECATED - see --setup) Do not initialize the container"
-            " envionment. Only start running the target process."
+            "Control what setup steps are applied."
+            " defaults - explicitly run default setup steps only."
+            " defaults_plus - run all default steps plus given steps."
+            " requested - only run given setup steps."
+            " If not supplied, it behaves like 'defaults' if no explicit"
+            " steps are given otherwise it acts like 'requested'"
+            " Additional steps may be executed using the"
+            " SAMBACC_EXTRA_SETUP env variable."
+            " When using SAMBACC_EXTRA_SETUP separate step names with commas."
+            " This list is always executed."
         ),
     )
-    _setup_choices = [INIT_ALL] + list(setup_step_names())
     parser.add_argument(
         "--setup",
         action="append",
-        choices=_setup_choices,
+        choices=list(setup_step_names()),
         help=(
             "Specify one or more setup step names to preconfigure the"
             " container environment before the server process is started."
-            " The special 'init-all' name will perform all known setup steps."
-            " Additional steps may be appended to this list via the"
-            " SAMBACC_EXTRA_SETUP env variable."
-            " When using SAMBACC_EXTRA_SETUP separate step names with commas."
         ),
     )
     _wait_for_choices = _wait_for_conditions.keys()
@@ -150,23 +152,23 @@ def _perform_setup(ctx: Context) -> None:
     extra_steps = _extra_setup_steps()
     # running servers expect to make use of ctdb whenever it is configured
     ctx.expects_ctdb = True
-    if ctx.cli.no_init:
-        # TODO: drop this along with --no-init and move to a opt-in
-        # rather than opt-out form of pre-run setup
-        return
-    steps: list[str] | None = None
-    if ctx.cli.setup:
-        steps = list(ctx.cli.setup)
-        steps = None if INIT_ALL in steps else steps
-    init_container(ctx, steps=steps, extra_steps=extra_steps)
+
+    if ctx.cli.setup_behavior:
+        behavior = SetupBehavior(ctx.cli.setup_behavior)
+    elif ctx.cli.setup:
+        # legacy behavior when setup steps are given
+        behavior = SetupBehavior.REQUESTED
+    else:
+        # legacy behavior for no setup steps are given
+        behavior = SetupBehavior.DEFAULTS
+    setup_container(
+        ctx, behavior, steps=ctx.cli.setup, extra_steps=extra_steps
+    )
 
 
 @commands.command(name="run", arg_func=_run_container_args)
 def run_container(ctx: Context) -> None:
     """Run a specified server process."""
-    if ctx.cli.no_init and ctx.cli.setup:
-        raise Fail("can not specify both --no-init and --setup")
-
     if ctx.cli.wait_for:
         with _timeout(_COND_TIMEOUT):
             conditions = [_wait_for_conditions[n]() for n in ctx.cli.wait_for]
