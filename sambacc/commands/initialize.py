@@ -17,6 +17,7 @@
 #
 
 from collections.abc import Iterable
+import enum
 import logging
 
 from sambacc.config import ShareOrigin
@@ -147,13 +148,34 @@ def setup_step_names():
 
 
 @commands.command(name="init")
-def init_container(
+def init_container(ctx: Context) -> None:
+    """Initialize the entire container environment."""
+    setup_container(ctx, SetupBehavior.DEFAULTS)
+
+
+class SetupBehavior(enum.StrEnum):
+    DEFAULTS = enum.auto()
+    DEFAULTS_PLUS = enum.auto()
+    REQUESTED = enum.auto()
+
+
+def setup_container(
     ctx: Context,
+    behavior: SetupBehavior,
     steps: Iterable[str] | None = None,
     extra_steps: Iterable[str] | None = None,
 ) -> None:
-    """Initialize the entire container environment."""
-    steps = _default_setup_steps if steps is None else list(steps)
+    if behavior is SetupBehavior.DEFAULTS:
+        if steps:
+            raise ValueError("default steps requested but steps given")
+        steps = _default_setup_steps
+    elif behavior is SetupBehavior.DEFAULTS_PLUS:
+        steps = list(_default_setup_steps) + [
+            s for s in (steps or []) if s not in _default_setup_steps
+        ]
+    else:
+        steps = list(steps or [])
+
     cmds = setup_steps.dict()
     for step_name in steps:
         cmds[step_name].cmd_func(ctx)
