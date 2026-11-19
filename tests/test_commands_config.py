@@ -21,6 +21,8 @@ import functools
 import os
 import unittest.mock
 
+import pytest
+
 import sambacc.config
 import sambacc.opener
 import sambacc.paths
@@ -28,6 +30,24 @@ import sambacc.passdb_loader
 
 import sambacc.commands.config
 import sambacc.commands.cli
+import sambacc.smbconf_samba
+import sambacc.smbconf_api
+
+
+@pytest.fixture(autouse=True)
+def _force_netcmd_fallback(monkeypatch):
+    """Force _import_config to use the NetCmdLoader fallback by making
+    SMBConf unavailable.  This keeps the config-change/update tests
+    independent of whether the samba smbconf python bindings are present.
+    """
+    mock_cls = unittest.mock.MagicMock()
+    mock_cls.from_registry.side_effect = ImportError("smbconf not available")
+    monkeypatch.setattr(
+        sambacc.smbconf_samba,
+        "SMBConf",
+        mock_cls,
+    )
+
 
 config1 = """
 {
@@ -378,3 +398,74 @@ def test_update_config_watch_waiter_trigger3(tmp_path, monkeypatch):
     assert any(("net" in line) for line in chk)
     assert any(("smbcontrol" in line) for line in chk)
     assert fake_waiter.count == 5
+
+
+def test_import_config_fallback_to_netcmd(tmp_path, monkeypatch):
+    """Verify _import_config falls back to NetCmdLoader when SMBConf is
+    not importable."""
+    cfg_path = str(tmp_path / "config")
+    fake = tmp_path / "fake.sh"
+    chkpath = tmp_path / ".executed"
+    _gen_fake_cmd(fake, str(chkpath))
+    monkeypatch.setattr(sambacc.samba_cmds, "_GLOBAL_PREFIX", [str(fake)])
+
+    ctx = FakeContext.defaults(cfg_path, tmpdir=tmp_path)
+
+    # Make SMBConf unavailable by raising ImportError
+    import builtins
+
+    real_import = builtins.__import__
+
+    def _no_smbconf(name, *args, **kwargs):
+        if name == "sambacc.smbconf_samba":
+            raise ImportError("no smbconf")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _no_smbconf)
+
+    sambacc.commands.config._import_config(ctx.instance_config)
+
+    assert os.path.exists(chkpath)
+    chk = open(chkpath).readlines()
+    assert any(("net" in line) for line in chk)
+
+
+def test_import_config_uses_smbconf(tmp_path, monkeypatch):
+    """Verify _import_config uses SMBConf when available."""
+    cfg_path = str(tmp_path / "config")
+    ctx = FakeContext.defaults(cfg_path, tmpdir=tmp_path)
+
+    mock_smbconf_cls = unittest.mock.MagicMock()
+    mock_smbconf_instance = unittest.mock.MagicMock()
+    mock_smbconf_cls.from_registry.return_value = mock_smbconf_instance
+
+    monkeypatch.setattr(sambacc.smbconf_samba, "SMBConf", mock_smbconf_cls)
+
+    sambacc.commands.config._import_config(ctx.instance_config)
+
+    mock_smbconf_cls.from_registry.assert_called_once()
+    mock_smbconf_instance.import_smbconf.assert_called_once()
+    imported_store = mock_smbconf_instance.import_smbconf.call_args[0][0]
+    assert isinstance(imported_store, sambacc.smbconf_api.InstanceConfigStore)
+
+
+def test_import_config_smbconf_error_falls_back(tmp_path, monkeypatch):
+    """Verify _import_config falls back when SMBConf raises at runtime."""
+    cfg_path = str(tmp_path / "config")
+    fake = tmp_path / "fake.sh"
+    chkpath = tmp_path / ".executed"
+    _gen_fake_cmd(fake, str(chkpath))
+    monkeypatch.setattr(sambacc.samba_cmds, "_GLOBAL_PREFIX", [str(fake)])
+
+    ctx = FakeContext.defaults(cfg_path, tmpdir=tmp_path)
+
+    mock_smbconf_cls = unittest.mock.MagicMock()
+    mock_smbconf_cls.from_registry.side_effect = RuntimeError("registry err")
+
+    monkeypatch.setattr(sambacc.smbconf_samba, "SMBConf", mock_smbconf_cls)
+
+    sambacc.commands.config._import_config(ctx.instance_config)
+
+    assert os.path.exists(chkpath)
+    chk = open(chkpath).readlines()
+    assert any(("net" in line) for line in chk)

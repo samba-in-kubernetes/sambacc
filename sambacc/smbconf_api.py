@@ -18,6 +18,8 @@
 
 import typing
 
+from sambacc.config import SambaConfig
+
 
 class ConfigStore(typing.Protocol):
     def __getitem__(self, name: str) -> list[tuple[str, str]]:
@@ -61,6 +63,36 @@ class SimpleConfigStore:
         """
         for sname in src:
             self[sname] = src[sname]
+
+
+class InstanceConfigStore:
+    """Adapts an InstanceConfig (or any SambaConfig) to the ConfigStore
+    protocol.  This allows an InstanceConfig to be used as a source for
+    import_smbconf() on SMBConf.
+    """
+
+    def __init__(self, iconfig: SambaConfig) -> None:
+        self._iconfig = iconfig
+
+    @property
+    def writeable(self) -> bool:
+        return False
+
+    def __getitem__(self, name: str) -> list[tuple[str, str]]:
+        if name == "global":
+            return list(self._iconfig.global_options())
+        for share in self._iconfig.shares():
+            if share.name == name:
+                return list(share.share_options())
+        raise KeyError(name)
+
+    def __setitem__(self, name: str, value: list[tuple[str, str]]) -> None:
+        raise NotImplementedError("InstanceConfigStore is read-only")
+
+    def __iter__(self) -> typing.Iterator[str]:
+        yield "global"
+        for share in self._iconfig.shares():
+            yield share.name
 
 
 def write_store_as_smb_conf(out: typing.IO, conf: ConfigStore) -> None:
